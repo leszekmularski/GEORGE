@@ -1,4 +1,4 @@
-@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
+﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -103,4 +103,67 @@ a, .btn-link {
 .nav-scrollable {
     transition: width 0.3s ease-in-out;
     overflow-x: hidden;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Tabela plików – jednolite tło wierszy i subtelny hover
+   (nadpisuje domyślny hover AntDesign i inne globalne reguły)
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* Baza – wszystkie wiersze startują z jasnym tłem */
+.pliki-table .ant-table-tbody > tr > td {
+    background-color: #ffffff !important;
+    transition: background-color .15s ease;
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+
+/* PDF – bardzo jasny czerwony */
+.pliki-table .ant-table-tbody > tr.pdf-class > td {
+    background-color: #fff5f5 !important;
+}
+
+/* DXF / DWG – bardzo jasny błękit */
+.pliki-table .ant-table-tbody > tr.dxf-class > td {
+    background-color: #f0f7ff !important;
+}
+
+/* Domyślne / nieznane – biały */
+.pliki-table .ant-table-tbody > tr.zlecenieNaN > td {
+    background-color: #ffffff !important;
+}
+
+/* ⬇⬇ HOVER – delikatny błękit, NIE zielony ⬇⬇ */
+.pliki-table .ant-table-tbody > tr:hover > td,
+.pliki-table .ant-table-tbody > tr.ant-table-row:hover > td,
+.pliki-table .ant-table-tbody > tr > td.ant-table-cell-row-hover {
+    background-color: #e6f4ff !important;
+}
+
+/* Zaznaczony (checkbox) – wyraźniejszy akcent */
+.pliki-table .ant-table-tbody > tr.ant-table-row-selected > td {
+    background-color: #d6e4ff !important;
+}
+
+/* Nagłówki tabeli */
+.pliki-table .ant-table-thead > tr > th {
+    background-color: #fafafa !important;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding: 8px !important;
+}
+
+/* Cała tabela trochę mniejsza czcionka */
+.pliki-table .ant-table {
+    font-size: 0.8rem;
+}
+
+/* Kompaktowe komórki – mniej „luźno" */
+.pliki-table .ant-table-tbody > tr > td {
+    padding: 6px 8px !important;
+    vertical-align: middle;
+}
+
+/* Globalny bezpiecznik – gdyby jakaś inna reguła próbowała wymusić zieleń */
+.ant-table-tbody > tr:hover > td {
+    background-color: #e6f4ff !important;
 }

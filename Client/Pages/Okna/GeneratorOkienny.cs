@@ -172,6 +172,7 @@ namespace GEORGE.Client.Pages.Okna
             }
             else if (ElementLiniowy)
             {
+
                 region = regions.FirstOrDefault(r => r.Id != null);
                 Console.WriteLine($"✅ AddElements Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
                 punkty = region.Wierzcholki;
@@ -372,6 +373,8 @@ namespace GEORGE.Client.Pages.Okna
             bool stronaA = false;
             bool stronaB = false;
 
+            List<XPoint> punktyMasterSlupka = null;
+
             if (ElementLiniowy)
             {
                 var p1 = punkty[0];
@@ -384,19 +387,21 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"🔷 ElementLiniowy: orientacja = {(liniaPionowa ? "PIONOWA" : liniaPozioma ? "POZIOMA" : "SKOŚNA")}");
 
-                var kandydaci = daneKwadratu
+               var kandydaci = daneKwadratu
                     .Where(s => s.Przesuniecia != null && s.Przesuniecia.Count > 0 &&
                                 s.Wierzcholki != null && s.Wierzcholki.Count > 1)
                     .Select(s => new { Wpis = s, Odleglosc = OdlegloscPunktuOdOdcinka(mouseClik.X, mouseClik.Y, s.Wierzcholki![0], s.Wierzcholki[1]) })
                     .OrderBy(x => x.Odleglosc)
                     .ToList();
 
-                Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wpisów z Przesunieciami:");
+                    Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wpisów z Przesunieciami:");
 
                 foreach (var k in kandydaci)
                 {
-                    Console.WriteLine($"   {k.Wpis.RowIdElementu} (strona={k.Wpis.Strona}) odl={k.Odleglosc:F2} region: {k.Wpis.RowIdRegionu}");
+                    Console.WriteLine($"🔷   {k.Wpis.RowIdElementu} (strona={k.Wpis.Strona}) odl={k.Odleglosc:F2} region: {k.Wpis.RowIdRegionu}");
                 }
+
+                punktyMasterSlupka = daneKwadratu.SingleOrDefault(x => x.RowIdRegionu == kandydaci.FirstOrDefault()?.Wpis.RowIdRegionu)?.Wierzcholki;
 
                 var konfPolaczenia = kandydaci.FirstOrDefault()?.Wpis.Przesuniecia;
 
@@ -565,6 +570,7 @@ namespace GEORGE.Client.Pages.Okna
                 TypObiektu,
                 daneKwadratu,
                 punktyRegionuMaster,
+                punktyMasterSlupka,
                 konfModeleElementy,
                 mouseClik,
                 oryginalnyRegionId);
@@ -621,7 +627,7 @@ namespace GEORGE.Client.Pages.Okna
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
-            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster,
+            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, List<XPoint> punktyRegionuMasterSlupka,
             List<KonfModeleElementy> konfModeleElementy,
             XPoint mouseClik,
             string? oryginalnyRegionId = null)
@@ -698,7 +704,7 @@ namespace GEORGE.Client.Pages.Okna
                     geo, i, next, prev, vertexCount,
                     firstangleDegrees,
                     stonaOstanioDodanegoElementu,
-                    daneKwadratu, punktyRegionuMaster, mouseClik,
+                    daneKwadratu, punktyRegionuMaster, punktyRegionuMasterSlupka, mouseClik,
                     ElementLiniowy);
 
                 if (!wynik.Ok)
@@ -1070,6 +1076,7 @@ namespace GEORGE.Client.Pages.Okna
             string stonaOstanioDodanegoElementu,
             List<DaneKwadratu> daneKwadratu,
             List<XPoint> punktyRegionuMaster,
+            List<XPoint> punktyRegionuMasterSlupka,
             XPoint mouseClik,
             bool elementLiniowy)
         {
@@ -1101,7 +1108,8 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
                 {
-                    var w = WierzcholkiT5T5(outer, inner, i, next, daneKwadratu, punktyRegionuMaster, mouseClik, geo);
+                    var w = WierzcholkiT5T5(outer, inner, i, next, daneKwadratu, punktyRegionuMaster, punktyRegionuMasterSlupka, 
+                        mouseClik, geo);
                     if (!w.Ok) return w;
                     wierzcholki = w.Wierzcholki;
                 }
@@ -1898,6 +1906,7 @@ namespace GEORGE.Client.Pages.Okna
             List<XPoint> outer, List<XPoint> inner, int i, int next,
             List<DaneKwadratu> daneKwadratu,
             List<XPoint> punktyRegionuMaster,
+            List<XPoint> punktyRegionuMasterSlupek,
             XPoint mouseClik,
             GeometriaBoku geo)
         {
@@ -2130,9 +2139,24 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             List<XPoint> punktyRegionuMasterModyfikowane;
 
+            Console.WriteLine($"🔷 T5-T5: stronaA={stronaA}, stronaB={stronaB}, punktyRegionuMasterSlupek.Count={punktyRegionuMasterSlupek?.Count ?? 0}, punktyRegionuMaster.Count={punktyRegionuMaster?.Count ?? 0}");
+
+
             if (!stronaA && !stronaB)
             {
                 punktyRegionuMasterModyfikowane = punktyRegionuMaster;
+
+                if(punktyRegionuMasterSlupek != null && punktyRegionuMasterSlupek.Count > 2)
+                {
+                    punktyRegionuMasterModyfikowane = PrepareRegionPoints(
+                        TopXT5,
+                        BottomXT5,
+                        punktyRegionuMasterSlupek,
+                        stronaA,
+                        stronaB,
+                        geo.ProfileTop,
+                        geo.ProfileBottom);
+                }
             }
             else
             {

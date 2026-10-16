@@ -4665,6 +4665,7 @@
             }
             else
             {
+                generator.ElementLiniowy = true;
                 AktualizujDaneKwadratuSlupka(genState.Value.ListaKwadratow, region, cleanId);
             }
 
@@ -4966,28 +4967,28 @@
 
             var obrGen = _generatorStates.OrderBy(x => x.Value.ZIndeks).ToList();
 
-            Console.WriteLine("═══ STANY vs REGIONY ═══");
-            foreach (var kv in _generatorStates)
-            {
-                Console.WriteLine($"  state key = '{kv.Key}'");
-                Console.WriteLine($"     IdRegion       = '{kv.Value.IdRegion}'");
-                Console.WriteLine($"     IdMaster       = '{kv.Value.IdMaster}'");
-                Console.WriteLine($"     Typ            = '{kv.Value.WybranyModel?.Typ}'");
-            }
+            // Console.WriteLine("═══ STANY vs REGIONY ═══");
+            // foreach (var kv in _generatorStates)
+            // {
+            //     Console.WriteLine($"  state key = '{kv.Key}'");
+            //     Console.WriteLine($"     IdRegion       = '{kv.Value.IdRegion}'");
+            //     Console.WriteLine($"     IdMaster       = '{kv.Value.IdMaster}'");
+            //     Console.WriteLine($"     Typ            = '{kv.Value.WybranyModel?.Typ}'");
+            // }
 
-            Console.WriteLine("═══ REGIONY ═══");
-            foreach (var r in wszystkieRegiony)
-            {
-                Console.WriteLine($"  region.Id       = '{r.Id}'");
-                Console.WriteLine($"     IdMaster      = '{r.IdMaster}'");
-                Console.WriteLine($"     TypKsztaltu   = '{r.TypKsztaltu}'");
-            }
+            // Console.WriteLine("═══ REGIONY ═══");
+            // foreach (var r in wszystkieRegiony)
+            // {
+            //     Console.WriteLine($"  region.Id       = '{r.Id}'");
+            //     Console.WriteLine($"     IdMaster      = '{r.IdMaster}'");
+            //     Console.WriteLine($"     TypKsztaltu   = '{r.TypKsztaltu}'");
+            // }
 
             foreach (var genState in obrGen)
             {
                 string cleanId = genState.Value.IdRegion;
 
-
+                Console.Clear();
                 Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {genState.Value.WybranyModel.Typ?.Trim()}");
                 Console.WriteLine($"🔍 ZmienWymiary: cleanId={cleanId} " +
                       $"Typ={genState.Value.WybranyModel?.Typ} " +
@@ -4995,10 +4996,10 @@
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
 
-                if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
-                {
-                    region = wszystkieRegiony.FirstOrDefault(r => r.Id == genState.Value.IdRegionWarstwaNizej);
-                }
+                // if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
+                // {
+                //     region = wszystkieRegiony.FirstOrDefault(r => r.Id == genState.Value.IdRegionWarstwaNizej);
+                // }
 
                 Console.WriteLine($"   region: {(region == null ? "NULL" : region.Id)} " +
                                     $"Typ={region?.TypKsztaltu} " +
@@ -5113,11 +5114,12 @@
                     }
                 }
 
-                // // -----------------------------------------------------
-                // // Obsługa słupka stałego
-                // // -----------------------------------------------------
-                // if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
-                // {
+                // -----------------------------------------------------
+                // Obsługa słupka stałego
+                // -----------------------------------------------------
+                if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
+                {
+                    generator.ElementLiniowy = true;
                 //     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
                 //         .FirstOrDefault(r => r.Id == genState.Value.IdMaster);
 
@@ -5155,7 +5157,7 @@
                 // //         //     wybranyRegionSlupek,
                 // //         //     cleanId);
                 // //     }
-                // }
+                }
 
                 // -----------------------------------------------------
                 // Dodaj elementy do generatora

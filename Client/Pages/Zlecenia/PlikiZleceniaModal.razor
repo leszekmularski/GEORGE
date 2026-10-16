@@ -1,0 +1,615 @@
+﻿@using AntDesign
+@using AntDesign.TableModels
+@using GEORGE.Shared.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using GEORGE.Client.Pages.Models
+@inject GEORGE.Client.Services.FileClipboardService Clipboard
+@inject HttpClient Http
+@inject INotificationService _notice
+@implements IDisposable
+
+<style>
+    /* Akcje usuwania – dwa linki obok siebie */
+    .file-delete-actions {
+        display: inline-flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-left: 0.25rem;
+    }
+
+    .file-action-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: background-color .15s, color .15s;
+        text-decoration: none !important;
+        white-space: nowrap;
+    }
+
+        .file-action-link .anticon {
+            font-size: 0.85rem;
+        }
+
+    /* Usuń wszędzie – czerwony */
+    .file-action-link--danger {
+        color: #d4380d;
+    }
+
+        .file-action-link--danger:hover {
+            background-color: #fff1f0;
+            color: #cf1322;
+        }
+
+    /* Usuń tylko wpis – pomarańczowy */
+    .file-action-link--warning {
+        color: #d46b08;
+    }
+
+        .file-action-link--warning:hover {
+            background-color: #fff7e6;
+            color: #ad4e00;
+        }
+
+    /* ── Tabela plików – spójne tło i hover ───────────────────────────── */
+
+    /* Wiersze domyślne – delikatne tło */
+    ::deep .ant-table-tbody > tr.zlecenieNaN > td {
+        background-color: #ffffff !important;
+        transition: background-color .15s ease;
+    }
+
+    /* PDF – ciepły, bardzo jasny czerwony (nie krzyczy) */
+    ::deep .ant-table-tbody > tr.pdf-class > td {
+        background-color: #fff5f5 !important;
+        transition: background-color .15s ease;
+    }
+
+    /* DXF / DWG – bardzo jasny błękit */
+    ::deep .ant-table-tbody > tr.dxf-class > td {
+        background-color: #f0f7ff !important;
+        transition: background-color .15s ease;
+    }
+
+    /* Hover – jednolity, subtelny, NIE zielony */
+    ::deep .ant-table-tbody > tr:hover > td,
+    ::deep .ant-table-tbody > tr.ant-table-row:hover > td,
+    ::deep .ant-table-tbody > tr > td.ant-table-cell-row-hover {
+        background-color: #e6f4ff !important; /* delikatny błękit – jak AntDesign */
+        transition: background-color .1s ease;
+    }
+
+    /* Wybrany (checkbox) wiersz – wyraźniejszy akcent */
+    ::deep .ant-table-tbody > tr.ant-table-row-selected > td {
+        background-color: #d6e4ff !important;
+    }
+
+    /* Usuń zielony „pasek" i miganie wierszy w trakcie animacji */
+    ::deep .ant-table-tbody > tr {
+        transition: none !important;
+    }
+
+        /* Delikatny obrys oddzielający wiersze */
+        ::deep .ant-table-tbody > tr > td {
+            border-bottom: 1px solid #f0f0f0 !important;
+        }
+
+        /* Kompaktowy padding – mniej „luźne" wiersze */
+        ::deep .ant-table-tbody > tr > td {
+            padding: 6px 8px !important;
+            vertical-align: middle;
+        }
+
+    /* ── Komórka akcji – pionowy stos ──────────────────────────────────── */
+    .file-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 2px 0;
+        min-width: 0; /* ważne: pozwala dzieciom się kurczyć w flexie */
+    }
+
+    .file-cell__row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap; /* zamiast nowrap – niech zawija, jeśli brakuje miejsca */
+    }
+
+    .file-cell__row--top {
+        gap: 8px;
+    }
+
+    .file-cell__row--actions {
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .file-cell__row--delete {
+        justify-content: flex-start;
+        gap: 12px;
+        padding-top: 4px;
+        border-top: 1px dashed #f0f0f0;
+    }
+
+    /* ── Statystyki pobrań – kompaktowe ────────────────────────────────── */
+    .file-stats {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.62rem;
+        color: #8c8c8c;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .file-stats__sep {
+        opacity: 0.4;
+    }
+
+    /* ── Przyciski pobierania – mniejsze ───────────────────────────────── */
+    .file-actions {
+        display: inline-flex;
+        gap: 4px;
+        flex-wrap: nowrap;
+    }
+
+    .file-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        line-height: 1.2;
+        border-radius: 4px;
+        border: 1px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color .15s, border-color .15s;
+    }
+
+    .file-btn--download {
+        color: #0958d9;
+        background: #f0f7ff;
+        border-color: #bae0ff;
+    }
+
+        .file-btn--download:hover {
+            background: #e6f4ff;
+            border-color: #91caff;
+        }
+
+    .file-btn--convert {
+        color: #531dab;
+        background: #f9f0ff;
+        border-color: #d3adf7;
+    }
+
+        .file-btn--convert:hover {
+            background: #efdbff;
+            border-color: #b37feb;
+        }
+
+    .file-btn__icon {
+        flex-shrink: 0;
+    }
+
+    .file-btn__text {
+        white-space: nowrap;
+    }
+</style>
+
+<div class="modal fade @ClassShowFile" tabindex="-1" style="display: @DisplayFile;">
+    <div class="modal-dialog" style="max-width: 90%;">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Ilość plików powiązanych: @Pliki.Count()
+                    [<a href="javascript:void(0);" @onclick="OnCopyToClipboard">@Klient</a>]
+                </h5>
+            </div>
+
+            <div class="modal-body"
+            <div class="pliki-table">>
+                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@Pliki" ScrollX="1350"
+                       PageSize="4" Size="TableSize.Small"
+                       RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class"
+                        : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class"
+                        : "zlecenieNaN")">
+
+                    <!-- ✅ Kolumna checkbox – na poziomie Table, nie w ActionColumn -->
+                    <Column Title="" Width="40" Fixed="left" @bind-Field="@context.Id">
+                        <Template>
+                            <Checkbox Value="@_selectedIds.Contains(context.Id)"
+                                      ValueChanged="@(v => ToggleSelection(context.Id, v))" />
+                        </Template>
+                    </Column>
+
+                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku"
+                            OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
+                    <Column Title="Oryginalna nazwa pliku" Style="color:blue; font-weight:bold"
+                            @bind-Field="@context.OryginalnaNazwaPliku" Sortable
+                            OnFilter="(a, b) => a == b" Filterable />
+                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable
+                            OnFilter="(a, b) => a == b" Filterable Width="90" />
+                    <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable
+                            OnFilter="(a, b) => a == b" Filterable />
+
+                        <ActionColumn Title="Uwagi / Akcja" Width="380" Fixed="right">
+                            <Template>
+                                @{
+                                        var item = context as PlikiZlecenProdukcyjnych;
+                                        if (item is null) return;
+
+                                        var isNc = string.Equals(item.TypPliku, "/nc", StringComparison.OrdinalIgnoreCase);
+                                        var uniqueId = $"upload-{item.Id}";
+                                }
+
+                                <div class="file-cell">
+
+                                    @* ── Rząd 1: PDF + upload + checkbox widoczności ───────────── *@
+                                    <div class="file-cell__row file-cell__row--top">
+                                        @if (context.TypPliku.ToLower().EndsWith("pdf") && BoolAdmin)
+                                        {
+                                                <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
+                                                    <Button Type="ButtonType.Primary"
+                                                            Size="ButtonSize.Small"
+                                                            Icon="@IconType.Outline.FilePdf"
+                                                            Loading="OnlyIconLoadingPdf"
+                                                            OnClick="@(e => OnWydrukProdukcyjny.InvokeAsync(context.NazwaPliku))" />
+                                                </Tooltip>
+                                        }
+
+                                        @if (BoolAdmin)
+                                        {
+                                                <InputFile id="@uniqueId"
+                                                           OnChange="@(e => OnReplaceUploadFiles.InvokeAsync((e, context.NazwaPliku, context.Id)))"
+                                                           hidden multiple />
+                                                <Tooltip Placement="@Placement.Top" Title="Zastąp istniejący plik innym">
+                                                    <label class="ant-btn ant-btn-sm" for="@uniqueId">
+                                                        <Icon Type="upload" />
+                                                    </label>
+                                                </Tooltip>
+
+                                                <Checkbox @bind-Value="@context.WidocznyDlaWszystkich"
+                                                          OnChange="@(() => OnZmienWidocznosc.InvokeAsync(context))"
+                                                          TValue="bool">
+                                                    Widoczny
+                                                </Checkbox>
+                                        }
+                                    </div>
+
+                                    @* ── Rząd 2: uwagi ──────────────────────────────────────────── *@
+                                    <div class="file-cell__row">
+                                        <Input Placeholder="Podaj uwagę."
+                                               @bind-Value="@context.Uwagi"
+                                               MaxLength="55"
+                                               Size="small"
+                                               ReadOnly="@IsNotDisabled"
+                                               OnBlur="@(() => OnZmienUwage.InvokeAsync((context.Id, context.Uwagi)))" />
+                                    </div>
+
+                                    @* ── Rząd 3: pobieranie + statystyki ────────────────────────── *@
+                                    <div class="file-cell__row file-cell__row--actions">
+                                        <div class="file-actions">
+                                            @if (isNc)
+                                            {
+                                                    <button class="file-btn file-btn--convert"
+                                                            title="Pobierz plik i zamień rozszerzenie"
+                                                            @onclick="() => OnDownloadFile.InvokeAsync((item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id))">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                                             class="file-btn__icon bi bi-arrow-repeat" viewBox="0 0 16 16">
+                                                            <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9" />
+                                                            <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5 5 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z" />
+                                                        </svg>
+                                                        <span class="file-btn__text">Zamień rozszerzenie</span>
+                                                    </button>
+                                            }
+
+                                            <button class="file-btn file-btn--download" style="width:180px"
+                                                    title="Pobierz plik w oryginalnym formacie"
+                                                    @onclick="() => OnDownloadFile.InvokeAsync((item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id))">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                                     class="file-btn__icon bi bi-download" viewBox="0 0 16 16">
+                                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
+                                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
+                                                </svg>
+                                                <span class="file-btn__text" style="padding-left:50px">Pobierz</span>
+                                            </button>
+                                        </div>
+
+                                        <div class="file-stats" title="Statystyki pobrań">
+                                            <span>↓ @item.IloscPobranPliku</span>
+                                            <span class="file-stats__sep">|</span>
+                                            <span title="Pierwsze pobranie">1: @item.DataPierwszegoPobrania</span>
+                                            <span class="file-stats__sep">|</span>
+                                            <span title="Ostatnie pobranie">O: @item.DataOstatniegoPobrania</span>
+                                        </div>
+                                    </div>
+
+                                    @* ── Rząd 4: usuwanie ──────────────────────────────────────── *@
+                                    @if (BoolAdmin || BoolUsuniecia)
+                                    {
+                                            <Spin Spinning="@CzekajNaUsuniecie">
+                                                <div class="file-cell__row file-cell__row--delete">
+                                                    <Popconfirm Title="Usunąć plik z dysku i z bazy? Ta operacja jest nieodwracalna."
+                                                                OnConfirm="() => OnDeleteFile.InvokeAsync((item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne))"
+                                                                OkText="Tak, usuń wszędzie"
+                                                                CancelText="Anuluj"
+                                                                OkButtonProps="@(new ButtonProps { Danger = true })">
+                                                        <a class="file-action-link file-action-link--danger">
+                                                            <Icon Type="delete" Theme="outline" />
+                                                            <span>Usuń plik</span>
+                                                        </a>
+                                                    </Popconfirm>
+
+                                                    <Popconfirm Title="Usunąć tylko wpis z tego zlecenia? Plik pozostanie na dysku."
+                                                                OnConfirm="() => OnDeleteRecordOnly.InvokeAsync((item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne))"
+                                                                OkText="Tak, usuń wpis"
+                                                                CancelText="Anuluj"
+                                                                OkButtonProps="@(new ButtonProps { Danger = true })">
+                                                        <a class="file-action-link file-action-link--warning">
+                                                            <Icon Type="disconnect" Theme="outline" />
+                                                            <span>Usuń z listy</span>
+                                                        </a>
+                                                    </Popconfirm>
+                                                </div>
+                                            </Spin>
+                                    }
+                                </div>
+                            </Template>
+                        </ActionColumn>
+                        
+                    </Table>
+                </div>
+            </div>
+
+            <div class="modal-footer d-flex flex-wrap align-items-center gap-2">
+
+                <!-- ✅ Pasek operacji schowka -->
+                <Checkbox Value="AllSelected"
+                          ValueChanged="ToggleAll">
+                    Zaznacz wszystkie (@_selectedIds.Count)
+                </Checkbox>
+
+                <Button Type="ButtonType.Default"
+                        Icon="@IconType.Outline.Copy"
+                        Disabled="@(_selectedIds.Count == 0)"
+                        OnClick="CopySelectedAsync">
+                    Kopiuj zaznaczone (@_selectedIds.Count)
+                </Button>
+
+                @if (Clipboard.HasData && BoolAdmin)
+                {
+                    <Button Type="ButtonType.Primary"
+                            Icon="@IconType.Outline.Snippets"
+                            Loading="IsPasting"
+                            OnClick="PasteClipboardAsync">
+                        Wklej (@Clipboard.Count)
+                    </Button>
+                    <Button Type="ButtonType.Link" Danger
+                            OnClick="ClearClipboard">
+                        Wyczyść schowek
+                    </Button>
+                }
+
+                <span class="ms-3">Załącz nowe pliki</span>
+                <InputFile OnChange="@(e => OnHandleSelected.InvokeAsync(e))" multiple>
+                    Wybierz pliki powiązane ze zleceniem
+                </InputFile>
+
+                @if (!string.IsNullOrEmpty(BladZapisuPliku))
+                {
+                    <Alert Message="@BladZapisuPliku" Type="Error" Closable />
+                }
+
+                <Button Type="ButtonType.Primary" Loading="IsLoadingAll"
+                        Icon="@IconType.Outline.Download"
+                        @onclick="() => OnDownloadAllFile.InvokeAsync(false)">
+                    Pobierz wszystkie pliki
+                </Button>
+
+                <Button Type="ButtonType.Primary" Loading="IsLoadingAll"
+                        Icon="@IconType.Outline.Download"
+                        @onclick="() => OnDownloadAllFile.InvokeAsync(true)">
+                    Pobierz tylko pliki programów CNC
+                </Button>
+
+                <Button class="ms-auto" @onclick="() => OnHideDialogFile.InvokeAsync()">Zakończ</Button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // ── Dane ──────────────────────────────────────────────────────────────
+    [Parameter, EditorRequired]
+    public IReadOnlyList<PlikiZlecenProdukcyjnych> Pliki { get; set; }
+        = Array.Empty<PlikiZlecenProdukcyjnych>();
+    [Parameter] public string? Klient { get; set; }
+
+    // ── Sterowanie widocznością ───────────────────────────────────────────
+    [Parameter] public string ClassShowFile { get; set; } = "show";
+    [Parameter] public string DisplayFile { get; set; } = "block";
+
+    // ── Flagi / uprawnienia ───────────────────────────────────────────────
+    [Parameter] public string User { get; set; } = "NaN";
+    [Parameter] public bool BoolAdmin { get; set; }
+    [Parameter] public bool BoolUsuniecia { get; set; }
+    [Parameter] public bool IsNotDisabled { get; set; }
+    [Parameter] public bool OnlyIconLoadingPdf { get; set; }
+    [Parameter] public bool IsLoadingAll { get; set; }
+    [Parameter] public bool CzekajNaUsuniecie { get; set; }
+    [Parameter] public string? BladZapisuPliku { get; set; }
+    [Parameter] public List<UploadFileItem> FileList { get; set; } = new();
+
+    // ── Kontekst zlecenia ─────────────────────────────────────────────────
+    [Parameter] public string? RowIdZlecenia { get; set; }
+
+    // ── Callbacki ─────────────────────────────────────────────────────────
+    [Parameter] public EventCallback OnCopyToClipboard { get; set; }
+    [Parameter] public EventCallback<string> OnWydrukProdukcyjny { get; set; }
+    [Parameter] public EventCallback<PlikiZlecenProdukcyjnych> OnZmienWidocznosc { get; set; }
+
+    [Parameter]
+    public EventCallback<(InputFileChangeEventArgs Args, string NazwaPliku, long Id)> OnReplaceUploadFiles { get; set; }
+
+    [Parameter]
+    public EventCallback<(long Id, string Uwagi)> OnZmienUwage { get; set; }
+
+    [Parameter]
+    public EventCallback<(string NazwaPliku, string OryginalnaNazwa, bool Convert, long Id)> OnDownloadFile { get; set; }
+
+    [Parameter]
+    public EventCallback<(long Id, string NazwaPliku, string RowId)> OnDeleteFile { get; set; }
+
+    /// <summary>Usuwa wpis z bazy, ale zostawia plik na dysku.</summary>
+    [Parameter]
+    public EventCallback<(long Id, string NazwaPliku, string RowId)> OnDeleteRecordOnly { get; set; }
+
+    [Parameter] public EventCallback<InputFileChangeEventArgs> OnHandleSelected { get; set; }
+    [Parameter] public EventCallback<bool> OnDownloadAllFile { get; set; }
+    [Parameter] public EventCallback OnHideDialogFile { get; set; }
+
+    // ── Schowek: kopiuj / wklej ───────────────────────────────────────────
+    [Parameter] public EventCallback<List<PlikiZlecenProdukcyjnych>> OnCopySelected { get; set; }
+
+    /// <summary>Wywoływane po udanym wklejeniu – rodzic odświeża listę plików.</summary>
+    [Parameter] public EventCallback OnPasted { get; set; }
+
+    // ── Stan lokalny ──────────────────────────────────────────────────────
+    private readonly HashSet<long> _selectedIds = new();
+    private bool IsPasting { get; set; }
+
+    private bool AllSelected => Pliki.Count > 0 && _selectedIds.Count == Pliki.Count;
+
+    protected override void OnInitialized()
+    {
+        Clipboard.OnChange += HandleClipboardChanged;
+    }
+
+    private void HandleClipboardChanged()
+    {
+        // wywołanie może przyjść z innego wątku/synchronizacji – zawsze przez InvokeAsync
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Clipboard.OnChange -= HandleClipboardChanged;
+    }
+
+    private void ToggleSelection(long id, bool selected)
+    {
+        if (selected) _selectedIds.Add(id);
+        else _selectedIds.Remove(id);
+    }
+
+    private void ToggleAll(bool check)
+    {
+        _selectedIds.Clear();
+        if (check)
+        {
+            foreach (var p in Pliki) _selectedIds.Add(p.Id);
+        }
+    }
+
+    private async Task CopySelectedAsync()
+    {
+        if (_selectedIds.Count == 0) return;
+
+        var wybrane = Pliki.Where(p => _selectedIds.Contains(p.Id)).ToList();
+        await OnCopySelected.InvokeAsync(wybrane);
+
+        _selectedIds.Clear();
+        StateHasChanged();
+    }
+
+    private async Task PasteClipboardAsync()
+    {
+        if (!Clipboard.HasData)
+        {
+            _ = _notice.Warning(new()
+            {
+                Message = "Uwaga.",
+                Description = $"Schowek jest pusty.",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(RowIdZlecenia))
+        {
+            _ = _notice.Error(new()
+            {
+                Message = "Uwaga.",
+                Description = $"Brak identyfikatora zlecenia docelowego (RowIdZlecenia).",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        IsPasting = true;
+        StateHasChanged();
+
+        try
+        {
+            var ids = Clipboard.Files.Select(f => f.Id).ToList();
+            // ✅ URL-encode (spacje → %20, polskie znaki → %C4%85 itd.)
+            var encodedUser = Uri.EscapeDataString(User);
+
+            var url = $"api/FileUploadZlec/copy-files/{RowIdZlecenia}/{encodedUser}";
+
+            var resp = await Http.PostAsJsonAsync(url, new { Ids = ids });
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                var err = await resp.Content.ReadAsStringAsync();
+                _ = _notice.Error(new()
+                {
+                    Message = "Uwaga.",
+                    Description = $"Nie udało się wkleić plików: {err}!",
+                    Placement = NotificationPlacement.BottomLeft
+                });
+                return;
+            }
+
+            _ = _notice.Success(new()
+            {
+                Message = "Uwaga.",
+                Description = $"Wklejono {ids.Count} plik(ów) do tego zlecenia.",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            await OnPasted.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new()
+            {
+                Message = "Uwaga.",
+                Description = $"Błąd: {ex.Message}",
+                Placement = NotificationPlacement.BottomLeft
+            });
+        }
+        finally
+        {
+            IsPasting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearClipboard()
+    {
+        Clipboard.Clear();
+        StateHasChanged();
+    }
+}

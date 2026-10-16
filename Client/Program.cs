@@ -3,6 +3,7 @@ using GEORGE.Client;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Okna;
 using GEORGE.Client.Pages.PDF;
+using GEORGE.Client.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using System.Globalization;
@@ -46,6 +47,8 @@ builder.Services.AddSingleton<DxfToSvgConverter>();
 builder.Services.AddScoped<ImageGenerator>();
 builder.Services.AddSingleton<ShapeTransferService>();
 builder.Services.AddSingleton<GeneratorStateContainer>();
+
+builder.Services.AddScoped<FileClipboardService>();
 
 builder.Services.AddHighlightJS();
 

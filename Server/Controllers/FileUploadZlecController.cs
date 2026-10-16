@@ -3,12 +3,9 @@ using GEORGE.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.IO;
 using System.Net;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using static GEORGE.Client.Pages.Zlecenia.Zlecenia_produkcyjne;
-using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -140,7 +137,7 @@ public class FileUploadZlecController : ControllerBase
 
         if (System.IO.File.Exists(filePath))
         {
-            Console.WriteLine("******************************* KASUJE ISTNIEJACY PLIK ************************");  
+            Console.WriteLine("******************************* KASUJE ISTNIEJACY PLIK ************************");
             System.IO.File.Delete(filePath);
         }
 
@@ -278,6 +275,69 @@ public class FileUploadZlecController : ControllerBase
         return fileName.Substring(lastDotIndex + 1);
     }
 
+
+    public class CopyFilesRequest
+    {
+        public List<long> Ids { get; set; } = new();
+    }
+
+    [HttpPost("copy-files/{targetRowIdZlecenia}/{user}")]
+    public async Task<IActionResult> CopyFiles(string targetRowIdZlecenia, string user, [FromBody] CopyFilesRequest req)
+    {
+        if (req?.Ids == null || req.Ids.Count == 0)
+            return BadRequest("Nie wybrano plików do skopiowania.");
+
+        if (string.IsNullOrWhiteSpace(targetRowIdZlecenia))
+            return BadRequest("Brak identyfikatora zlecenia docelowego.");
+
+        // ASP.NET Core automatycznie DEKODUJE segment {user} z URL-a,
+        // więc poniżej masz już "Jan Kowalski", a nie "Jan%20Kowalski".
+        user = string.IsNullOrWhiteSpace(user) ? "Anonim" : user.Trim();
+
+        // Zabezpieczenie przed długimi śmieciami w URL
+        if (user.Length > 100)
+            user = user.Substring(0, 100);
+
+        var sourceFiles = await _context.PlikiZlecenProdukcyjnych
+            .Where(f => req.Ids.Contains(f.Id))
+            .ToListAsync();
+
+        if (sourceFiles.Count == 0)
+            return NotFound("Nie znaleziono plików źródłowych.");
+
+        var skopiowane = new List<PlikiZlecenProdukcyjnych>();
+
+        foreach (var src in sourceFiles)
+        {
+            var istnieje = await _context.PlikiZlecenProdukcyjnych.AnyAsync(f =>
+                f.RowIdZleceniaProdukcyjne == targetRowIdZlecenia &&
+                f.NazwaPliku == src.NazwaPliku);
+
+            if (istnieje) continue;
+
+            var nowy = new PlikiZlecenProdukcyjnych
+            {
+                RowId = Guid.NewGuid().ToString(),
+                RowIdZleceniaProdukcyjne = targetRowIdZlecenia,
+                NazwaPliku = src.NazwaPliku,
+                OryginalnaNazwaPliku = src.OryginalnaNazwaPliku,
+                TypPliku = src.TypPliku,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = user,   // ← teraz z URL-a, nie z claims
+                WidocznyDlaWszystkich = src.WidocznyDlaWszystkich,
+                Uwagi = src.Uwagi,
+                IloscPobranPliku = 0,
+                OstatniaZmiana = $"Kopia z pliku Id={src.Id} ({DateTime.Now:yyyy-MM-dd HH:mm})"
+            };
+
+            _context.PlikiZlecenProdukcyjnych.Add(nowy);
+            skopiowane.Add(nowy);
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(skopiowane);
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteAsync(int id)
     {
@@ -328,6 +388,27 @@ public class FileUploadZlecController : ControllerBase
             Console.WriteLine($"❌ Błąd podczas usuwania pliku {fileName}: {ex.Message}");
             return StatusCode(StatusCodes.Status500InternalServerError, "Błąd podczas usuwania pliku.");
         }
+    }
+
+    /// <summary>
+    /// Usuwa TYLKO wpis z bazy danych. Plik fizyczny na dysku pozostaje.
+    /// Używane, gdy ten sam plik jest współdzielony między zleceniami
+    /// (np. po operacji „Kopiuj / Wklej").
+    /// </summary>
+    [HttpDelete("delete-record/{id:long}")]
+    public async Task<IActionResult> DeleteRecordAsync(long id)
+    {
+        var plik = await _context.PlikiZlecenProdukcyjnych
+                                 .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (plik is null)
+            return NotFound($"Nie znaleziono wpisu o Id={id}.");
+
+        _context.PlikiZlecenProdukcyjnych.Remove(plik);
+        await _context.SaveChangesAsync();
+
+        Console.WriteLine($"🗑️ Usunięto wpis Id={id} (NazwaPliku={plik.NazwaPliku}). Plik na dysku pozostał.");
+        return NoContent();
     }
 
 }

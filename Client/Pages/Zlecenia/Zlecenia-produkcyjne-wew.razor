@@ -18,6 +18,7 @@
 @using GEORGE.Client.Pages.Models
 @inject IJSRuntime JSRuntime
 @inject INotificationService _notice
+@inject GEORGE.Client.Services.FileClipboardService Clipboard
 
 <style>
     .custom-link {
@@ -668,131 +669,33 @@ else
     </div>
 </div>
 
-<div class="modal fade @classShowFile" tabindex="-1" style="display: @displayFile;">
-    <div class="modal-dialog" style="max-width: 70%;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ilość plików powiązanych: @pliki.Count()  [<a href="javascript:void(0);" @onclick="() => CopyToClipboard(zlecenie.Klient)">@zlecenie.Klient</a>]</h5>
-            </div>
-            <div class="modal-body">
-                <Table TItem="PlikiZlecenProdukcyjnych" DataSource="@pliki" ScrollX="1350" PageSize="4" Size="TableSize.Small"
-                       RowClassName="@(x => x.Data.TypPliku.ToLower() == "/pdf" ? "pdf-class" : x.Data.TypPliku.ToLower() == "/dxf" || x.Data.TypPliku.ToLower() == "/dwg" ? "dxf-class" : "zlecenieNaN")">
-                    <Column Title="ID" @bind-Field="@context.Id" Hidden />
-                    <Column Title="Nazwa pliku" @bind-Field="@context.NazwaPliku" OnFilter="(a, b) => a == b" Width="100px" Style="font-size:10px" />
-                    <Column Title="Oryginalna nazwa pliku" Style="color:blue; font-weight:bold" @bind-Field="@context.OryginalnaNazwaPliku" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <Column Title="Typ" @bind-Field="@context.TypPliku" Sortable OnFilter="(a, b) => a == b" Filterable Width="90" />
-                    <Column Title="Data Zapisu" @bind-Field="@context.DataZapisu" Sortable OnFilter="(a, b) => a == b" Filterable />
-                    <ActionColumn Title="Uwagi / Akcja" Width="290" Fixed="right">
-                        <Template>
-                            @{
-                                if (context.TypPliku.ToLower().EndsWith("pdf") && boolAdmin)
-                                {
-                                    <Tooltip Placement="@Placement.Left" Title="Generuj Dokument Produkcyjny">
-
-                                        <Button Type="ButtonType.Primary"
-                                                Icon="@IconType.Outline.FilePdf"
-                                                Loading="_onlyIconLoadingPdf"
-                                                OnClick="@(e => WydrukProdukcyjny(context.NazwaPliku))" />
-
-                                    </Tooltip>
-                                }
-                                if (boolAdmin)
-                                {
-                                    <label>Widoczny dla wszystkich:</label>
-                                    <Checkbox Placeholder="Widoczny dla wszystkich." @bind-Value="@context.WidocznyDlaWszystkich" OnChange="@(() => ZmienWidocznosc(context.Id, context.WidocznyDlaWszystkich))" />
-
-                                    var uniqueId = $"{context.Id}";
-                                    <InputFile id="@uniqueId" OnChange="@(e => ReplaceUploadFiles(e, context.NazwaPliku, context.Id))" hidden multiple />
-                                    <Upload Name="files" FileList="fileList">
-                                        <Tooltip Placement="@Placement.Right" Title="Zastąp istniejący plik innym">
-                                            <label class="ant-btn" for="@uniqueId">
-                                                <Icon Type="upload" />
-                                            </label>
-                                        </Tooltip>
-                                    </Upload>
-                                }
-
-                                <Input Placeholder="Podaj uwagę." @bind-Value="@context.Uwagi" MaxLength="55" ReadOnly="@isNotDisabled" OnBlur="@(() => ZmienUwage(context.Id, context.Uwagi))" />
-
-                                var item = context as PlikiZlecenProdukcyjnych;
-                                if (!string.IsNullOrEmpty(item.NazwaPliku))
-                                {
-                                    <div class="modal-footer d-flex align-items-center" style="gap: 0.1rem; flex-wrap: nowrap;">
-                                        @{
-                                            var isNc = string.Equals(item.TypPliku, "/nc", StringComparison.OrdinalIgnoreCase);
-                                        }
-
-                                        <div class="file-actions">
-                                            @if (isNc)
-                                            {
-                                                <button class="file-btn file-btn--convert"
-                                                        title="Pobierz plik i zamień rozszerzenie"
-                                                        @onclick="() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, true, item.Id)">
-                                                    <!-- ikona zamiany -->
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-btn__icon bi bi-arrow-repeat" viewBox="0 0 16 16">
-                                                        <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9" />
-                                                        <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5 5 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z" />
-                                                    </svg>
-
-                                                    <span class="file-btn__text">
-                                                        Pobierz i&nbsp;<strong>zamień rozszerzenie</strong>
-                                                    </span>
-                                                </button>
-                                            }
-
-                                            <button class="file-btn file-btn--download"
-                                                    title="Pobierz plik w oryginalnym formacie"
-                                                    @onclick="() => DownloadFile(item.NazwaPliku, item.OryginalnaNazwaPliku, false, item.Id)">
-                                                <!-- ikona pobierania -->
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-btn__icon bi bi-download" viewBox="0 0 16 16">
-                                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5" />
-                                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z" />
-                                                </svg>
-
-                                                <span class="file-btn__text">
-                                                    Pobierz <strong>plik</strong>
-                                                </span>
-                                            </button>
-                                        </div>
-
-                                        <!-- Informacje o pobraniach – w dwóch wierszach, mniejsza czcionka -->
-                                        <div style="display: inline-flex; flex-direction: column; font-size: 0.6rem; color: #6c757d; margin-left: 0.1rem; line-height: 1.2;">
-                                            <span>[pobrań: @item.IloscPobranPliku]</span>
-                                            <span>[pierwsze: @item.DataPierwszegoPobrania] <br /> [ostatnie: @item.DataOstatniegoPobrania] </span>
-                                        </div>
-
-                                        <Spin Spinning=@czekajNaUsuniecie>
-                                            @if (boolAdmin || boolUsuniecia)
-                                            {
-                                                <Popconfirm Title="Czy chcesz usunąć plik?"
-                                                            OnConfirm="()=> deleteFile(item.Id, item.NazwaPliku, item.RowIdZleceniaProdukcyjne)"
-                                                            OkText="Tak"
-                                                            CancelText="Nie">
-                                                    <a style="color:red; margin-left: 0.1rem;">Usuń plik</a>
-                                                </Popconfirm>
-                                            }
-                                        </Spin>
-                                    </div>
-                                }
-                            }
-                        </Template>
-                    </ActionColumn>
-                </Table>
-
-            </div>
-            <div class="modal-footer d-flex">
-                Załącz nowe pliki <InputFile OnChange="HandleSelected" multiple>Wybierz pliki powiązane ze zleceniem</InputFile>
-                @if (string.IsNullOrEmpty(@bladZapisuPliku))
-                {
-                    <Alert Message="@bladZapisuPliku" Type="Error" Closable />
-                }
-                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(false)">Pobierz wszystkie pliki</Button>
-                <Button Type="ButtonType.Primary" Loading="isLoadingAll" Icon="@IconType.Outline.Download" @onclick="() => DownloadAllFile(true)">Pobierz tylko pliki programów CNC</Button>
-                <Button class="ms-auto" @onclick="() => HideDialogFile()">Zakończ</Button>
-            </div>
-        </div>
-    </div>
-</div>
+<PlikiZleceniaModal Pliki="@pliki"
+                    Klient="@zlecenie.Klient"
+                    ClassShowFile="@classShowFile"
+                    DisplayFile="@displayFile"
+                    BoolAdmin="@boolNowy"
+                    BoolUsuniecia="@boolUsuniecia"
+                    User="@user"
+                    IsNotDisabled="@isNotDisabled"
+                    OnlyIconLoadingPdf="@_onlyIconLoadingPdf"
+                    IsLoadingAll="@isLoadingAll"
+                    CzekajNaUsuniecie="@czekajNaUsuniecie"
+                    BladZapisuPliku="@bladZapisuPliku"
+                    FileList="@fileList"
+                    RowIdZlecenia="@zlecenie.RowId"
+                    OnPasted="HandlePasted"
+                    OnCopySelected="HandleCopySelected"
+                    OnCopyToClipboard="@(() => CopyToClipboard(zlecenie.Klient))"
+                    OnWydrukProdukcyjny="@(nazwa => WydrukProdukcyjny(nazwa))"
+                    OnZmienWidocznosc="@(p => ZmienWidocznosc(p.Id, p.WidocznyDlaWszystkich))"
+                    OnReplaceUploadFiles="@(t => ReplaceUploadFiles(t.Args, t.NazwaPliku, t.Id))"
+                    OnZmienUwage="@(t => ZmienUwage(t.Id, t.Uwagi))"
+                    OnDownloadFile="@(t => DownloadFile(t.NazwaPliku, t.OryginalnaNazwa, t.Convert, t.Id))"
+                    OnDeleteFile="@(t => deleteFile(t.Id, t.NazwaPliku, t.RowId))"
+                    OnDeleteRecordOnly="@(t => DeleteRecordOnlyAsync(t.Id, t.NazwaPliku, t.RowId))"
+                    OnHandleSelected="@(e => HandleSelected(e))"
+                    OnDownloadAllFile="@(cnc => DownloadAllFile(cnc))"
+                    OnHideDialogFile="@(() => HideDialogFile())" />
 
 <div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
     <div class="modal-dialog modal-lg">
@@ -838,7 +741,7 @@ else
        Visible="@_modalElementyDoZlecen"
        OnCancel="ZamknijElementyDoZlecen"
        Footer="null"
-       Width="1200">
+       Width="@("90%")">
 
     @if (_modalElementyDoZlecen)
     {
@@ -1957,6 +1860,88 @@ else
         // _visible = false;
         // await HideDialog();
     }
+
+    private async Task HandlePasted()
+    {
+        if (zlecenie is null || string.IsNullOrWhiteSpace(zlecenie.RowId))
+            return;
+
+        try
+        {
+            // pobierz na nowo pliki dla bieżącego zlecenia
+            var nowe = await Http.GetFromJsonAsync<List<PlikiZlecenProdukcyjnych>>(
+                $"api/FileUploadZlec/files/{zlecenie.RowId}");
+
+            pliki = nowe ?? new List<PlikiZlecenProdukcyjnych>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PARENT] Błąd odświeżania plików: {ex.Message}");
+        }
+    }
+
+    private void HandleCopySelected(List<PlikiZlecenProdukcyjnych> wybrane)
+    {
+        Console.WriteLine($"[PARENT] Dostałem: {wybrane?.Count ?? -1}");  // diagnostyka
+        if (wybrane is null || wybrane.Count == 0) return;
+
+        Clipboard.Set(wybrane, zlecenie.RowId);
+        Console.WriteLine($"[PARENT] Po Set: Count={Clipboard.Count}");
+        StateHasChanged();
+    }
+
+    private async Task DeleteRecordOnlyAsync(long id, string nazwaPliku, string rowIdZlecenia)
+{
+    try
+    {
+        var resp = await Http.DeleteAsync($"api/FileUploadZlec/delete-record/{id}");
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var err = await resp.Content.ReadAsStringAsync();
+            await _notice.Error(new()
+            {
+                Message = "Błąd usuwania wpisu.",
+                Description = string.IsNullOrWhiteSpace(err)
+                    ? $"HTTP {(int)resp.StatusCode}"
+                    : err,
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        await _notice.Success(new()
+        {
+            Message = "Wpis usunięty.",
+            Description = $"Plik {nazwaPliku} usunięty z tego zlecenia (pozostał na dysku).",
+            Placement = NotificationPlacement.BottomLeft
+        });
+
+            try
+            {
+                // pobierz na nowo pliki dla bieżącego zlecenia
+                var nowe = await Http.GetFromJsonAsync<List<PlikiZlecenProdukcyjnych>>(
+                    $"api/FileUploadZlec/files/{zlecenie.RowId}");
+
+                pliki = nowe ?? new List<PlikiZlecenProdukcyjnych>();
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PARENT] Błąd odświeżania plików: {ex.Message}");
+            }
+    }
+    catch (Exception ex)
+    {
+        await _notice.Error(new()
+        {
+            Message = "Błąd.",
+            Description = ex.Message,
+            Placement = NotificationPlacement.BottomLeft
+        });
+    }
+}
 
     private async Task CopyToClipboard(string text)
     {
