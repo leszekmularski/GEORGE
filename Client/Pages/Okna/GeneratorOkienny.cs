@@ -281,6 +281,11 @@ namespace GEORGE.Client.Pages.Okna
             float offsetGlassTop = await ObliczRoznicePoziomowSzyba(konfTop, ElementLiniowy);
             float offsetGlassBottom = await ObliczRoznicePoziomowSzyba(konfBottom, ElementLiniowy);
 
+            float offsetOkuciaLeft = await ObliczRoznicePoziomowOkucia(konfLeft, ElementLiniowy);
+            float offsetOkuciaRight = await ObliczRoznicePoziomowOkucia(konfRight, ElementLiniowy);
+            float offsetOkuciaTop = await ObliczRoznicePoziomowOkucia(konfTop, ElementLiniowy);
+            float offsetOkuciaBottom = await ObliczRoznicePoziomowOkucia(konfBottom, ElementLiniowy);
+
             float offsetKorpusWewnetrznyLeft = await ObliczRoznicePoziomowKorpusWewnetrzny(konfLeft);
             float offsetKorpusWewnetrznyRight = await ObliczRoznicePoziomowKorpusWewnetrzny(konfRight);
             float offsetKorpusWewnetrznyTop = await ObliczRoznicePoziomowKorpusWewnetrzny(konfTop);
@@ -373,7 +378,6 @@ namespace GEORGE.Client.Pages.Okna
             bool stronaA = false;
             bool stronaB = false;
 
-            List<XPoint> punktyMasterSlupka = null;
 
             if (ElementLiniowy)
             {
@@ -387,21 +391,21 @@ namespace GEORGE.Client.Pages.Okna
 
                 Console.WriteLine($"🔷 ElementLiniowy: orientacja = {(liniaPionowa ? "PIONOWA" : liniaPozioma ? "POZIOMA" : "SKOŚNA")}");
 
-               var kandydaci = daneKwadratu
-                    .Where(s => s.Przesuniecia != null && s.Przesuniecia.Count > 0 &&
-                                s.Wierzcholki != null && s.Wierzcholki.Count > 1)
-                    .Select(s => new { Wpis = s, Odleglosc = OdlegloscPunktuOdOdcinka(mouseClik.X, mouseClik.Y, s.Wierzcholki![0], s.Wierzcholki[1]) })
-                    .OrderBy(x => x.Odleglosc)
-                    .ToList();
+                var kandydaci = daneKwadratu
+                     .Where(s => s.Przesuniecia != null && s.Przesuniecia.Count > 0 &&
+                                 s.Wierzcholki != null && s.Wierzcholki.Count > 1)
+                     .Select(s => new { Wpis = s, Odleglosc = OdlegloscPunktuOdOdcinka(mouseClik.X, mouseClik.Y, s.Wierzcholki![0], s.Wierzcholki[1]) })
+                     .OrderBy(x => x.Odleglosc)
+                     .ToList();
 
-                    Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wpisów z Przesunieciami:");
+                Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wpisów z Przesunieciami:");
 
                 foreach (var k in kandydaci)
                 {
                     Console.WriteLine($"🔷   {k.Wpis.RowIdElementu} (strona={k.Wpis.Strona}) odl={k.Odleglosc:F2} region: {k.Wpis.RowIdRegionu}");
                 }
 
-                punktyMasterSlupka = daneKwadratu.SingleOrDefault(x => x.RowIdRegionu == kandydaci.FirstOrDefault()?.Wpis.RowIdRegionu)?.Wierzcholki;
+                //punktyMasterSlupka = generatorStates.SingleOrDefault(x => x.Value.IdRegion == kandydaci.FirstOrDefault()?.Wpis.RowIdRegionu).Value?.Wierzcholki;
 
                 var konfPolaczenia = kandydaci.FirstOrDefault()?.Wpis.Przesuniecia;
 
@@ -467,7 +471,7 @@ namespace GEORGE.Client.Pages.Okna
                 konturWenetrznyPodRysunek = przeskalowanePunktyZLukamiPodRysynek;
                 wierzcholkiWenetrznePodRysunek = przeskalowanePunktyPodRysynek;
 
-               // Console.Clear();
+                // Console.Clear();
 
                 Console.WriteLine($"📋 regionAdd.Count = {regionAdd?.Count ?? 0}");
                 foreach (var r in regionAdd ?? Enumerable.Empty<ShapeRegion>())
@@ -478,27 +482,27 @@ namespace GEORGE.Client.Pages.Okna
                 foreach (var r in regions ?? Enumerable.Empty<ShapeRegion>())
                     Console.WriteLine($"🧩 [WEJŚCIE]    regions[i].Id = '{r.Id}'");
 
-                var znaleziony = regionAdd.FirstOrDefault(x => x.Id == regionId);
+                //var znaleziony = regionAdd.FirstOrDefault(x => x.Id == regionId);
 
-                Console.WriteLine($"🔍 regionId            = '{regionId}'");
-                Console.WriteLine($"🔍 znaleziony          = {(znaleziony == null ? "NULL" : "OK")}");
-                Console.WriteLine($"🔍 znaleziony?.Id      = '{znaleziony?.Id}'");
-                Console.WriteLine($"🔍 znaleziony?.IdMaster      = '{znaleziony?.IdMaster}'");
-                Console.WriteLine($"🔍 znaleziony?.Wierzcholki == null ? {znaleziony?.Wierzcholki == null}");
+                //Console.WriteLine($"🔍 regionId            = '{regionId}'");
+                //Console.WriteLine($"🔍 znaleziony          = {(znaleziony == null ? "NULL" : "OK")}");
+                //Console.WriteLine($"🔍 znaleziony?.Id      = '{znaleziony?.Id}'");
+                //Console.WriteLine($"🔍 znaleziony?.IdMaster      = '{znaleziony?.IdMaster}'");
+                //Console.WriteLine($"🔍 znaleziony?.Wierzcholki == null ? {znaleziony?.Wierzcholki == null}");
 
-                if (znaleziony == null)
-                {
-                    Console.WriteLine($"❌ NIE ZNALEZIONO REGIONU — używam starej wartości punktyRegionuMaster filtr: regionId == {regionId}");
-                    Console.WriteLine("   Dostępne Id w regions:");
-                    foreach (var r in regions)
-                        Console.WriteLine($"     - '{r.Id}'");
-                }
-                else
-                {
-                    punktyRegionuMaster = znaleziony.Wierzcholki ?? punktyRegionuMaster;
-                }
+                //if (znaleziony == null)
+                //{
+                //    Console.WriteLine($"❌ NIE ZNALEZIONO REGIONU — używam starej wartości punktyRegionuMaster filtr: regionId == {regionId}");
+                //    Console.WriteLine("   Dostępne Id w regions:");
+                //    foreach (var r in regions)
+                //        Console.WriteLine($"     - '{r.Id}'");
+                //}
+                //else
+                //{
+                //    punktyRegionuMaster = znaleziony.Wierzcholki ?? punktyRegionuMaster;
+                //}
 
-          
+
                 Console.WriteLine($"🔷 ElementLiniowy: punktyRegionuMaster.Count = {punktyRegionuMaster.Count} regionId: {regionId}");
 
                 punktyRegionuMaster = await CalculateOffsetPolygon(
@@ -523,6 +527,9 @@ namespace GEORGE.Client.Pages.Okna
 
                 liniaSzkleniaKonturZLukami = await CalculateOffsetPolygonKontur(
                     przeskalowanePunktyZLukami, offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom);
+
+                liniaOkuciaKonturZLukami = await CalculateOffsetPolygonKontur(
+                    przeskalowanePunktyZLukami, offsetOkuciaLeft, offsetOkuciaRight, offsetOkuciaTop, offsetOkuciaBottom);
 
                 konturWenetrznyPodRysunek = await CalculateOffsetPolygonKontur(
                     przeskalowanePunktyZLukami,
@@ -570,7 +577,6 @@ namespace GEORGE.Client.Pages.Okna
                 TypObiektu,
                 daneKwadratu,
                 punktyRegionuMaster,
-                punktyMasterSlupka,
                 konfModeleElementy,
                 mouseClik,
                 oryginalnyRegionId);
@@ -627,7 +633,7 @@ namespace GEORGE.Client.Pages.Okna
             Guid rowIdprofileLeft, Guid rowIdprofileRight, Guid rowIdprofileTop, Guid rowIdprofileBottom,
             string rowIndeksprofileLeft, string rowIndeksprofileRight, string rowIndeksprofileTop, string rowIndeksprofileBottom,
             string rowNazwaprofileLeft, string rowNazwaprofileRight, string rowNazwaprofileTop, string rowNazwaprofileBottom,
-            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster, List<XPoint> punktyRegionuMasterSlupka,
+            string NazwaObiektu, string TypObiektu, List<DaneKwadratu> daneKwadratu, List<XPoint> punktyRegionuMaster,
             List<KonfModeleElementy> konfModeleElementy,
             XPoint mouseClik,
             string? oryginalnyRegionId = null)
@@ -704,7 +710,7 @@ namespace GEORGE.Client.Pages.Okna
                     geo, i, next, prev, vertexCount,
                     firstangleDegrees,
                     stonaOstanioDodanegoElementu,
-                    daneKwadratu, punktyRegionuMaster, punktyRegionuMasterSlupka, mouseClik,
+                    daneKwadratu, punktyRegionuMaster, mouseClik,
                     ElementLiniowy);
 
                 if (!wynik.Ok)
@@ -1076,7 +1082,6 @@ namespace GEORGE.Client.Pages.Okna
             string stonaOstanioDodanegoElementu,
             List<DaneKwadratu> daneKwadratu,
             List<XPoint> punktyRegionuMaster,
-            List<XPoint> punktyRegionuMasterSlupka,
             XPoint mouseClik,
             bool elementLiniowy)
         {
@@ -1108,7 +1113,7 @@ namespace GEORGE.Client.Pages.Okna
                 }
                 else if (leftJoin == "T5" && rightJoin == "T5")
                 {
-                    var w = WierzcholkiT5T5(outer, inner, i, next, daneKwadratu, punktyRegionuMaster, punktyRegionuMasterSlupka, 
+                    var w = WierzcholkiT5T5(outer, inner, i, next, daneKwadratu, punktyRegionuMaster,
                         mouseClik, geo);
                     if (!w.Ok) return w;
                     wierzcholki = w.Wierzcholki;
@@ -1906,7 +1911,6 @@ namespace GEORGE.Client.Pages.Okna
             List<XPoint> outer, List<XPoint> inner, int i, int next,
             List<DaneKwadratu> daneKwadratu,
             List<XPoint> punktyRegionuMaster,
-            List<XPoint> punktyRegionuMasterSlupek,
             XPoint mouseClik,
             GeometriaBoku geo)
         {
@@ -2139,24 +2143,13 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             List<XPoint> punktyRegionuMasterModyfikowane;
 
-            Console.WriteLine($"🔷 T5-T5: stronaA={stronaA}, stronaB={stronaB}, punktyRegionuMasterSlupek.Count={punktyRegionuMasterSlupek?.Count ?? 0}, punktyRegionuMaster.Count={punktyRegionuMaster?.Count ?? 0}");
+            Console.WriteLine($"🔷 T5-T5: stronaA={stronaA}, stronaB={stronaB}, punktyRegionuMaster.Count={punktyRegionuMaster?.Count ?? 0}");
 
 
             if (!stronaA && !stronaB)
             {
                 punktyRegionuMasterModyfikowane = punktyRegionuMaster;
 
-                if(punktyRegionuMasterSlupek != null && punktyRegionuMasterSlupek.Count > 2)
-                {
-                    punktyRegionuMasterModyfikowane = PrepareRegionPoints(
-                        TopXT5,
-                        BottomXT5,
-                        punktyRegionuMasterSlupek,
-                        stronaA,
-                        stronaB,
-                        geo.ProfileTop,
-                        geo.ProfileBottom);
-                }
             }
             else
             {
@@ -5687,6 +5680,30 @@ namespace GEORGE.Client.Pages.Okna
             else
             {
                 Komunikaty.Add($"Słupki stałe mają zawsze pełną wartość profilu, niezależnie od poziomów pozostałe dane z tabeli KonfPolaczenia");
+                await Task.CompletedTask;
+                return 0;
+            }
+        }
+               
+
+         private async Task<float> ObliczRoznicePoziomowOkucia(KonfSystem? konf, bool slupekStaly)
+        {
+            if (konf == null || !konf.CzyMozeBycFix) return 0;
+
+            if (!slupekStaly)
+            {
+                float gora = (float)konf.PoziomLiniaOkucia;
+                float dol = (float)konf.PoziomDol;
+
+                if (gora == 0 && dol != 0) return Math.Abs(dol);
+                if (dol == 0 && gora != 0) return Math.Abs(gora);
+
+                await Task.CompletedTask;
+                return Math.Abs(gora - dol);
+            }
+            else
+            {
+                BledySystemowe.Add($"Dla słupków stałych nie wyszukano w tabeli KonfPolaczenia wartość LINIA OKUCIA");
                 await Task.CompletedTask;
                 return 0;
             }

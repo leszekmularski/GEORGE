@@ -1575,6 +1575,8 @@
     private double _staraSzerokoscPrzedZmiana = 0;
     private double _staraWysokoscPrzedZmiana = 0;
 
+    private readonly SemaphoreSlim _zmienWymiarySemaphore = new(1, 1);
+
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine($"🔥🔥🔥🔥🔥🔥🔥 Modele-okienne OnInitializedAsync 🔥🔥🔥🔥🔥🔥🔥🔥");
@@ -3098,71 +3100,126 @@
         await ApplyZoom(newScale);
     }
 
+
     private async Task ApplyZoom(double newScale = -1)
     {
         if (CanvasWidth == 0 || CanvasHeight == 0 || CanvasRef == null)
-        {
-            Console.WriteLine("⚠️ Canvas nie jest gotowy do zoomu");
             return;
-        }
 
         try
         {
+            double minX = 0, minY = 0;
 
             if (newScale == -1)
             {
-                // 1. Oblicz bounding box kształtów
-                double minX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
-                double minY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
+                // ✅ Bbox z tych samych współrzędnych co Draw (po Rozwiązaniu 1 = NominalPoints)
+                double realMinX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
+                double realMinY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
                 double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
                 double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
 
-                double shapesWidth = maxX - minX;
-                double shapesHeight = maxY - minY;
+                double shapesWidth = maxX - realMinX;
+                double shapesHeight = maxY - realMinY;
 
-                // Console.WriteLine($"📐 Kształty: szerokość={shapesWidth:F0}, wysokość={shapesHeight:F0}");
-                //  Console.WriteLine($"📐 Bounding box: X[{minX:F0}-{maxX:F0}], Y[{minY:F0}-{maxY:F0}]");
-
-                // 2. Oblicz skalę z marginesem 5% (zmniejszono z 10% dla lepszego dopasowania)
                 double scaleX = CanvasWidth / shapesWidth;
                 double scaleY = CanvasHeight / shapesHeight;
-                double scale = Math.Min(scaleX, scaleY) * 0.95; // 5% marginesu
+                _aktywnaSkala = Math.Min(scaleX, scaleY) * 0.95;
 
-                _aktywnaSkala = scale;
+                // ✅ Zapamiętaj lewy-górny róg do wyśrodkowania
+                minX = realMinX;
+                minY = realMinY;
             }
-            else
-            {
-                _aktywnaSkala = newScale;
-            }
-
-            // Console.WriteLine($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_aktywnaSkala:F2}");
-
 
             if (_context == null)
-            {
-                //   Console.WriteLine("♻️ Odtwarzam kontekst Canvas...");
                 _context = await CanvasRef.CreateCanvas2DAsync();
-            }
 
-            // 1. Zresetuj transformacje
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
-
             await ClearCanvas();
 
+            // ✅ Wyśrodkuj: przesuń o -minX * skala i dołóż margines (5%)
+            double offsetX = -minX * _aktywnaSkala + (CanvasWidth - (/* szerokość*_skala */ 0)) * 0.5;
+            double offsetY = -minY * _aktywnaSkala + (CanvasHeight - (/* wysokość*_skala */ 0)) * 0.5;
+
+            // Prostszy wariant: wyśrodkowanie całego bboxa
+            double bboxW = (/* maxX - minX */ 0);
+            // ... (pełna implementacja zależy od tego, czy chcesz też środkować, gdy skala jest ograniczona wysokością)
+
+            await _context.TranslateAsync(-minX * _aktywnaSkala, -minY * _aktywnaSkala);
             await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
 
-            // 4. Narysuj wszystkie elementy
             await DrawAllCanvasElements();
-
-            //StateHasChanged();
-
         }
         catch (Exception ex)
         {
             Console.WriteLine($"🔥 Błąd podczas zoomowania: {ex.Message}");
         }
-
     }
+
+    // private async Task ApplyZoom(double newScale = -1)
+    // {
+    //     if (CanvasWidth == 0 || CanvasHeight == 0 || CanvasRef == null)
+    //     {
+    //         Console.WriteLine("⚠️ Canvas nie jest gotowy do zoomu");
+    //         return;
+    //     }
+
+    //     try
+    //     {
+
+    //         if (newScale == -1)
+    //         {
+    //             // 1. Oblicz bounding box kształtów
+    //             double minX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
+    //             double minY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
+    //             double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
+    //             double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+
+    //             double shapesWidth = maxX - minX;
+    //             double shapesHeight = maxY - minY;
+
+    //             // Console.WriteLine($"📐 Kształty: szerokość={shapesWidth:F0}, wysokość={shapesHeight:F0}");
+    //             //  Console.WriteLine($"📐 Bounding box: X[{minX:F0}-{maxX:F0}], Y[{minY:F0}-{maxY:F0}]");
+
+    //             // 2. Oblicz skalę z marginesem 5% (zmniejszono z 10% dla lepszego dopasowania)
+    //             double scaleX = CanvasWidth / shapesWidth;
+    //             double scaleY = CanvasHeight / shapesHeight;
+    //             double scale = Math.Min(scaleX, scaleY) * 0.95; // 5% marginesu
+
+    //             _aktywnaSkala = scale;
+    //         }
+    //         else
+    //         {
+    //             _aktywnaSkala = newScale;
+    //         }
+
+    //         // Console.WriteLine($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_aktywnaSkala:F2}");
+
+
+    //         if (_context == null)
+    //         {
+    //             //   Console.WriteLine("♻️ Odtwarzam kontekst Canvas...");
+    //             _context = await CanvasRef.CreateCanvas2DAsync();
+    //         }
+
+    //         // 1. Zresetuj transformacje
+    //         await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
+
+    //         await ClearCanvas();
+
+    //         await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
+
+    //         // 4. Narysuj wszystkie elementy
+    //         await DrawAllCanvasElements();
+
+    //         //StateHasChanged();
+
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Console.WriteLine($"🔥 Błąd podczas zoomowania: {ex.Message}");
+    //     }
+
+    // }
 
     private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki,
         List<XPoint> _wierzcholkiST, double klikX, double klikY)
@@ -4320,6 +4377,13 @@
     private async Task ZmienWymiaryOknaRecznie(
         bool strukturaZmieniona = false)
     {
+
+         if (!await _zmienWymiarySemaphore.WaitAsync(0))   // 0 = nie czekaj
+        {
+            Console.WriteLine("⏭️ ZmienWymiaryOknaRecznie: poprzednia operacja trwa, pomijam");
+            return;
+        }
+
         if (_zmienWymiaryWToku)
         {
             Console.WriteLine(
@@ -4384,6 +4448,8 @@
                 await GenerujObrysPozZmianieWymiarow(
                     true,
                     false, true);
+
+
 
 
                 // =========================================================
@@ -4460,6 +4526,7 @@
         finally
         {
             Console.WriteLine("✅ ZmienWymiaryOknaRecznie zakończone");
+            _zmienWymiarySemaphore.Release();
         }
     }
 
@@ -4508,6 +4575,7 @@
             var state = kvp.Value;
             if (state == null) continue;
 
+            // ⭐ Wierzcholki — PUNKTY
             if (state.Wierzcholki != null)
                 state.Wierzcholki = state.Wierzcholki
                     .Select(p => new XPoint(p.X * scaleX, p.Y * scaleY)).ToList();
@@ -4516,10 +4584,38 @@
                 state.WierzcholkiWartosciNominalne = state.WierzcholkiWartosciNominalne
                     .Select(p => new XPoint(p.X * scaleX, p.Y * scaleY)).ToList();
 
+            // ⭐ WierzcholkiInner — PUNKTY
+            if (state.WierzcholkiInner != null)
+                state.WierzcholkiInner = state.WierzcholkiInner
+                    .Select(p => new XPoint(p.X * scaleX, p.Y * scaleY)).ToList();
+
+            // ⭐ WierzcholkiWenetrznePodRysunek — PUNKTY
+            if (state.WierzcholkiWenetrznePodRysunek != null)
+                state.WierzcholkiWenetrznePodRysunek = state.WierzcholkiWenetrznePodRysunek
+                    .Select(p => new XPoint(p.X * scaleX, p.Y * scaleY)).ToList();
+
+            // ⭐ Kontury — SEGMENTY
             if (state.Kontur != null)
                 state.Kontur = state.Kontur
                     .Select(s => SkalujSegment(s, scaleX, scaleY)).ToList();
 
+            if (state.KonturInner != null)
+                state.KonturInner = state.KonturInner
+                    .Select(s => SkalujSegment(s, scaleX, scaleY)).ToList();
+
+            if (state.KonturSzyby != null)
+                state.KonturSzyby = state.KonturSzyby
+                    .Select(s => SkalujSegment(s, scaleX, scaleY)).ToList();
+
+            if (state.KonturOkucia != null)
+                state.KonturOkucia = state.KonturOkucia
+                    .Select(s => SkalujSegment(s, scaleX, scaleY)).ToList();
+
+            if (state.KonturWenetrznyPodRysunek != null)
+                state.KonturWenetrznyPodRysunek = state.KonturWenetrznyPodRysunek
+                    .Select(s => SkalujSegment(s, scaleX, scaleY)).ToList();
+
+            // ⭐ Elementy
             if (state.ElementyRamyRysowane != null)
             {
                 foreach (var el in state.ElementyRamyRysowane)
@@ -4692,11 +4788,55 @@
                 Console.WriteLine($"   ⚠️ AddElements dla {cleanId}: {ok}");
             }
 
+
+            // -----------------------------------------------------
+            // Zapisz wygenerowane kształty do tymczasowej kolekcji
+            // -----------------------------------------------------
             if (generator.ElementyRamyRysowane.Any())
             {
                 noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
                 noweKsztalty.AddRange(generator.ElementyRamyRysowane);
             }
+
+            // ⭐ DODAJ: aktualizacja WSZYSTKICH konturów i wierzchołków z generatora
+            if (generator.wewnetrznyKonturZLukami != null && generator.wewnetrznyKonturZLukami.Any())
+            {
+                genState.Value.KonturInner = generator.wewnetrznyKonturZLukami
+                    .Select(s => s.Clone()).ToList();
+            }
+
+            if (generator.wewnetrznyKontur != null && generator.wewnetrznyKontur.Any())
+            {
+                genState.Value.WierzcholkiInner = generator.wewnetrznyKontur
+                    .Select(p => new XPoint(p.X, p.Y)).ToList();
+            }
+
+            if (generator.konturWenetrznyPodRysunek != null && generator.konturWenetrznyPodRysunek.Any())
+            {
+                genState.Value.KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek
+                    .Select(s => s.Clone()).ToList();
+            }
+
+            if (generator.wierzcholkiWenetrznePodRysunek != null && generator.wierzcholkiWenetrznePodRysunek.Any())
+            {
+                genState.Value.WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek
+                    .Select(p => new XPoint(p.X, p.Y)).ToList();
+            }
+
+            if (generator.liniaSzkleniaKonturZLukami != null && generator.liniaSzkleniaKonturZLukami.Any())
+            {
+                genState.Value.KonturSzyby = generator.liniaSzkleniaKonturZLukami
+                    .Select(s => s.Clone()).ToList();
+            }
+
+            if (generator.liniaOkuciaKonturZLukami != null && generator.liniaOkuciaKonturZLukami.Any())
+            {
+                genState.Value.KonturOkucia = generator.liniaOkuciaKonturZLukami
+                    .Select(s => s.Clone()).ToList();
+            }
+
+            // Aktualizacja stanu
+            //AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
         }
 
         lock (_ksztaltyNaRegion)
@@ -5054,6 +5194,8 @@
                 {
                     Console.WriteLine($"⏭️ Słupek stały {cleanId}: zachowuję istniejące ListaKwadratow " +
                                       $"({genState.Value.ListaKwadratow?.Count ?? 0} wpisów)");
+                    generator.ElementLiniowy = true;
+                    AktualizujDaneKwadratuSlupka(genState.Value.ListaKwadratow, region, cleanId);  // ⭐
                 }
 
                 // -----------------------------------------------------
@@ -5163,6 +5305,8 @@
                 // Dodaj elementy do generatora
                 // -----------------------------------------------------
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
+                var regionNadrzedny = ZnajdzRegionNadrzednyDlaStanu(region, wszystkieRegiony);
+                Console.WriteLine($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
 
                 if (generator.CzyElementJestRama)
                 {
@@ -5173,7 +5317,7 @@
                         _generatorStates,
                         _regionsDualRama,
                         daneKwadratow,
-                        wszystkieRegiony.FirstOrDefault(f => f.Rama)?.Wierzcholki,
+                        regionNadrzedny?.Wierzcholki,
                         _lastMouseClick, boolNieCzyscKonsole
                     );
 
@@ -5192,7 +5336,7 @@
                         _generatorStates,
                         _regionsSkrzydlo,
                         daneKwadratow,
-                        wszystkieRegiony.FirstOrDefault(f => f.Rama)?.Wierzcholki,
+                        regionNadrzedny?.Wierzcholki,
                         _lastMouseClick, boolNieCzyscKonsole
                     );
 
@@ -5212,9 +5356,44 @@
                     noweKsztalty.AddRange(generator.ElementyRamyRysowane);
                 }
 
-                // -----------------------------------------------------
-                // Aktualizuj stan generatora
-                // -----------------------------------------------------
+                // ⭐ DODAJ: aktualizacja WSZYSTKICH konturów i wierzchołków z generatora
+                if (generator.wewnetrznyKonturZLukami != null && generator.wewnetrznyKonturZLukami.Any())
+                {
+                    genState.Value.KonturInner = generator.wewnetrznyKonturZLukami
+                        .Select(s => s.Clone()).ToList();
+                }
+
+                if (generator.wewnetrznyKontur != null && generator.wewnetrznyKontur.Any())
+                {
+                    genState.Value.WierzcholkiInner = generator.wewnetrznyKontur
+                        .Select(p => new XPoint(p.X, p.Y)).ToList();
+                }
+
+                if (generator.konturWenetrznyPodRysunek != null && generator.konturWenetrznyPodRysunek.Any())
+                {
+                    genState.Value.KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek
+                        .Select(s => s.Clone()).ToList();
+                }
+
+                if (generator.wierzcholkiWenetrznePodRysunek != null && generator.wierzcholkiWenetrznePodRysunek.Any())
+                {
+                    genState.Value.WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek
+                        .Select(p => new XPoint(p.X, p.Y)).ToList();
+                }
+
+                if (generator.liniaSzkleniaKonturZLukami != null && generator.liniaSzkleniaKonturZLukami.Any())
+                {
+                    genState.Value.KonturSzyby = generator.liniaSzkleniaKonturZLukami
+                        .Select(s => s.Clone()).ToList();
+                }
+
+                if (generator.liniaOkuciaKonturZLukami != null && generator.liniaOkuciaKonturZLukami.Any())
+                {
+                    genState.Value.KonturOkucia = generator.liniaOkuciaKonturZLukami
+                        .Select(s => s.Clone()).ToList();
+                }
+
+                // Aktualizacja stanu
                 AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
             }
 
@@ -6026,6 +6205,8 @@
             MVCKonfModelu = generator.MVCKonfModelu,
             Kontur = generator.zewnetrznyKonturZLukami,
             KonturInner = generator.wewnetrznyKonturZLukami,
+            KonturSzyby = generator.liniaSzkleniaKonturZLukami,
+            KonturOkucia = generator.liniaOkuciaKonturZLukami,
             KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek,
             WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek,
             WybranyModel = WybranyModel,
@@ -6353,13 +6534,16 @@
         // Znajdź region kliknięty (najbliższy, nie pierwszy)
         var regionKlikniety = ZnajdzRegionKlikniety(wszystkieRegiony, klikX, klikY, 55.0);
 
+        // ⭐ Znajdź WŁAŚCIWY region nadrzędny (nie pierwszy z IdMaster)
+        var regionNadrzedny = ZnajdzRegionNadrzednyDlaStanu(regionKlikniety, wszystkieRegiony);
+
         if (regionKlikniety != null)
         {
             // ⚠️ SPRAWDŹ — to jest podejrzane, może się wywalić
-            var regionMaster = wszystkieRegiony.FirstOrDefault(r =>
-                r.IdMaster != null &&
-                idRegion.Length >= 35 &&
-                r.IdMaster.Contains(idRegion.Substring(0, 35)));
+            // var regionMaster = wszystkieRegiony.FirstOrDefault(r =>
+            //     r.IdMaster != null &&
+            //     idRegion.Length >= 35 &&
+            //     r.IdMaster.Contains(idRegion.Substring(0, 35)));
 
 
             var ok = await generator.AddElements(
@@ -6368,7 +6552,7 @@
                 _generatorStates,
                 _regionsDualRama,
                 state.ListaKwadratow,
-                regionMaster?.Wierzcholki ?? wierzcholkiMaster,
+                regionNadrzedny?.Wierzcholki ?? wierzcholkiMaster,
                 _lastMouseClick,
                 boolNieCzyscKonsole, state.MVCKonfModelu?.KonfModeleElementy?.FirstOrDefault()?.RowIdElement);
 
@@ -6967,6 +7151,7 @@
         return "";
     }
 
+  
     private async Task ZapiszStanKoncowy(
     GeneratorState state,
     Generator generator,
@@ -7007,6 +7192,10 @@
         state.WierzcholkiInner = generator.wewnetrznyKontur;
         state.KonturWenetrznyPodRysunek = generator.konturWenetrznyPodRysunek;
         state.WierzcholkiWenetrznePodRysunek = generator.wierzcholkiWenetrznePodRysunek;
+
+        state.Wierzcholki = wierzcholki;
+        state.KonturOkucia = generator.liniaOkuciaKonturZLukami;
+        state.KonturSzyby = generator.liniaSzkleniaKonturZLukami;
 
         AddOrUpdateGeneratorState(cleanId, state, generator);
 
@@ -9367,7 +9556,6 @@
         _generatorStates[regionId] = state;
 
     }
-
 
     // ========================================================
     //          📌 2. POBIERANIE STANU

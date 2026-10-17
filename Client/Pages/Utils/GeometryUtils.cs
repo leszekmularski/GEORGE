@@ -1,7 +1,6 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
-using System.Diagnostics.Metrics;
 
 namespace GEORGE.Client.Pages.Utils
 {
@@ -10,8 +9,8 @@ namespace GEORGE.Client.Pages.Utils
         public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc,
             double _wysokosc, bool rama, Dictionary<string, GeneratorState>? stareStany = null)
         {
-           shapes = UsunDuplikatyShape(shapes);
-           // await Task.Delay(10);
+            shapes = UsunDuplikatyShape(shapes);
+            await Task.Delay(10);
 
             var regions = new List<ShapeRegion>();
 
@@ -342,7 +341,7 @@ namespace GEORGE.Client.Pages.Utils
                                 return result;
                             }
 
-                        FallbackLine:
+                            FallbackLine:
 
                             var lineSeg = new ContourSegment(p, next)
                             {
@@ -670,14 +669,6 @@ namespace GEORGE.Client.Pages.Utils
                         Console.WriteLine($"⚠️ Brak linii dzielących - zachowuję oryginalny kontur");
                         podzielone = new List<ShapeRegion> { initial };
 
-                        // ⭐ DETERMINISTYCZNA KOLEJNOŚĆ — sortuj po pozycji (MinX, MinY)
-                        podzielone = podzielone
-                            .OrderBy(r => r.Wierzcholki.Min(p => p.X))
-                            .ThenBy(r => r.Wierzcholki.Min(p => p.Y))
-                            .ToList();
-
-                        int idCounter = 0;
-
                         // Przetwarzanie dla przypadku bez linii dzielących (TAK SAMO JAK DLA RAMY)
                         foreach (var r in podzielone)
                         {
@@ -799,12 +790,10 @@ namespace GEORGE.Client.Pages.Utils
 
                             FixAndSynchronizeContour(r);
 
-                            r.Id = $"{id}|{idCounter++}";
-
                             // Po sortowaniu i synchronizacji
                             // SortAndSynchronizeContour(r);
 
-                            //   await Task.Delay(5);
+                            await Task.Delay(5);
 
                             //// Wyłącz szczegółowe logowanie (tylko problemy)
                             //_enableDetailedLogging = false;
@@ -828,15 +817,8 @@ namespace GEORGE.Client.Pages.Utils
                         //Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
                         podzielone = await PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
-                        // ⭐ DETERMINISTYCZNA KOLEJNOŚĆ — sortuj po pozycji (MinX, MinY)
-                        podzielone = podzielone
-                            .OrderBy(r => r.Wierzcholki.Min(p => p.X))
-                            .ThenBy(r => r.Wierzcholki.Min(p => p.Y))
-                            .ToList();
 
                         //Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
-
-                        int idCounter = 0;
 
                         foreach (var r in podzielone)
                         {
@@ -1001,7 +983,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             // SortAndSynchronizeContour(r);
 
-                            //wait Task.Delay(5);
+                            await Task.Delay(5);
 
                             //// Po sortowaniu i synchronizacji
                             //SortAndSynchronizeContour(r);
@@ -1019,11 +1001,10 @@ namespace GEORGE.Client.Pages.Utils
                             //_enableDetailedLogging = true;
                             //ValidateContourConsistency(r, r.TypKsztaltu);
 
-                            r.Id = $"{id}|{idCounter++}";
 
                             FixAndSynchronizeContour(r);
 
-                            //await Task.Delay(1);
+                            await Task.Delay(1);
 
                             if (r.Wierzcholki.Count() < 2) r.Wierzcholki = napraw;
 
@@ -1525,7 +1506,7 @@ namespace GEORGE.Client.Pages.Utils
                                 LinieDzielace = linieRegionu,
                                 IdMaster = idMaster,
                                 Rama = rama,
-                                Id = null, //r.Id + "_" + line.ID + "_" + Guid.NewGuid().ToString(),
+                                Id = r.Id + "_" + line.ID + "_" + Guid.NewGuid().ToString(),
                                 TypLiniiDzielacej = r.TypLiniiDzielacej
                             });
                         }
@@ -1683,7 +1664,7 @@ namespace GEORGE.Client.Pages.Utils
                                 continue;
                             }
 
-                            string newId = null;// $"{rootId}|L{indexLinii}|C{indexChild}";
+                            string newId = $"{rootId}|L{indexLinii}|C{indexChild}";
 
                             var bokiPoly = Enumerable.Range(0, poly.Count)
                                 .Select(idx => (

@@ -1,97 +1,1048 @@
-﻿@page "/"
+﻿@using System.Text.Json.Serialization
+@page "/"
 @using System.Globalization
+@using System.Net.Http.Json
 @inject IJSRuntime JS
 @inject IMessageService _message
 
-
 <PageTitle>Program do wspomagania produkcji</PageTitle>
 
-<h1 style="color: green;">
-    System produkcyjny w firmie <span style="font-weight: bold;">PPHU "GEORGE"</span> <span style="font-weight: normal; font-size:14px; color:crimson">[Wersja:@version]</span>
-</h1>
+<div class="george-page">
 
-<p>Dziś mamy dzień: @DateTime.Now.DayOfYear roku @DateTime.Now.Year, tydzień @GetWeekNumber(DateTime.Now)</p>
+    <!-- NAGŁÓWEK -->
+    <div class="page-header">
+        <h1>
+            System produkcyjny w firmie
+            <span class="company-name">PPHU "GEORGE"</span>
+            <span class="version">[Wersja: @version]</span>
+        </h1>
+        <p class="date-information">
+            Dziś mamy dzień:
+            <strong>@DateTime.Now.DayOfYear</strong>
+            roku
+            <strong>@DateTime.Now.Year</strong>,
+            tydzień
+            <strong>@GetWeekNumber(DateTime.Now)</strong>
+        </p>
+    </div>
 
-@if(DateTime.Now.DayOfWeek == DayOfWeek.Monday)
-{
-    <p style="color: red; font-weight: bold;">Dziś jest poniedziałek, czas na planowanie produkcji!</p>
-    <div>
-        <img class="marginauto" src="/Images/george_st.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
-    </div>
-}
-else if(DateTime.Now.DayOfWeek == DayOfWeek.Friday)
-{
-    <p style="color: green; font-weight: bold;">Dziś jest piątek, świetny dzień na podsumowanie tygodnia!</p>
-    <div>
-        <img class="marginauto" src="/Images/george_nt.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
-    </div>
-}
-else
-{
-    <p style="color: blue; font-weight: bold;">Dziś jest kolejny dzień produkcyjny!</p>
-    <div>
-        <img class="marginauto" src="/Images/george_ct.jpg" asp-append-version="true" style="height: 68vh;" alt="centered image" />
-    </div>
-}
-
-<Tooltip Placement="@Placement.Top" Title="Kliknij w poniższy napis aby go skopiować">
-    <h6 @onclick="CopyToClipboard" style="cursor: pointer; color: darkblue;">
-        @textAdres
-    </h6>
-</Tooltip>
-<style>
-    body {
-        background-color: lightblue;
+    <!-- KOMUNIKAT DNIA -->
+    @if (DateTime.Now.DayOfWeek == DayOfWeek.Monday)
+    {
+        <div class="day-message monday">
+            <span class="day-icon">📋</span>
+            <span>Dziś jest poniedziałek, czas na planowanie produkcji!</span>
+        </div>
+    }
+    else if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
+    {
+        <div class="day-message friday">
+            <span class="day-icon">🎯</span>
+            <span>Dziś jest piątek, świetny dzień na podsumowanie tygodnia!</span>
+        </div>
+    }
+    else
+    {
+        <div class="day-message normal">
+            <span class="day-icon">🏭</span>
+            <span>Dziś jest kolejny dzień produkcyjny!</span>
+        </div>
     }
 
-    .marginauto {
+    <!-- POGODA -->
+    @if (pobieraniePogody)
+    {
+        <div class="weather-card loading">
+            <div class="weather-loading">
+                <div class="loading-cloud">☁️</div>
+                <div>
+                    <div class="loading-title">Pobieranie informacji o pogodzie...</div>
+                    <div class="loading-location">📍 @lokalizacja</div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (pogoda != null)
+    {
+        <div class="weather-card">
+            <!-- LEWA STRONA - GRAFIKA -->
+            <div class="weather-illustration">
+                @if (pogoda.IsDay)
+                {
+                    <div class="sun"></div>
+                    <div class="cloud cloud-main">
+                        <div class="cloud-part cloud-part-1"></div>
+                        <div class="cloud-part cloud-part-2"></div>
+                        <div class="cloud-part cloud-part-3"></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="moon"></div>
+                    <div class="star star-1">✦</div>
+                    <div class="star star-2">✦</div>
+                    <div class="star star-3">✦</div>
+                    <div class="cloud cloud-night">
+                        <div class="cloud-part cloud-part-1"></div>
+                        <div class="cloud-part cloud-part-2"></div>
+                        <div class="cloud-part cloud-part-3"></div>
+                    </div>
+                }
+                <div class="small-cloud small-cloud-1"></div>
+                <div class="small-cloud small-cloud-2"></div>
+            </div>
+
+            <!-- PRAWA STRONA - INFORMACJE -->
+            <div class="weather-information">
+                <div class="weather-location">
+                    <div class="location-icon">📍</div>
+                    <div>
+                        <div class="location-title">@pogoda.LocationName</div>
+                        <div class="location-country">@pogoda.Country</div>
+                    </div>
+                </div>
+
+                <div class="weather-temperature">
+                    <span class="temperature">@pogoda.Temperature.ToString("0.0")</span>
+                    <span class="temperature-unit">°C</span>
+                </div>
+
+                <div class="weather-description">
+                    <span class="weather-icon">@GetWeatherEmoji(pogoda.WeatherCode)</span>
+                    <span>@GetWeatherDescription(pogoda.WeatherCode)</span>
+                </div>
+
+                <div class="weather-details">
+                    <div class="weather-detail">
+                        <div class="detail-icon">🌡️</div>
+                        <div>
+                            <div class="detail-label">Odczuwalna</div>
+                            <div class="detail-value">@pogoda.ApparentTemperature.ToString("0.0") °C</div>
+                        </div>
+                    </div>
+                    <div class="weather-detail">
+                        <div class="detail-icon">💧</div>
+                        <div>
+                            <div class="detail-label">Wilgotność</div>
+                            <div class="detail-value">@pogoda.RelativeHumidity.ToString("0") %</div>
+                        </div>
+                    </div>
+                    <div class="weather-detail">
+                        <div class="detail-icon">💨</div>
+                        <div>
+                            <div class="detail-label">Wiatr</div>
+                            <div class="detail-value">@pogoda.WindSpeed.ToString("0") km/h</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="weather-update">
+                    <span>Aktualna pogoda</span>
+                    <button class="weather-refresh"
+                            @onclick="PobierzPogode"
+                            disabled="@pobieraniePogody">
+                        ↻ Odśwież
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(bladPogody))
+    {
+        <div class="weather-error">
+            <span>⚠️</span>
+            <span>@bladPogody</span>
+            <button @onclick="PobierzPogode">Spróbuj ponownie</button>
+        </div>
+    }
+
+    <!-- ZDJĘCIE FIRMY -->
+    @if (DateTime.Now.DayOfWeek == DayOfWeek.Monday)
+    {
+        <div class="company-image-container">
+            <img class="company-image" src="/Images/george_st.jpg"
+                 asp-append-version="true" alt="PPHU GEORGE" />
+        </div>
+    }
+    else if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
+    {
+        <div class="company-image-container">
+            <img class="company-image" src="/Images/george_nt.jpg"
+                 asp-append-version="true" alt="PPHU GEORGE" />
+        </div>
+    }
+    else
+    {
+        <div class="company-image-container">
+            <img class="company-image" src="/Images/george_ct.jpg"
+                 asp-append-version="true" alt="PPHU GEORGE" />
+        </div>
+    }
+
+    <!-- ADRES FIRMY -->
+    <Tooltip Placement="@Placement.Top"
+             Title="Kliknij w poniższy napis aby go skopiować">
+        <div class="address-container" @onclick="CopyToClipboard">
+            <div class="address-icon">📋</div>
+            <div class="address-text">@textAdres</div>
+        </div>
+    </Tooltip>
+</div>
+
+
+<style>
+    /* CAŁA STRONA */
+    .george-page {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        padding: 18px 25px 30px;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 12% -10%, rgba(22, 128, 60, 0.10), transparent 60%), radial-gradient(900px 500px at 100% 0%, rgba(80, 160, 220, 0.12), transparent 55%), linear-gradient(180deg, #f4f7f5 0%, #eef3f1 45%, #e9eef2 100%);
+        color: #2b3a33;
+    }
+
+        .george-page::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(20, 60, 45, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(20, 60, 45, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(circle at 50% 30%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%);
+            -webkit-mask-image: radial-gradient(circle at 50% 30%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0) 100%);
+            z-index: 0;
+        }
+
+        .george-page > * {
+            position: relative;
+            z-index: 1;
+        }
+
+    /* NAGŁÓWEK */
+    .page-header {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+        .page-header h1 {
+            margin: 0;
+            color: #16803c;
+            font-size: 30px;
+            font-weight: 400;
+        }
+
+    .company-name {
+        font-weight: 700;
+        color: #147a39;
+    }
+
+    .version {
+        display: inline-block;
+        margin-left: 8px;
+        color: crimson;
+        font-size: 13px;
+        font-weight: 400;
+    }
+
+    .date-information {
+        margin: 7px 0 12px;
+        color: #444;
+        font-size: 15px;
+    }
+
+    /* KOMUNIKAT DNIA */
+    .day-message {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: fit-content;
+        max-width: 90%;
+        margin: 0 auto 15px;
+        padding: 9px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 15px;
+    }
+
+    .day-icon {
+        font-size: 20px;
+    }
+
+    .monday {
+        color: #9b1c1c;
+        background: #fff0f0;
+        border: 1px solid #f1b5b5;
+    }
+
+    .friday {
+        color: #176b35;
+        background: #edfff3;
+        border: 1px solid #b6e4c5;
+    }
+
+    .normal {
+        color: #155fa0;
+        background: #eef7ff;
+        border: 1px solid #b8daf5;
+    }
+
+    /* KARTA POGODOWA */
+    .weather-card {
+        position: relative;
+        display: flex;
+        width: min(900px, 94%);
+        min-height: 285px;
+        margin: 15px auto 20px;
+        overflow: hidden;
+        border-radius: 25px;
+        background: linear-gradient(135deg, #dff4ff 0%, #bde5fa 48%, #eaf8ff 100%);
+        box-shadow: 0 8px 30px rgba(0, 70, 110, 0.18);
+        border: 1px solid rgba(255,255,255,0.8);
+    }
+
+    /* LEWA STRONA - GRAFIKA */
+    .weather-illustration {
+        position: relative;
+        width: 42%;
+        min-height: 285px;
+        overflow: hidden;
+    }
+
+    .sun {
+        position: absolute;
+        width: 105px;
+        height: 105px;
+        top: 38px;
+        left: 75px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #fffbd1, #ffd84d 50%, #ffbd22 100%);
+        box-shadow: 0 0 35px rgba(255, 204, 54, 0.55);
+    }
+
+    .moon {
+        position: absolute;
+        width: 95px;
+        height: 95px;
+        top: 40px;
+        left: 78px;
+        border-radius: 50%;
+        background: #fffbd5;
+        box-shadow: 0 0 25px rgba(255,255,210,0.55);
+    }
+
+        .moon::after {
+            content: "";
+            position: absolute;
+            width: 95px;
+            height: 95px;
+            top: -13px;
+            left: 27px;
+            border-radius: 50%;
+            background: #9ccbe4;
+        }
+
+    .star {
+        position: absolute;
+        color: white;
+        font-size: 18px;
+    }
+
+    .star-1 {
+        top: 32px;
+        left: 50px;
+    }
+
+    .star-2 {
+        top: 75px;
+        left: 200px;
+    }
+
+    .star-3 {
+        top: 125px;
+        left: 35px;
+    }
+
+    .cloud {
+        position: absolute;
+        width: 220px;
+        height: 72px;
+        left: 75px;
+        bottom: 58px;
+        border-radius: 50px;
+        background: linear-gradient(180deg, #ffffff, #e6f2f8);
+        box-shadow: 0 10px 18px rgba(50, 110, 140, 0.12);
+    }
+
+        .cloud::after {
+            content: "";
+            position: absolute;
+            width: 145px;
+            height: 65px;
+            right: 5px;
+            bottom: 0;
+            border-radius: 50px;
+            background: #eaf5fa;
+        }
+
+    .cloud-part {
+        position: absolute;
+        border-radius: 50%;
+        background: #ffffff;
+        z-index: 3;
+    }
+
+    .cloud-part-1 {
+        width: 82px;
+        height: 82px;
+        left: 30px;
+        bottom: 25px;
+    }
+
+    .cloud-part-2 {
+        width: 100px;
+        height: 100px;
+        left: 82px;
+        bottom: 18px;
+    }
+
+    .cloud-part-3 {
+        width: 65px;
+        height: 65px;
+        left: 155px;
+        bottom: 28px;
+    }
+
+    .small-cloud {
+        position: absolute;
+        width: 80px;
+        height: 25px;
+        border-radius: 30px;
+        background: rgba(255,255,255,0.72);
+    }
+
+        .small-cloud::before {
+            content: "";
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            left: 12px;
+            bottom: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.72);
+        }
+
+    .small-cloud-1 {
+        top: 55px;
+        right: 25px;
+        transform: scale(.7);
+    }
+
+    .small-cloud-2 {
+        top: 115px;
+        left: 15px;
+        transform: scale(.55);
+    }
+
+    /* INFORMACJE O POGODZIE */
+    .weather-information {
+        width: 58%;
+        padding: 28px 35px 22px;
+        box-sizing: border-box;
+    }
+
+    .weather-location {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .location-icon {
+        font-size: 28px;
+    }
+
+    .location-title {
+        color: #174d68;
+        font-size: 23px;
+        font-weight: 700;
+    }
+
+    .location-country {
+        color: #55717e;
+        font-size: 13px;
+    }
+
+    .weather-temperature {
+        margin-top: 5px;
+        line-height: 1;
+    }
+
+    .temperature {
+        color: #174d68;
+        font-size: 64px;
+        font-weight: 700;
+    }
+
+    .temperature-unit {
+        color: #487286;
+        font-size: 28px;
+        vertical-align: top;
+        position: relative;
+        top: 9px;
+    }
+
+    .weather-description {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 5px;
+        color: #315b6c;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .weather-icon {
+        font-size: 27px;
+    }
+
+    /* SZCZEGÓŁY */
+    .weather-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .weather-detail {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 125px;
+        padding: 9px 12px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.55);
+    }
+
+    .detail-icon {
+        font-size: 21px;
+    }
+
+    .detail-label {
+        color: #66808b;
+        font-size: 11px;
+    }
+
+    .detail-value {
+        color: #294e5f;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    /* STOPKA KARTY */
+    .weather-update {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 16px;
+        color: #6b8792;
+        font-size: 12px;
+    }
+
+    .weather-refresh {
+        border: none;
+        padding: 5px 12px;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.75);
+        color: #245d76;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+        .weather-refresh:hover {
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        .weather-refresh:disabled {
+            opacity: .5;
+            cursor: wait;
+        }
+
+    /* ŁADOWANIE */
+    .weather-card.loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 160px;
+    }
+
+    .weather-loading {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .loading-cloud {
+        font-size: 65px;
+        animation: cloudMove 2s infinite ease-in-out;
+    }
+
+    .loading-title {
+        color: #285d72;
+        font-size: 17px;
+        font-weight: 600;
+    }
+
+    .loading-location {
+        margin-top: 4px;
+        color: #698894;
+        font-size: 13px;
+    }
+
+    @@keyframes cloudMove {
+        0%, 100% {
+            transform: translateX(0);
+        }
+
+        50% {
+            transform: translateX(8px);
+        }
+    }
+
+    /* BŁĄD */
+    .weather-error {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        width: min(700px, 90%);
+        margin: 15px auto;
+        padding: 12px 18px;
+        color: #8b2525;
+        background: #fff0f0;
+        border: 1px solid #e3b3b3;
+        border-radius: 12px;
+    }
+
+        .weather-error button {
+            border: none;
+            padding: 5px 12px;
+            border-radius: 8px;
+            color: white;
+            background: #b13a3a;
+            cursor: pointer;
+        }
+
+    /* ZDJĘCIE GEORGE */
+    .company-image-container {
+        display: flex;
+        justify-content: left;
         margin: 10px auto 20px;
-        display: block;
+        width: 100%;
+    }
+
+    .company-image {
+        width: 60px;
+        height: auto;
+        max-height: 140px;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ADRES */
+    .address-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: fit-content;
+        max-width: 95%;
+        margin: 5px auto 10px;
+        padding: 7px 14px;
+        border-radius: 8px;
+        color: darkblue;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid rgba(22, 128, 60, 0.12);
+        cursor: pointer;
+        transition: .2s;
+    }
+
+        .address-container:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-1px);
+        }
+
+    .address-icon {
+        font-size: 16px;
+    }
+
+    .address-text {
+        font-size: 13px;
+        text-align: center;
+    }
+
+    /* RESPONSIVE */
+    @@media (max-width: 750px) {
+        .page-header h1 {
+            font-size: 23px;
+        }
+
+        .version {
+            display: block;
+            margin: 5px 0 0;
+        }
+
+        .weather-card {
+            flex-direction: column;
+        }
+
+        .weather-illustration {
+            width: 100%;
+            min-height: 190px;
+        }
+
+        .weather-information {
+            width: 100%;
+            padding: 20px;
+        }
+
+        .sun {
+            left: 25%;
+        }
+
+        .moon {
+            left: 25%;
+        }
+
+        .cloud {
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 35px;
+        }
+
+        .temperature {
+            font-size: 52px;
+        }
+
+        .company-image {
+            width: 80px;
+            max-height: 90px;
+            height: auto;
+        }
     }
 </style>
 
+
 @code {
 
+    /* PODSTAWOWE DANE */
     private string? version = "1.0";
 
-    [Inject] private AppState AppState { get; set; } = default!;
+    [Inject]
+    private AppState AppState { get; set; } = default!;
 
-    private static string textAdres = $"PPHU \"GEORGE\" Marcinkowice 351, 33-393 Marcinkowice tel:(+48 18) 44-33-111 NIP:7341136804 Dziś mamy: {DateTime.Now.ToString("dddd", new CultureInfo("pl-PL"))} {DateTime.Now.ToShortDateString()}";
+    /* LOKALIZACJA */
+    private string lokalizacja = "Nowy Sącz, Poland";
+
+    /* POGODA */
+    private PogodaViewModel? pogoda;
+    private bool pobieraniePogody = false;
+    private string? bladPogody;
+
+    /* ADRES */
+    private static string textAdres =
+        $"PPHU \"GEORGE\" Marcinkowice 351, 33-393 Marcinkowice " +
+        $"tel:(+48 18) 44-33-111 NIP:7341136804 " +
+        $"Dziś mamy: " +
+        $"{DateTime.Now.ToString("dddd", new CultureInfo("pl-PL"))} " +
+        $"{DateTime.Now.ToShortDateString()}";
+
+    /* START */
+    private PeriodicTimer? _weatherTimer;
+    private CancellationTokenSource? _weatherCancellation;
 
     protected override async Task OnInitializedAsync()
     {
-
         if (AppState != null)
         {
             AppState.SomeData = "";
         }
 
-        var xversion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        var xversion = System.Reflection.Assembly
+            .GetExecutingAssembly()
+            .GetName()
+            .Version;
 
         if (xversion != null)
         {
             version = xversion.ToString();
         }
 
-        await Task.CompletedTask;
+        // Pierwsze pobranie natychmiast po uruchomieniu strony
+        await PobierzPogode();
+
+        // Automatyczne odświeżanie co 15 minut
+        _weatherCancellation = new CancellationTokenSource();
+        _ = AutomatyczneOdswiezaniePogody(_weatherCancellation.Token);
     }
 
-  
-    private async Task CopyToClipboard()
+    private async Task AutomatyczneOdswiezaniePogody(CancellationToken cancellationToken)
     {
-        // Tekst do skopiowania
-        // Wywołanie metody JavaScript
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", textAdres);
-        await _message.Success("Adres skopiowano do pamięci.");
+        _weatherTimer = new PeriodicTimer(TimeSpan.FromMinutes(15));
+
+        try
+        {
+            while (await _weatherTimer.WaitForNextTickAsync(cancellationToken))
+            {
+                await InvokeAsync(async () =>
+                {
+                    await PobierzPogode();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normalne zakończenie timera
+        }
     }
 
+    public void Dispose()
+    {
+        try
+        {
+            _weatherCancellation?.Cancel();
+            _weatherTimer?.Dispose();
+            _weatherCancellation?.Dispose();
+        }
+        catch
+        {
+            // Ignorujemy błąd podczas zamykania komponentu
+        }
+    }
+
+    /* POBIERANIE POGODY */
+    private async Task PobierzPogode()
+    {
+        try
+        {
+            pobieraniePogody = true;
+            bladPogody = null;
+
+            await InvokeAsync(StateHasChanged);
+
+            using var http = new HttpClient();
+
+            // 1. WYSZUKANIE LOKALIZACJI
+            var encodedLocation = Uri.EscapeDataString(lokalizacja);
+
+            var locationUrl =
+                "https://geocoding-api.open-meteo.com/v1/search" +
+                $"?name={encodedLocation}" +
+                "&count=1" +
+                "&language=pl" +
+                "&format=json";
+
+            var locationResponse =
+                await http.GetFromJsonAsync<LokalizacjaDto>(locationUrl);
+
+            var location = locationResponse?.Results?.FirstOrDefault();
+
+            if (location == null)
+            {
+                bladPogody = $"Nie znaleziono lokalizacji: {lokalizacja}";
+                return;
+            }
+
+            // 2. WSPÓŁRZĘDNE
+            var latitude = location.Latitude.ToString(CultureInfo.InvariantCulture);
+            var longitude = location.Longitude.ToString(CultureInfo.InvariantCulture);
+
+            // 3. POBRANIE AKTUALNEJ POGODY
+            var weatherUrl =
+                "https://api.open-meteo.com/v1/forecast" +
+                $"?latitude={latitude}" +
+                $"&longitude={longitude}" +
+                "&current=" +
+                "temperature_2m," +
+                "relative_humidity_2m," +
+                "apparent_temperature," +
+                "wind_speed_10m," +
+                "weather_code," +
+                "is_day" +
+                "&temperature_unit=celsius" +
+                "&wind_speed_unit=kmh" +
+                "&timezone=Europe%2FWarsaw";
+
+            Console.WriteLine($"Pobieranie pogody: {weatherUrl}");
+
+            var weather = await http.GetFromJsonAsync<PogodaApiResponse>(weatherUrl);
+
+            // 4. SPRAWDZENIE ODPOWIEDZI
+            if (weather == null)
+            {
+                bladPogody = "Open-Meteo nie zwróciło odpowiedzi.";
+                return;
+            }
+
+            if (weather.Current == null)
+            {
+                bladPogody = "Open-Meteo nie zwróciło danych aktualnej pogody.";
+                return;
+            }
+
+            // 5. DEBUG
+            Console.WriteLine($"Temperatura: {weather.Current.Temperature2m}");
+            Console.WriteLine($"Odczuwalna: {weather.Current.ApparentTemperature}");
+            Console.WriteLine($"Wilgotność: {weather.Current.RelativeHumidity2m}");
+            Console.WriteLine($"Wiatr: {weather.Current.WindSpeed10m}");
+            Console.WriteLine($"Kod pogody: {weather.Current.WeatherCode}");
+
+            // 6. ZAPIS DO MODELU WIDOKU
+            pogoda = new PogodaViewModel
+            {
+                LocationName = location.Name,
+                Country = location.Country,
+                Temperature = weather.Current.Temperature2m,
+                ApparentTemperature = weather.Current.ApparentTemperature,
+                RelativeHumidity = weather.Current.RelativeHumidity2m,
+                WindSpeed = weather.Current.WindSpeed10m,
+                WeatherCode = weather.Current.WeatherCode,
+                IsDay = weather.Current.IsDay == 1
+            };
+        }
+        catch (Exception ex)
+        {
+            bladPogody = $"Błąd pobierania pogody: {ex.Message}";
+            Console.WriteLine($"BŁĄD POGODY: {ex}");
+        }
+        finally
+        {
+            pobieraniePogody = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /* IKONA POGODY */
+    private string GetWeatherEmoji(int code)
+    {
+        return code switch
+        {
+            0 => "☀️",
+            1 or 2 => "🌤️",
+            3 => "☁️",
+            45 or 48 => "🌫️",
+            51 or 53 or 55 => "🌦️",
+            56 or 57 => "🌧️",
+            61 or 63 or 65 => "🌧️",
+            66 or 67 => "🌧️",
+            71 or 73 or 75 => "❄️",
+            77 => "🌨️",
+            80 or 81 or 82 => "🌦️",
+            85 or 86 => "🌨️",
+            95 => "⛈️",
+            96 or 99 => "⛈️",
+            _ => "🌤️"
+        };
+    }
+
+    /* OPIS POGODY */
+    private string GetWeatherDescription(int code)
+    {
+        return code switch
+        {
+            0 => "Bezchmurnie",
+            1 => "Przeważnie bezchmurnie",
+            2 => "Częściowe zachmurzenie",
+            3 => "Pochmurno",
+            45 or 48 => "Mgła",
+            51 or 53 or 55 => "Mżawka",
+            56 or 57 => "Marznąca mżawka",
+            61 or 63 or 65 => "Deszcz",
+            66 or 67 => "Marznący deszcz",
+            71 or 73 or 75 => "Śnieg",
+            77 => "Śnieg ziarnisty",
+            80 or 81 or 82 => "Przelotne opady deszczu",
+            85 or 86 => "Przelotne opady śniegu",
+            95 => "Burza",
+            96 or 99 => "Burza z gradem",
+            _ => "Brak danych"
+        };
+    }
+
+    /* NUMER TYGODNIA */
     private int GetWeekNumber(DateTime date)
     {
         CultureInfo ci = CultureInfo.CurrentCulture;
         System.Globalization.Calendar calendar = ci.Calendar;
         CalendarWeekRule calendarWeekRule = ci.DateTimeFormat.CalendarWeekRule;
         DayOfWeek firstDayOfWeek = ci.DateTimeFormat.FirstDayOfWeek;
+
         return calendar.GetWeekOfYear(date, calendarWeekRule, firstDayOfWeek);
+    }
+
+    /* KOPIOWANIE ADRESU */
+    private async Task CopyToClipboard()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", textAdres);
+        await _message.Success("Adres skopiowano do pamięci.");
+    }
+
+    /* MODELE API */
+    public class LokalizacjaDto
+    {
+        public List<LokalizacjaResultDto>? Results { get; set; }
+    }
+
+    public class LokalizacjaResultDto
+    {
+        public string Name { get; set; } = "";
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public string Country { get; set; } = "";
+        public string? Admin1 { get; set; }
+    }
+
+    public class PogodaApiResponse
+    {
+        [JsonPropertyName("current")]
+        public CurrentWeatherDto? Current { get; set; }
+    }
+
+    public class CurrentWeatherDto
+    {
+        [JsonPropertyName("temperature_2m")]
+        public double Temperature2m { get; set; }
+
+        [JsonPropertyName("relative_humidity_2m")]
+        public double RelativeHumidity2m { get; set; }
+
+        [JsonPropertyName("apparent_temperature")]
+        public double ApparentTemperature { get; set; }
+
+        [JsonPropertyName("wind_speed_10m")]
+        public double WindSpeed10m { get; set; }
+
+        [JsonPropertyName("weather_code")]
+        public int WeatherCode { get; set; }
+
+        [JsonPropertyName("is_day")]
+        public int IsDay { get; set; }
+    }
+
+    public class PogodaViewModel
+    {
+        public string LocationName { get; set; } = "";
+        public string Country { get; set; } = "";
+        public double Temperature { get; set; }
+        public double ApparentTemperature { get; set; }
+        public double RelativeHumidity { get; set; }
+        public double WindSpeed { get; set; }
+        public int WeatherCode { get; set; }
+        public bool IsDay { get; set; }
     }
 
 }

@@ -263,11 +263,14 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         // ---------------------------------------------------------
         public BoundingBox GetBoundingBox()
         {
-            // bazujemy na nominalnych punktach
-            double minX = NominalPoints.Min(p => p.X);
-            double minY = NominalPoints.Min(p => p.Y);
-            double maxX = NominalPoints.Max(p => p.X);
-            double maxY = NominalPoints.Max(p => p.Y);
+            var pts = Points != null && Points.Count > 0 ? Points : NominalPoints;
+            if (pts == null || pts.Count == 0)
+                return new BoundingBox(0, 0, 0, 0, NazwaObj);
+
+            double minX = pts.Min(p => p.X);
+            double minY = pts.Min(p => p.Y);
+            double maxX = pts.Max(p => p.X);
+            double maxY = pts.Max(p => p.Y);
 
             return new BoundingBox(minX, minY, maxX - minX, maxY - minY, NazwaObj);
         }

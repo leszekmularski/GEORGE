@@ -17,7 +17,6 @@
 
 <script>
     function initializeTabs() {
-        // Inicjalizacja wszystkich zakładek Bootstrap
         var triggerTabList = [].slice.call(document.querySelectorAll('button[data-bs-toggle="tab"]'))
         triggerTabList.forEach(function (triggerEl) {
             new bootstrap.Tab(triggerEl);
@@ -27,7 +26,6 @@
     window.disposeCanvas = function (canvasId) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
-        // Wyczyść bitmapę i zmniejsz do 0 – nawet jeśli element zostanie w DOM, nie będzie widoczny
         const ctx = canvas.getContext('2d');
         if (ctx) {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -38,7 +36,7 @@
         canvas.style.display = 'none';
     };
 
-    // ==================== Rysowanie konturu na canvas ====================
+    // ==================== Rysowanie konturu na canvas (z zoomem) ====================
     window.drawContourOnCanvas = function (canvasId, outerSegments, innerSegments, options) {
         options = options || {};
         const canvas = document.getElementById(canvasId);
@@ -58,6 +56,9 @@
         const bgColor = options.bgColor || '#1e1e1e';
         const outerColor = options.outerColor || '#0d6efd';
         const innerColor = options.innerColor || '#28a745';
+        // NOWE: współczynnik zoomu (1.0 = dopasowanie do okna)
+        let zoom = Number(options.zoom);
+        if (!isFinite(zoom) || zoom <= 0) zoom = 1.0;
 
         ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, W, H);
@@ -95,12 +96,13 @@
         const rangeY = maxY - minY;
         const availW = W - 2 * padding;
         const availH = H - 2 * padding;
-        const scale = Math.min(availW / (rangeX || 1), availH / (rangeY || 1));
+
+        // dopasowanie + zoom
+        const scale = Math.min(availW / (rangeX || 1), availH / (rangeY || 1)) * zoom;
         const offsetX = padding + (availW - rangeX * scale) / 2 - minX * scale;
         const offsetY = padding + (availH - rangeY * scale) / 2 - minY * scale;
 
         function tx(x) { return offsetX + x * scale; }
-        // Odwrócenie osi Y — model rysowany od dołu do góry (Y rośnie w górę ekranu)
         function ty(y) { return offsetY + y * scale; }
 
         // --- Osie 0,0 ---
@@ -120,7 +122,7 @@
             ctx.stroke();
         }
 
-        // --- Rysowanie segmentów (linie + łuki jako polilinia) ---
+        // --- Rysowanie segmentów ---
         function drawSegments(segments, color, lineWidth) {
             if (!segments || segments.length === 0) return;
             ctx.strokeStyle = color;
@@ -169,7 +171,7 @@
         // --- Wierzchołki + dymki z wartościami ---
         if (options.showVertices !== false) {
             const drawn = new Set();
-            const pointIndex = [];   // unikalne punkty w kolejności pojawiania się
+            const pointIndex = [];
 
             for (const seg of all) {
                 for (const pt of [seg.start, seg.end]) {
@@ -189,7 +191,6 @@
                 }
             }
 
-            // --- DYMKI Z WARTOŚCIAMI PUNKTÓW ---
             if (options.showPointLabels === true) {
                 ctx.font = '10px Consolas, monospace';
                 ctx.textAlign = 'left';
@@ -203,20 +204,14 @@
                     const textW = ctx.measureText(text).width + 8;
                     const boxH = 14;
 
-                    // Ustalenie pozycji dymka – staramy się nie zasłaniać punktu
                     let bx = sx + 6;
                     let by = sy - boxH - 4;
 
-                    // Korekta gdy wychodzi za prawą krawędź
                     if (bx + textW > W - 4) bx = sx - textW - 6;
-                    // Korekta gdy wychodzi za górną krawędź
                     if (by < 4) by = sy + 6;
-                    // Korekta gdy wychodzi za lewą krawędź
                     if (bx < 4) bx = sx + 6;
-                    // Korekta gdy wychodzi za dolną krawędź
                     if (by + boxH > H - 4) by = sy - boxH - 4;
 
-                    // Łącznik od punktu do dymka
                     ctx.strokeStyle = 'rgba(255,193,7,0.6)';
                     ctx.lineWidth = 1;
                     ctx.beginPath();
@@ -224,14 +219,12 @@
                     ctx.lineTo(bx, by + boxH / 2);
                     ctx.stroke();
 
-                    // Tło dymka
                     ctx.fillStyle = 'rgba(30,30,30,0.92)';
                     ctx.fillRect(bx, by, textW, boxH);
                     ctx.strokeStyle = '#ffc107';
                     ctx.lineWidth = 1;
                     ctx.strokeRect(bx + 0.5, by + 0.5, textW - 1, boxH - 1);
 
-                    // Tekst
                     ctx.fillStyle = '#ffc107';
                     ctx.fillText(text, bx + 4, by + boxH / 2 + 0.5);
                 }
@@ -257,13 +250,13 @@
             }
         }
 
-        // --- Info ---
+        // --- Info + zoom ---
         if (options.showDimensions !== false) {
             ctx.font = '12px sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
             ctx.fillStyle = bgColor === '#ffffff' ? '#000' : '#ddd';
-            ctx.fillText(`W: ${rangeX.toFixed(2)}  H: ${rangeY.toFixed(2)}  Skala: ${scale.toFixed(3)}`, 10, 10);
+            ctx.fillText(`W: ${rangeX.toFixed(2)}  H: ${rangeY.toFixed(2)}  Skala: ${scale.toFixed(3)}  Zoom: ${(zoom * 100).toFixed(0)}%`, 10, 10);
             ctx.fillText(
                 `Segmentów: ${all.length} (zew: ${outerSegments?.length || 0}, wew: ${innerSegments?.length || 0})`,
                 10, 28);
@@ -272,7 +265,6 @@
 </script>
 
 <style>
-    /* STYLE GŁÓWNE */
     .json-panel {
         position: sticky;
         bottom: 20px;
@@ -296,7 +288,6 @@
             word-break: break-word !important;
         }
 
-    /* WIDOK SZCZEGÓŁOWY */
     .geometry-view .property,
     .elements-view .property,
     .summary-view .property {
@@ -326,7 +317,6 @@
         font-family: 'Consolas', monospace;
     }
 
-    /* BADGES STRON */
     .badge-strona-gora {
         background-color: #28a745 !important;
     }
@@ -344,8 +334,6 @@
         color: #212529 !important;
     }
 
-    /* ANIMACJE */
-
     @@keyframes slideUp {
         from {
             opacity: 0;
@@ -358,7 +346,6 @@
         }
     }
 
-    /* SCROLLBAR DOSTOSOWANY DO MOTYWU */
     .json-content::-webkit-scrollbar {
         width: 12px;
         height: 12px;
@@ -392,7 +379,6 @@
             background: #a8a8a8;
         }
 
-    /* MODAL OVERLAY */
     .modal-backdrop {
         z-index: 1040;
     }
@@ -401,13 +387,11 @@
         z-index: 1050;
     }
 
-    /* HOVER EFFECTS */
     .table-hover tbody tr:hover {
         background-color: rgba(0, 123, 255, 0.05) !important;
         cursor: pointer;
     }
 
-    /* KARTY W WIDOKU SZCZEGÓŁOWYM */
     .card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
@@ -421,13 +405,11 @@
         box-shadow: 0 4px 8px rgba(255,255,255,0.1);
     }
 
-    /* RESPONSYWNE TABELE */
     .table-responsive {
         border-radius: 8px;
         overflow: hidden;
     }
 
-    /* PRZYCISKI */
     .btn-group .btn {
         transition: all 0.2s ease;
     }
@@ -436,7 +418,6 @@
             transform: translateY(-1px);
         }
 
-    /* HIGHLIGHTJS STYLES */
     .hljs {
         background: transparent !important;
         padding: 20px !important;
@@ -504,22 +485,37 @@
         opacity: 0.7;
     }
 
-    /* NOWE: Canvas */
     .canvas-view canvas {
         background-color: #1e1e1e;
     }
 
     .json-panel {
-        overflow: hidden; /* panel nie wypuści nic poza swój prostokąt */
+        overflow: hidden;
     }
 
     .json-content {
-        position: relative; /* kontekst dla dzieci */
+        position: relative;
     }
 
     .canvas-view canvas {
         display: block;
         max-width: 100%;
+        height: clamp(400px, calc(100vh - 280px), 600px);
+    }
+
+    .json-content.canvas-content {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .json-content.canvas-mode {
+        overflow: visible;
+    }
+
+    .zoom-badge-btn {
+        min-width: 64px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
     }
 </style>
 
@@ -551,9 +547,7 @@
                 <div class="card bg-primary text-white">
                     <div class="card-body py-3">
                         <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="bi bi-collection fs-1"></i>
-                            </div>
+                            <div class="me-3"><i class="bi bi-collection fs-1"></i></div>
                             <div>
                                 <h5 class="card-title mb-0">@StateContainer.States.Count</h5>
                                 <p class="card-text mb-0">Wszystkich stanów</p>
@@ -566,9 +560,7 @@
                 <div class="card bg-success text-white">
                     <div class="card-body py-3">
                         <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="bi bi-square fs-1"></i>
-                            </div>
+                            <div class="me-3"><i class="bi bi-square fs-1"></i></div>
                             <div>
                                 <h5 class="card-title mb-0">@GetLiczbaRam()</h5>
                                 <p class="card-text mb-0">Stanów ram</p>
@@ -581,9 +573,7 @@
                 <div class="card bg-info text-white">
                     <div class="card-body py-3">
                         <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="bi bi-border-width fs-1"></i>
-                            </div>
+                            <div class="me-3"><i class="bi bi-border-width fs-1"></i></div>
                             <div>
                                 <h5 class="card-title mb-0">@GetLiczbaSkrzydel()</h5>
                                 <p class="card-text mb-0">Stanów skrzydeł</p>
@@ -596,9 +586,7 @@
                 <div class="card bg-warning text-dark">
                     <div class="card-body py-3">
                         <div class="d-flex align-items-center">
-                            <div class="me-3">
-                                <i class="bi bi-geo-alt fs-1"></i>
-                            </div>
+                            <div class="me-3"><i class="bi bi-geo-alt fs-1"></i></div>
                             <div>
                                 <h5 class="card-title mb-0">@GetLiczbaWszystkichPunktow()</h5>
                                 <p class="card-text mb-0">Wszystkich punktów</p>
@@ -610,7 +598,7 @@
         </div>
     }
 
-    <!-- Filtry i wyszukiwanie -->
+    <!-- Filtry -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <div class="row g-3">
@@ -716,17 +704,13 @@
                                     {
                                         <tr class="@(entry.Value.Id == wybranyStan?.Id ? "table-active" : "")">
                                             <td class="text-center fw-bold">@(++index)</td>
-                                            <td>
-                                                <code class="small">@entry.Value.Id</code>
-                                            </td>
+                                            <td><code class="small">@entry.Value.Id</code></td>
                                             <td>
                                                 <div>
                                                     <small class="text-muted d-block">Region:</small>
                                                     <span class="small">@entry.Value.IdRegion?.ToString()</span>
                                                 </div>
-                                                <div>
-                                                    <small class="text-muted">Z: @entry.Value.ZIndeks</small>
-                                                </div>
+                                                <div><small class="text-muted">Z: @entry.Value.ZIndeks</small></div>
                                             </td>
                                             <td>
                                                 <span class="badge @(entry.Value.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
@@ -745,11 +729,7 @@
                                                     <span class="text-muted fst-italic">brak nazwy</span>
                                                 }
                                             </td>
-                                            <td>
-                                                <span class="badge bg-secondary">
-                                                    @entry.Value.WybranyKsztalt
-                                                </span>
-                                            </td>
+                                            <td><span class="badge bg-secondary">@entry.Value.WybranyKsztalt</span></td>
                                             <td>
                                                 @if (entry.Value.Wierzcholki != null && entry.Value.Wierzcholki.Count >= 2)
                                                 {
@@ -757,7 +737,6 @@
                                                     var maxX = entry.Value.Wierzcholki.Max(p => p.X);
                                                     var minY = entry.Value.Wierzcholki.Min(p => p.Y);
                                                     var maxY = entry.Value.Wierzcholki.Max(p => p.Y);
-
                                                     <div class="small" style="color: brown;">
                                                         <div>W: @Math.Round(maxX - minX, 1)</div>
                                                         <div>H: @Math.Round(maxY - minY, 1)</div>
@@ -820,9 +799,7 @@
                 {
                     <div class="card-footer bg-light">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div class="text-muted small">
-                                Wyświetlono @filtrowaneStany.Count stanów
-                            </div>
+                            <div class="text-muted small">Wyświetlono @filtrowaneStany.Count stanów</div>
                             <button class="btn btn-sm btn-outline-secondary" @onclick="ScrollDoGory">
                                 <i class="bi bi-arrow-up"></i> Do góry
                             </button>
@@ -848,7 +825,6 @@
                         <button type="button" class="btn-close btn-close-white" @onclick="ZamknijPunkty"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- Zakładki dla konturów zewnętrznych i wewnętrznych -->
                         <ul class="nav nav-tabs mb-3" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" @onclick='() => AktywnaZakladka = "outer"' type="button">
@@ -866,10 +842,8 @@
                         </ul>
 
                         <div class="tab-content">
-                            <!-- Zakładka zewnętrzna -->
                             <div class="tab-pane @(AktywnaZakladka == "outer" ? "show active" : "")" role="tabpanel">
                                 <div class="table-responsive">
-                                    <!-- Tabela dla zwykłych punktów zewnętrznych -->
                                     @if (wybranePunkty != null && wybranePunkty.Count > 0)
                                     {
                                         <h6 class="mt-2 mb-2">
@@ -890,15 +864,11 @@
                                                 {
                                                     var point = wybranePunkty[i];
                                                     double? distance = null;
-
                                                     if (i > 0)
                                                     {
                                                         var prevPoint = wybranePunkty[i - 1];
-                                                        distance = Math.Sqrt(
-                                                        Math.Pow(point.X - prevPoint.X, 2) +
-                                                        Math.Pow(point.Y - prevPoint.Y, 2));
+                                                        distance = Math.Sqrt(Math.Pow(point.X - prevPoint.X, 2) + Math.Pow(point.Y - prevPoint.Y, 2));
                                                     }
-
                                                     <tr>
                                                         <td><span class="badge bg-primary">P @i</span></td>
                                                         <td><code>@point.X</code></td>
@@ -929,7 +899,6 @@
                                         </table>
                                     }
 
-                                    <!-- Tabela dla segmentów zewnętrznych (z łukami) -->
                                     @if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
                                     {
                                         <h6 class="mt-3 mb-2">
@@ -950,157 +919,123 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
+                                                @for (int i = 0; i < wybranePunktyZLukami.Count; i++)
                                                 {
-                                                    // Wyświetlanie segmentów z łukami
-                                                    for (int i = 0; i < wybranePunktyZLukami.Count; i++)
+                                                    var seg = wybranePunktyZLukami[i];
+                                                    double? distance = null;
+                                                    double? arcLength = null;
+                                                    if (seg.Type == SegmentType.Arc && seg.Center != null)
                                                     {
-                                                        var seg = wybranePunktyZLukami[i];
-                                                        double? distance = null;
-                                                        double? arcLength = null;
-
-                                                        // Oblicz długość bieżącego segmentu
-                                                        if (seg.Type == SegmentType.Arc && seg.Center != null)
-                                                        {
-                                                            // Dla łuku - długość łuku
-                                                            arcLength = CalculateArcLength(seg);
-                                                        }
-                                                        else
-                                                        {
-                                                            // Dla linii - długość linii
-                                                            arcLength = Math.Sqrt(
-                                                            Math.Pow(seg.End.X - seg.Start.X, 2) +
-                                                            Math.Pow(seg.End.Y - seg.Start.Y, 2));
-                                                        }
-
-                                                        // Oblicz odległość między segmentami
-                                                        if (i > 0)
-                                                        {
-                                                            var prevSeg = wybranePunktyZLukami[i - 1];
-
-                                                            // Sprawdź czy segmenty są ciągłe (koniec poprzedniego do początku obecnego)
-                                                            bool isContinuous = Math.Abs(prevSeg.End.X - seg.Start.X) < 0.01 &&
-                                                            Math.Abs(prevSeg.End.Y - seg.Start.Y) < 0.01;
-
-                                                            if (isContinuous)
+                                                        arcLength = CalculateArcLength(seg);
+                                                    }
+                                                    else
+                                                    {
+                                                        arcLength = Math.Sqrt(Math.Pow(seg.End.X - seg.Start.X, 2) + Math.Pow(seg.End.Y - seg.Start.Y, 2));
+                                                    }
+                                                    if (i > 0)
+                                                    {
+                                                        var prevSeg = wybranePunktyZLukami[i - 1];
+                                                        bool isContinuous = Math.Abs(prevSeg.End.X - seg.Start.X) < 0.01 && Math.Abs(prevSeg.End.Y - seg.Start.Y) < 0.01;
+                                                        if (isContinuous) { distance = 0; }
+                                                        else { distance = Math.Sqrt(Math.Pow(seg.Start.X - prevSeg.End.X, 2) + Math.Pow(seg.Start.Y - prevSeg.End.Y, 2)); }
+                                                    }
+                                                    <tr>
+                                                        <td>
+                                                            @if (seg.Type == SegmentType.Arc)
                                                             {
-                                                                distance = 0; // Ciągłe segmenty
+                                                                <span class="badge bg-warning">Łuk @i</span>
                                                             }
                                                             else
                                                             {
-                                                                // Oblicz przerwę między segmentami
-                                                                distance = Math.Sqrt(
-                                                                Math.Pow(seg.Start.X - prevSeg.End.X, 2) +
-                                                                Math.Pow(seg.Start.Y - prevSeg.End.Y, 2));
+                                                                <span class="badge bg-primary">Linia @i</span>
                                                             }
-                                                        }
-
-                                                        <tr>
-                                                            <td>
-                                                                @if (seg.Type == SegmentType.Arc)
+                                                        </td>
+                                                        <td><code>@seg.Start.X</code> → <strong>@seg.End.X</strong></td>
+                                                        <td><code>@seg.Start.Y</code> → <strong>@seg.End.Y</strong></td>
+                                                        <td>
+                                                            @if (seg.Type == SegmentType.Arc)
+                                                            {
+                                                                <span class="badge bg-info">Łuk</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="badge bg-secondary">Linia</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (seg.Center != null)
+                                                            {
+                                                                <code>(@seg.Center.Value.X, @seg.Center.Value.Y)</code>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (seg.Radius > 0)
+                                                            {
+                                                                <span class="badge bg-success">@Math.Round(seg.Radius, 2)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (seg.Type == SegmentType.Arc)
+                                                            {
+                                                                if (seg.CounterClockwise)
                                                                 {
-                                                                    <span class="badge bg-warning">Łuk @i</span>
+                                                                    <span class="badge bg-danger">Przeciwnie do zegara (CCW)</span>
                                                                 }
                                                                 else
                                                                 {
-                                                                    <span class="badge bg-primary">Linia @i</span>
+                                                                    <span class="badge bg-primary">Zgodnie z zegarem (CW)</span>
                                                                 }
-                                                            </td>
-                                                            <td><code>@seg.Start.X</code> → <strong>@seg.End.X</strong></td>
-                                                            <td><code>@seg.Start.Y</code> → <strong>@seg.End.Y</strong></td>
-                                                            <td>
-                                                                @if (seg.Type == SegmentType.Arc)
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (arcLength.HasValue)
+                                                            {
+                                                                if (seg.Type == SegmentType.Arc)
                                                                 {
-                                                                    <span class="badge bg-info">Łuk</span>
+                                                                    <span class="badge bg-info">Łuk: @Math.Round(arcLength.Value, 2)</span>
                                                                 }
                                                                 else
                                                                 {
-                                                                    <span class="badge bg-secondary">Linia</span>
+                                                                    <span class="badge bg-success">@Math.Round(arcLength.Value, 2)</span>
                                                                 }
-                                                            </td>
-                                                            <td>
-                                                                @if (seg.Center != null)
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td>
+                                                            @if (distance.HasValue)
+                                                            {
+                                                                if (distance.Value > 0.01)
                                                                 {
-                                                                    <code>(@seg.Center.Value.X, @seg.Center.Value.Y)</code>
+                                                                    <span class="badge bg-warning">Przerwa: @Math.Round(distance.Value, 2) ⚠️</span>
+                                                                }
+                                                                else if (distance.Value == 0)
+                                                                {
+                                                                    <span class="badge bg-success">Ciągły</span>
                                                                 }
                                                                 else
                                                                 {
-                                                                    <span class="text-muted">-</span>
+                                                                    <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
                                                                 }
-                                                            </td>
-                                                            <td>
-                                                                @if (seg.Radius > 0)
-                                                                {
-                                                                    <span class="badge bg-success">@Math.Round(seg.Radius, 2)</span>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="text-muted">-</span>
-                                                                }
-                                                            </td>
-                                                            <td>
-                                                                @if (seg.Type == SegmentType.Arc)
-                                                                {
-                                                                    if (seg.CounterClockwise)
-                                                                    {
-                                                                        <span class="badge bg-danger">Przeciwnie do zegara (CCW)</span>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <span class="badge bg-primary">Zgodnie z zegarem (CW)</span>
-                                                                    }
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="text-muted">-</span>
-                                                                }
-                                                            </td>
-                                                            <td>
-                                                                @if (arcLength.HasValue)
-                                                                {
-                                                                    if (seg.Type == SegmentType.Arc)
-                                                                    {
-                                                                        <span class="badge bg-info">Łuk: @Math.Round(arcLength.Value, 2)</span>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <span class="badge bg-success">@Math.Round(arcLength.Value, 2)</span>
-                                                                    }
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="text-muted">-</span>
-                                                                }
-                                                            </td>
-                                                            <td>
-                                                                @if (distance.HasValue)
-                                                                {
-                                                                    if (distance.Value > 0.01)
-                                                                    {
-                                                                        <span class="badge bg-warning">Przerwa: @Math.Round(distance.Value, 2) ⚠️</span>
-                                                                    }
-                                                                    else if (distance.Value == 0)
-                                                                    {
-                                                                        <span class="badge bg-success">Ciągły</span>
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
-                                                                    }
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="text-muted">-</span>
-                                                                }
-                                                            </td>
-                                                        </tr>
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    <tr>
-                                                        <td colspan="9" class="text-center text-muted">
-                                                            Brak segmentów do wyświetlenia
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
                                                         </td>
                                                     </tr>
                                                 }
@@ -1126,75 +1061,58 @@
                                             }
                                         </div>
                                     }
-                                    else if (wybranePunkty != null && wybranePunkty.Count > 0)
-                                    {
-                                        <div class="alert alert-info mt-2">
-                                            <strong>📊 Podsumowanie (zewnętrzne): </strong>
-                                            <strong>@wybranePunkty.Count</strong> punktów
-                                        </div>
-                                    }
                                 </div>
                             </div>
 
-                            <!-- Zakładka wewnętrzna -->
                             @if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
                             {
                                 <div class="tab-pane @(AktywnaZakladka == "inner" ? "show active" : "")" role="tabpanel">
                                     <div class="table-responsive">
-                                        <!-- Tabela dla punktów wewnętrznych -->
-                                        @if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
-                                        {
-                                            <h6 class="mt-2 mb-2">
-                                                <i class="bi bi-pin-map me-1"></i> Wierzchołki wewnętrzne
-                                            </h6>
-                                            <table class="table table-sm table-striped">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th width="80px">Punkt</th>
-                                                        <th>X</th>
-                                                        <th>Y</th>
-                                                        <th>Odległość od poprzedniego</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @for (int i = 0; i < WierzcholkiInner.Count; i++)
+                                        <h6 class="mt-2 mb-2">
+                                            <i class="bi bi-pin-map me-1"></i> Wierzchołki wewnętrzne
+                                        </h6>
+                                        <table class="table table-sm table-striped">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th width="80px">Punkt</th>
+                                                    <th>X</th>
+                                                    <th>Y</th>
+                                                    <th>Odległość od poprzedniego</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (int i = 0; i < WierzcholkiInner.Count; i++)
+                                                {
+                                                    var point = WierzcholkiInner[i];
+                                                    double? distance = null;
+                                                    if (i > 0)
                                                     {
-                                                        var point = WierzcholkiInner[i];
-                                                        double? distance = null;
-
-                                                        if (i > 0)
-                                                        {
-                                                            var prevPoint = WierzcholkiInner[i - 1];
-                                                            distance = Math.Sqrt(
-                                                            Math.Pow(point.X - prevPoint.X, 2) +
-                                                            Math.Pow(point.Y - prevPoint.Y, 2));
-                                                        }
-
-                                                        <tr>
-                                                            <td><span class="badge bg-success">W @i</span></td>
-                                                            <td><code>@point.X</code></td>
-                                                            <td><code>@point.Y</code></td>
-                                                            <td>
-                                                                @if (distance.HasValue)
-                                                                {
-                                                                    <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <span class="text-muted">-</span>
-                                                                }
-                                                            </td>
-                                                        </tr>
+                                                        var prevPoint = WierzcholkiInner[i - 1];
+                                                        distance = Math.Sqrt(Math.Pow(point.X - prevPoint.X, 2) + Math.Pow(point.Y - prevPoint.Y, 2));
                                                     }
-                                                </tbody>
-                                            </table>
-                                        }
+                                                    <tr>
+                                                        <td><span class="badge bg-success">W @i</span></td>
+                                                        <td><code>@point.X</code></td>
+                                                        <td><code>@point.Y</code></td>
+                                                        <td>
+                                                            @if (distance.HasValue)
+                                                            {
+                                                                <span class="badge bg-success">@Math.Round(distance.Value, 2)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
 
-                                        <!-- Tabela dla segmentów wewnętrznych (z łukami) -->
                                         @if (KonturInner != null && KonturInner.Count > 0)
                                         {
                                             <h6 class="mt-3 mb-2">
-                                                <i class="bi bi-diagram-3 me-1"></i> Segmenty konturu wewnętrznego (linie i łuki)
+                                                <i class="bi bi-diagram-3 me-1"></i> Segmenty konturu wewnętrznego
                                             </h6>
                                             <table class="table table-sm table-striped">
                                                 <thead class="table-light">
@@ -1216,38 +1134,21 @@
                                                         var seg = KonturInner[i];
                                                         double? distance = null;
                                                         double? arcLength = null;
-
-                                                        // Oblicz długość bieżącego segmentu
                                                         if (seg.Type == SegmentType.Arc && seg.Center != null)
                                                         {
                                                             arcLength = CalculateArcLength(seg);
                                                         }
                                                         else
                                                         {
-                                                            arcLength = Math.Sqrt(
-                                                            Math.Pow(seg.End.X - seg.Start.X, 2) +
-                                                            Math.Pow(seg.End.Y - seg.Start.Y, 2));
+                                                            arcLength = Math.Sqrt(Math.Pow(seg.End.X - seg.Start.X, 2) + Math.Pow(seg.End.Y - seg.Start.Y, 2));
                                                         }
-
-                                                        // Oblicz odległość między segmentami
                                                         if (i > 0)
                                                         {
                                                             var prevSeg = KonturInner[i - 1];
-                                                            bool isContinuous = Math.Abs(prevSeg.End.X - seg.Start.X) < 0.01 &&
-                                                            Math.Abs(prevSeg.End.Y - seg.Start.Y) < 0.01;
-
-                                                            if (isContinuous)
-                                                            {
-                                                                distance = 0;
-                                                            }
-                                                            else
-                                                            {
-                                                                distance = Math.Sqrt(
-                                                                Math.Pow(seg.Start.X - prevSeg.End.X, 2) +
-                                                                Math.Pow(seg.Start.Y - prevSeg.End.Y, 2));
-                                                            }
+                                                            bool isContinuous = Math.Abs(prevSeg.End.X - seg.Start.X) < 0.01 && Math.Abs(prevSeg.End.Y - seg.Start.Y) < 0.01;
+                                                            if (isContinuous) { distance = 0; }
+                                                            else { distance = Math.Sqrt(Math.Pow(seg.Start.X - prevSeg.End.X, 2) + Math.Pow(seg.Start.Y - prevSeg.End.Y, 2)); }
                                                         }
-
                                                         <tr>
                                                             <td>
                                                                 @if (seg.Type == SegmentType.Arc)
@@ -1370,20 +1271,7 @@
                                                 }
                                             </div>
                                         }
-                                        else if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
-                                        {
-                                            <div class="alert alert-success mt-2">
-                                                <strong>📊 Podsumowanie (wewnętrzne): </strong>
-                                                <strong>@WierzcholkiInner.Count</strong> punktów
-                                            </div>
-                                        }
                                     </div>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="alert alert-success mt-2">
-                                    <strong>📊 Brak danych o konturze</strong>
                                 </div>
                             }
                         </div>
@@ -1406,6 +1294,7 @@
             </div>
         </div>
     }
+
     <!-- Modal potwierdzenia usunięcia -->
     @if (pokazModalUsuwania && stanDoUsuniecia != null)
     {
@@ -1483,45 +1372,42 @@
 
             @if (pokazWidokSzczegolowy)
             {
-                <!-- WIDOK SZCZEGÓŁOWY -->
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                        border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
                                 <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
                             </span>
                         </div>
                         <div class="btn-group">
-                            <button class="btn btn-sm @(aktywnaZakladka == 0 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(0)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 0 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(0)">
                                 <i class="bi bi-grid-3x3-gap me-1"></i> Kontury proste
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 1 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(1)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 1 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(1)">
                                 <i class="bi bi-geo-alt me-1"></i> Punkty
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 4 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(4)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 4 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(4)">
                                 <i class="bi bi-info-circle me-1"></i> Kontury proste i łukowe
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 2 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(2)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 2 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(2)">
                                 <i class="bi bi-puzzle me-1"></i> Elementy konstrukcji
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 3 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(3)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 3 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(3)">
                                 <i class="bi bi-info-circle me-1"></i> Podsumowanie
                             </button>
-                            <!-- ==================== NOWE ZAKŁADKI ==================== -->
-                            <button class="btn btn-sm @(aktywnaZakladka == 5 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(5)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 5 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(5)">
                                 <i class="bi bi-pencil-square me-1"></i> Rysunek
                             </button>
-                            <button class="btn btn-sm @(aktywnaZakladka == 6 ? "btn-primary" : "btn-outline-primary")"
-                                    @onclick="() => SwitchTab(6)">
+                            <button class="btn btn-sm @(aktywnaZakladka == 6 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(6)">
                                 <i class="bi bi-bounding-box me-1"></i> Rysunek + wewn.
+                            </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 7 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(7)">
+                                <i class="bi bi-bounding-box me-1"></i> Rysunek szyby.
+                            </button>
+                            <button class="btn btn-sm @(aktywnaZakladka == 8 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(8)">
+                                <i class="bi bi-bounding-box me-1"></i> Rysunek wrębu okuciowego.
                             </button>
                         </div>
                     </div>
@@ -1529,35 +1415,28 @@
                     <div class="json-content @(rozwinJson ? "expanded" : "")"
                          @key="aktywnaZakladka"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                            background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
-                            padding: 20px;">
+                                        background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                                        padding: 20px;">
 
                         @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
                         {
-                            <!-- WIDOK KWADRATÓW -->
                             <div class="geometry-view">
                                 <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                                    <i class="bi bi-grid-3x3-gap me-2"></i>
-                                    Lista Kwadratów (@wybranyStan.ListaKwadratow.Count)
+                                    <i class="bi bi-grid-3x3-gap me-2"></i> Lista Kwadratów (@wybranyStan.ListaKwadratow.Count)
                                 </h5>
-
                                 <div class="row">
                                     @foreach (var kwadrat in wybranyStan.ListaKwadratow)
                                     {
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                                <div class="card-header d-flex justify-content-between align-items-center
-                                                                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
                                                     <div>
                                                         <span class="badge @GetStronaBadgeClass(kwadrat.Strona)">
                                                             @GetStronaIcon(kwadrat.Strona) @kwadrat.Strona?.ToUpper()
                                                         </span>
                                                         <span class="ms-2 badge bg-info">Kąt: @kwadrat.KatLinii°</span>
-
                                                     </div>
-                                                    <div>
-                                                        <small class="text-muted">@kwadrat.RowIdElementu.ToString()</small>
-                                                    </div>
+                                                    <div><small class="text-muted">@kwadrat.RowIdElementu.ToString()</small></div>
                                                 </div>
                                                 <div class="card-body">
                                                     <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark") small">
@@ -1568,11 +1447,7 @@
                                                         <div class="table-responsive">
                                                             <table class="table table-sm @(ciemnyMotyw ? "table-dark" : "") mb-3">
                                                                 <thead>
-                                                                    <tr>
-                                                                        <th>Pt</th>
-                                                                        <th>X</th>
-                                                                        <th>Y</th>
-                                                                    </tr>
+                                                                    <tr><th>Pt</th><th>X</th><th>Y</th></tr>
                                                                 </thead>
                                                                 <tbody>
                                                                     @for (int i = 0; i < kwadrat.Wierzcholki.Count; i++)
@@ -1588,640 +1463,619 @@
                                                             </table>
                                                         </div>
                                                     }
-
                                                     <div class="properties-grid small">
                                                         <div class="property">
                                                             <span class="property-label">Offset:</span>
                                                             <span class="property-value">
-                                                                T:@kwadrat.OffsetTop B:@kwadrat.OffsetBottom
-                                                                L:@kwadrat.OffsetLeft R:@kwadrat.OffsetRight
+                                                                T:@kwadrat.OffsetTop B:@kwadrat.OffsetBottom L:@kwadrat.OffsetLeft R:@kwadrat.OffsetRight
                                                             </span>
                                                         </div>
                                                         <div class="property">
                                                             <span class="property-label">Obramowanie:</span>
                                                             <span class="property-value">
-                                                                <span class="badge bg-warning text-dark">
-                                                                    @kwadrat.GruboscObramowania px
-                                                                </span>
+                                                                <span class="badge bg-warning text-dark">@kwadrat.GruboscObramowania px</span>
                                                             </span>
                                                         </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Z-Index:</span>
-                                                            <span class="property-value">@kwadrat.ZIndex</span>
-                                                        </div>
-
-                                                        <div class="property">
-                                                            <span class="property-label">Kąt:</span>
-                                                            <span class="property-value">@kwadrat.KatLinii</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Strona w modelu:</span>
-                                                            <span class="property-value">@kwadrat.Strona</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">RowId Elementu:</span>
-                                                            <span class="property-value">@kwadrat.RowIdElementu</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">RowId Sąsida:</span>
-                                                            <span class="property-value">@kwadrat.RowIdSasiada</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">RowId Sąsiada strona A:</span>
-                                                            <span class="property-value">@kwadrat.RowIdSasiadaStronaA</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">RowId Sąsiada strona B:</span>
-                                                            <span class="property-value">@kwadrat.RowIdSasiadaStronaB</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Sąsiad jest słupkiem strona A:</span>
-                                                            <span class="property-value">@kwadrat.SasiadSlupekStronaA</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Sąsiad jest słupkiem strona B:</span>
-                                                            <span class="property-value">@kwadrat.SasiadSlupekStronaB</span>
-                                                        </div>
+                                                        <div class="property"><span class="property-label">Z-Index:</span><span class="property-value">@kwadrat.ZIndex</span></div>
+                                                        <div class="property"><span class="property-label">Kąt:</span><span class="property-value">@kwadrat.KatLinii</span></div>
+                                                        <div class="property"><span class="property-label">Strona w modelu:</span><span class="property-value">@kwadrat.Strona</span></div>
+                                                        <div class="property"><span class="property-label">RowId Elementu:</span><span class="property-value">@kwadrat.RowIdElementu</span></div>
+                                                        <div class="property"><span class="property-label">RowId Sąsida:</span><span class="property-value">@kwadrat.RowIdSasiada</span></div>
+                                                        <div class="property"><span class="property-label">RowId Sąsiada strona A:</span><span class="property-value">@kwadrat.RowIdSasiadaStronaA</span></div>
+                                                        <div class="property"><span class="property-label">RowId Sąsiada strona B:</span><span class="property-value">@kwadrat.RowIdSasiadaStronaB</span></div>
+                                                        <div class="property"><span class="property-label">Sąsiad jest słupkiem strona A:</span><span class="property-value">@kwadrat.SasiadSlupekStronaA</span></div>
+                                                        <div class="property"><span class="property-label">Sąsiad jest słupkiem strona B:</span><span class="property-value">@kwadrat.SasiadSlupekStronaB</span></div>
                                                         <div class="property">
                                                             <span class="property-label">Punkty sąsiada strona A</span>
                                                             <span class="property-value">
                                                                 @if (kwadrat.WierzcholkiSasiadaA is not null && kwadrat.WierzcholkiSasiadaA.Any())
                                                                 {
-                                                                    <ul>
-                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaA)
-                                                                        {
-                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
-                                                                        }
-                                                                    </ul>
+                                                                    <ul>@foreach (var p in kwadrat.WierzcholkiSasiadaA) {
+                                                                    <li>@($"X: {p.X}; Y: {p.Y}")</li>
                                                                 }
-                                                                else
-                                                                {
-                                                                    <em>Brak danych</em>
-                                                                }
-                                                            </span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Punkty sąsiada strona B</span>
-                                                            <span class="property-value">
-                                                                @if (kwadrat.WierzcholkiSasiadaB is not null && kwadrat.WierzcholkiSasiadaB.Any())
-                                                                {
-                                                                    <ul>
-                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaB)
-                                                                        {
-                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
-                                                                        }
-                                                                    </ul>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <em>Brak danych</em>
-                                                                }
-                                                            </span>
-                                                        </div>
+                </ul>
+                                                            }
+                                                                                                else
+                                                            {
+
+                                                                <em>Brak danych</em>
+                                                            }
+                                                        </span>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Punkty sąsiada strona B</span>
+                                                        <span class="property-value">
+                                                            @if (kwadrat.WierzcholkiSasiadaB is not null && kwadrat.WierzcholkiSasiadaB.Any())
+                                                            {
+                                                                <ul>@foreach (var p in kwadrat.WierzcholkiSasiadaB) {
+                                                                <li>@($"X: {p.X}; Y: {p.Y}")</li>
+                                                            }
+            </ul>
+                                                        }
+                                                        else
+                                                        {
 
-                            </div>
-                        }
-                        else if (aktywnaZakladka == 1)
-                        {
-                            <!-- WIDOK PUNKTÓW -->
-                            <div class="vertices-view">
-                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                                    <i class="bi bi-pin-map me-2"></i>
-                                    Wszystkie Punkty
-                                </h5>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
-                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
-                                                <div>
-                                                    <i class="bi bi-geo me-2"></i> Podstawowe
+                                                            <em>Brak danych</em>
+                                                        }
+                                                    </span>
                                                 </div>
-                                                <span class="badge bg-primary">@wybranyStan?.Wierzcholki?.Count</span>
-                                            </div>
-                                            <div class="card-body">
-                                                @RenderVerticesTable(wybranyStan?.Wierzcholki, "Podstawowe")
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
-                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
-                                                <div>
-                                                    <i class="bi bi-geo-alt me-2"></i> Nominalne
-                                                </div>
-                                                <span class="badge bg-primary">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</span>
-                                            </div>
-                                            <div class="card-body">
-                                                @RenderVerticesTable(wybranyStan?.WierzcholkiWartosciNominalne, "Nominalne")
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        }
-                        else if (aktywnaZakladka == 2 && wybranyStan?.MVCKonfModelu?.KonfSystem != null)
-                        {
-                            <!-- WIDOK ELEMENTÓW -->
-                            <div class="elements-view">
-                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                                    <i class="bi bi-puzzle me-2"></i>
-                                    Elementy Systemu (@wybranyStan.MVCKonfModelu.KonfSystem.Count)
-                                </h5>
-
-                                <div class="row">
-                                    @foreach (var element in wybranyStan.MVCKonfModelu.KonfSystem)
-                                    {
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                                <div class="card-header d-flex justify-content-between align-items-center
-                                                                                                                            @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                                    <div>
-                                                        <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">
-                                                            @element.Typ
-                                                        </span>
-                                                        <span class="ms-2 fw-semibold small">@element.Nazwa</span>
-                                                    </div>
-                                                    <div>
-                                                        <small class="text-muted">@element.IndeksElementu</small>
-                                                    </div>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="properties-grid small">
-                                                        <div class="property">
-                                                            <span class="property-label">Występowanie:</span>
-                                                            <span class="property-value">
-                                                                @if (element.WystepujeDol)
-                                                                {
-                                                                    <span class="badge bg-success me-1 mb-1">Dół</span>
-                                                                }
-                                                                @if (element.WystepujeLewa)
-                                                                {
-                                                                    <span class="badge bg-success me-1 mb-1">Lewa</span>
-                                                                }
-                                                                @if (element.WystepujeGora)
-                                                                {
-                                                                    <span class="badge bg-success me-1 mb-1">Góra</span>
-                                                                }
-                                                                @if (element.WystepujePrawa)
-                                                                {
-                                                                    <span class="badge bg-success me-1 mb-1">Prawa</span>
-                                                                }
-                                                            </span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Wymiary pionowe:</span>
-                                                            <span class="property-value">
-                                                                Lewa: @element.PionLewa, Prawa: @element.PionPrawa
-                                                            </span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Wymiary poziome:</span>
-                                                            <span class="property-value">
-                                                                Dół: @element.PoziomDol, Góra: @element.PoziomGora
-                                                            </span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">ID:</span>
-                                                            <span class="property-value small">
-                                                                @element.RowId.ToString()
-                                                            </span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Typ:</span>
-                                                            <span class="property-value small">
-                                                                @element.Typ.ToString()
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
+                            }
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 1)
+                {
+                    <div class="vertices-view">
+                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                            <i class="bi bi-pin-map me-2"></i> Wszystkie Punkty
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
+                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                        <div><i class="bi bi-geo me-2"></i> Podstawowe</div>
+                                        <span class="badge bg-primary">@wybranyStan?.Wierzcholki?.Count</span>
+                                    </div>
+                                    <div class="card-body">@RenderVerticesTable(wybranyStan?.Wierzcholki, "Podstawowe")</div>
                                 </div>
                             </div>
-                        }
-                        else if (aktywnaZakladka == 3)
-                        {
-                            <!-- WIDOK PODSUMOWANIA -->
-                            <div class="summary-view">
-                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                                    <i class="bi bi-info-circle me-2"></i>
-                                    Podsumowanie Stanu
-                                </h5>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
-                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                                <i class="bi bi-card-checklist me-2"></i> Informacje podstawowe
+                            <div class="col-md-6">
+                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
+                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                        <div><i class="bi bi-geo-alt me-2"></i> Nominalne</div>
+                                        <span class="badge bg-primary">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</span>
+                                    </div>
+                                    <div class="card-body">@RenderVerticesTable(wybranyStan?.WierzcholkiWartosciNominalne, "Nominalne")</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 2 && wybranyStan?.MVCKonfModelu?.KonfSystem != null)
+                {
+                    <div class="elements-view">
+                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                            <i class="bi bi-puzzle me-2"></i>
+                            Elementy Systemu (@wybranyStan.MVCKonfModelu.KonfSystem.Count)
+                        </h5>
+                        <div class="row">
+                            @foreach (var element in wybranyStan.MVCKonfModelu.KonfSystem)
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                        <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                            <div>
+                                                <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">@element.Typ</span>
+                                                <span class="ms-2 fw-semibold small">@element.Nazwa</span>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="properties-grid">
-                                                    <div class="property">
-                                                        <span class="property-label">ID:</span>
-                                                        <span class="property-value fw-bold">@wybranyStan.Id</span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Region:</span>
-                                                        <span class="property-value">@wybranyStan.IdRegion</span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Z-Index:</span>
-                                                        <span class="property-value">@wybranyStan.ZIndeks</span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Typ:</span>
-                                                        <span class="property-value">
-                                                            <span class="badge @(wybranyStan.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
-                                                                @(wybranyStan.CzyElementJestRama ? "Rama" : "Skrzydło")
-                                                            </span>
-                                                        </span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Kształt:</span>
-                                                        <span class="property-value">
-                                                            <span class="badge bg-secondary">@wybranyStan.WybranyKsztalt</span>
-                                                        </span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Logi:&nbsp;</span>
-                                                        <span class="property-value">
-
-                                                            @if (wybranyStan.Generator?.Komunikaty?.Any() == true)
-                                                            {
-                                                                <div class="mb-2">
-                                                                    <strong class="text-info">
-                                                                        <i class="bi bi-info-circle me-1"></i>Komunikaty:
-                                                                    </strong>
-                                                                    <ol class="list-group list-group-numbered list-group-flush">
-                                                                        @foreach (var komunikat in wybranyStan.Generator.Komunikaty)
-                                                                        {
-                                                                            <li class="list-group-item py-1 px-2 bg-transparent small text-wrap" style="color:darkorange">
-                                                                                @komunikat
-                                                                            </li>
-                                                                        }
-                                                                    </ol>
-                                                                </div>
-                                                            }
-
-                                                            @if (wybranyStan.Generator?.BledySystemowe?.Any() == true)
-                                                            {
-                                                                <div>
-                                                                    <strong class="text-danger">
-                                                                        <i class="bi bi-exclamation-triangle me-1"></i>Błędy:
-                                                                    </strong>
-                                                                    <ol class="list-group list-group-numbered list-group-flush">
-                                                                        @foreach (var blad in wybranyStan.Generator.BledySystemowe)
-                                                                        {
-                                                                            <li class="list-group-item py-1 px-2 bg-transparent small text-wrap text-break text-danger">
-                                                                                @blad
-                                                                            </li>
-                                                                        }
-                                                                    </ol>
-                                                                </div>
-                                                            }
-
-                                                            @if (!(wybranyStan.Generator?.Komunikaty?.Any() == true) &&
-                                                                                                            !(wybranyStan.Generator?.BledySystemowe?.Any() == true))
-                                                            {
-                                                                <span class="text-muted small">Brak</span>
-                                                            }
-
-                                                        </span>
-                                                    </div>
+                                            <div><small class="text-muted">@element.IndeksElementu</small></div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="properties-grid small">
+                                                <div class="property">
+                                                    <span class="property-label">Występowanie:</span>
+                                                    <span class="property-value">
+                                                        @if (element.WystepujeDol)
+                                                        {
+                                                            <span class="badge bg-success me-1 mb-1">Dół</span>
+                                                        }
+                                                        @if (element.WystepujeLewa)
+                                                        {
+                                                            <span class="badge bg-success me-1 mb-1">Lewa</span>
+                                                        }
+                                                        @if (element.WystepujeGora)
+                                                        {
+                                                            <span class="badge bg-success me-1 mb-1">Góra</span>
+                                                        }
+                                                        @if (element.WystepujePrawa)
+                                                        {
+                                                            <span class="badge bg-success me-1 mb-1">Prawa</span>
+                                                        }
+                                                    </span>
+                                                </div>
+                                                <div class="property">
+                                                    <span class="property-label">Wymiary pionowe:</span>
+                                                    <span class="property-value">Lewa: @element.PionLewa, Prawa: @element.PionPrawa</span>
+                                                </div>
+                                                <div class="property">
+                                                    <span class="property-label">Wymiary poziome:</span>
+                                                    <span class="property-value">Dół: @element.PoziomDol, Góra: @element.PoziomGora</span>
+                                                </div>
+                                                <div class="property"><span class="property-label">ID:</span><span class="property-value small">@element.RowId.ToString()</span></div>
+                                                <div class="property"><span class="property-label">Typ:</span><span class="property-value small">@element.Typ.ToString()</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 3)
+                {
+                    <div class="summary-view">
+                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                            <i class="bi bi-info-circle me-2"></i> Podsumowanie Stanu
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
+                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                        <i class="bi bi-card-checklist me-2"></i> Informacje podstawowe
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="properties-grid">
+                                            <div class="property"><span class="property-label">ID:</span><span class="property-value fw-bold">@wybranyStan.Id</span></div>
+                                            <div class="property"><span class="property-label">Region:</span><span class="property-value">@wybranyStan.IdRegion</span></div>
+                                            <div class="property"><span class="property-label">Z-Index:</span><span class="property-value">@wybranyStan.ZIndeks</span></div>
+                                            <div class="property">
+                                                <span class="property-label">Typ:</span>
+                                                <span class="property-value">
+                                                    <span class="badge @(wybranyStan.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
+                                                        @(wybranyStan.CzyElementJestRama ? "Rama" : "Skrzydło")
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div class="property">
+                                                <span class="property-label">Kształt:</span>
+                                                <span class="property-value"><span class="badge bg-secondary">@wybranyStan.WybranyKsztalt</span></span>
+                                            </div>
+                                            <div class="property">
+                                                <span class="property-label">Logi:&nbsp;</span>
+                                                <span class="property-value">
+                                                    @if (wybranyStan.Generator?.Komunikaty?.Any() == true)
+                                                    {
+                                                        <div class="mb-2">
+                                                            <strong class="text-info"><i class="bi bi-info-circle me-1"></i>Komunikaty:</strong>
+                                                            <ol class="list-group list-group-numbered list-group-flush">
+                                                                @foreach (var komunikat in wybranyStan.Generator.Komunikaty)
+                                                                {
+                                                                    <li class="list-group-item py-1 px-2 bg-transparent small text-wrap" style="color:darkorange">@komunikat</li>
+                                                                }
+                                                            </ol>
+                                                        </div>
+                                                    }
+                                                    @if (wybranyStan.Generator?.BledySystemowe?.Any() == true)
+                                                    {
+                                                        <div>
+                                                            <strong class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Błędy:</strong>
+                                                            <ol class="list-group list-group-numbered list-group-flush">
+                                                                @foreach (var blad in wybranyStan.Generator.BledySystemowe)
+                                                                {
+                                                                    <li class="list-group-item py-1 px-2 bg-transparent small text-wrap text-break text-danger">@blad</li>
+                                                                }
+                                                            </ol>
+                                                        </div>
+                                                    }
+                                                    @if (!(wybranyStan.Generator?.Komunikaty?.Any() == true) && !(wybranyStan.Generator?.BledySystemowe?.Any() == true))
+                                                    {
+                                                        <span class="text-muted small">Brak</span>
+                                                    }
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
+                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                        <i class="bi bi-box-seam me-2"></i> Model
+                                    </div>
+                                    <div class="card-body">
+                                        @if (wybranyStan.WybranyModel != null)
+                                        {
+                                            <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark")">@wybranyStan.WybranyModel.NazwaKonfiguracji</h6>
+                                            <div class="properties-grid small">
+                                                <div class="property"><span class="property-label">Typ:</span><span class="property-value">@wybranyStan.WybranyModel.Typ</span></div>
+                                                <div class="property"><span class="property-label">Min. szerokość:</span><span class="property-value">@wybranyStan.WybranyModel.KonstrMinSzer</span></div>
+                                                <div class="property"><span class="property-label">Max. szerokość:</span><span class="property-value">@wybranyStan.WybranyModel.KonstrMaxSzer</span></div>
+                                                <div class="property"><span class="property-label">ID systemu:</span><span class="property-value small">@wybranyStan.RowIdSystemu.ToString()</span></div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <p class="text-muted mb-0">Brak wybranego modelu</p>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                        <div><i class="bi bi-calculator me-2"></i> Statystyki</div>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-md-3">
+                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                    <div class="h4">@wybranyStan?.Wierzcholki?.Count</div>
+                                                    <div class="small">Punktów podstawowych</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                    <div class="h4">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</div>
+                                                    <div class="small">Punktów nominalnych</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                    <div class="h4">@wybranyStan?.ListaKwadratow?.Count</div>
+                                                    <div class="small">Kwadratów</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                    <div class="h4">@wybranyStan?.MVCKonfModelu?.KonfSystem?.Count</div>
+                                                    <div class="small">Elementów systemu</div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div class="col-md-6">
-                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
-                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                                <i class="bi bi-box-seam me-2"></i> Model
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 4 && wybranyStan?.Kontur != null)
+                {
+                    <div class="elements-view">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark")">
+                                <i class="bi bi-puzzle me-2"></i> Segmenty konturu (@wybranyStan.Kontur.Count)
+                            </h5>
+                            <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                    @onclick="CopySegmentDataToClipboard">
+                                <i class="bi bi-clipboard me-1"></i> Kopiuj wszystkie dane
+                            </button>
+                        </div>
+                        <div class="row">
+                            @for (int i = 0; i < wybranyStan.Kontur.Count; i++)
+                            {
+                                var segment = wybranyStan.Kontur[i];
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                        <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                            <div>
+                                                <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
+                                                    @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
+                                                </span>
+                                                <span class="ms-2 fw-semibold small">Segment #@(i + 1) Dotyczy: @segment.Informacja</span>
                                             </div>
-                                            <div class="card-body">
-                                                @if (wybranyStan.WybranyModel != null)
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="properties-grid small">
+                                                <div class="property">
+                                                    <span class="property-label">Punkt początkowy:</span>
+                                                    <span class="property-value">X: @segment.Start.X.ToString("F2"), Y: @segment.Start.Y.ToString("F2")</span>
+                                                </div>
+                                                <div class="property">
+                                                    <span class="property-label">Punkt końcowy:</span>
+                                                    <span class="property-value">X: @segment.End.X.ToString("F2"), Y: @segment.End.Y.ToString("F2")</span>
+                                                </div>
+                                                @if (segment.Type == SegmentType.Arc)
                                                 {
-                                                    <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark")">
-                                                        @wybranyStan.WybranyModel.NazwaKonfiguracji
-                                                    </h6>
-                                                    <div class="properties-grid small">
+                                                    if (segment.Center != null)
+                                                    {
                                                         <div class="property">
-                                                            <span class="property-label">Typ:</span>
-                                                            <span class="property-value">@wybranyStan.WybranyModel.Typ</span>
+                                                            <span class="property-label">Środek łuku:</span>
+                                                            <span class="property-value">X: @segment.Center.Value.X.ToString("F2"), Y: @segment.Center.Value.Y.ToString("F2")</span>
                                                         </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Min. szerokość:</span>
-                                                            <span class="property-value">@wybranyStan.WybranyModel.KonstrMinSzer</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Max. szerokość:</span>
-                                                            <span class="property-value">@wybranyStan.WybranyModel.KonstrMaxSzer</span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">ID systemu:</span>
-                                                            <span class="property-value small">@wybranyStan.RowIdSystemu.ToString()</span>
-                                                        </div>
+                                                    }
+                                                    <div class="property">
+                                                        <span class="property-label">Promień:</span>
+                                                        <span class="property-value">@segment.Radius.ToString("F2")</span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Kierunek:</span>
+                                                        <span class="property-value">
+                                                            <span class="badge @(segment.CounterClockwise ? "bg-primary" : "bg-secondary")">
+                                                                @(segment.CounterClockwise ? "Przeciwnie do ruchu wskazówek zegara" : "Zgodnie z ruchem wskazówek zegara")
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Informacja:</span>
+                                                        <span class="property-value">@(segment.Informacja)</span>
                                                     </div>
                                                 }
                                                 else
                                                 {
-                                                    <p class="text-muted mb-0">Brak wybranego modelu</p>
+                                                    <div class="property">
+                                                        <span class="property-label">Długość:</span>
+                                                        <span class="property-value">@CalculateLineLength(segment).ToString("F2")</span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Informacja:</span>
+                                                        <span class="property-value">@(segment.Informacja)</span>
+                                                    </div>
                                                 }
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
-                                                <div>
-                                                    <i class="bi bi-calculator me-2"></i> Statystyki
-                                                </div>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="row text-center">
-                                                    <div class="col-md-3">
-                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                            <div class="h4">@wybranyStan?.Wierzcholki?.Count</div>
-                                                            <div class="small">Punktów podstawowych</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                            <div class="h4">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</div>
-                                                            <div class="small">Punktów nominalnych</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                            <div class="h4">@wybranyStan?.ListaKwadratow?.Count</div>
-                                                            <div class="small">Kwadratów</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                            <div class="h4">@wybranyStan?.MVCKonfModelu?.KonfSystem?.Count</div>
-                                                            <div class="small">Elementów systemu</div>
-                                                        </div>
-                                                    </div>
+                                                <div class="property">
+                                                    <span class="property-label">Typ segmentu:</span>
+                                                    <span class="property-value">@(segment.Type == SegmentType.Arc ? "Łuk" : "Odcinek prosty")</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        }
-                        else if (aktywnaZakladka == 4 && wybranyStan?.Kontur != null)
-                        {
-                            <!-- WIDOK ELEMENTÓW KONTURU -->
-                            <div class="elements-view">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark")">
-                                        <i class="bi bi-puzzle me-2"></i>
-                                        Segmenty konturu (@wybranyStan.Kontur.Count)
-                                    </h5>
-
-                                    <!-- Przycisk kopiowania -->
-                                    <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="CopySegmentDataToClipboard">
-                                        <i class="bi bi-clipboard me-1"></i>
-                                        Kopiuj wszystkie dane
+                            }
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 5 && wybranyStan?.Kontur != null)
+                {
+                    <!-- ==================== ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY + ZOOM ==================== -->
+                    <div class="canvas-view">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                <i class="bi bi-pencil-square me-2"></i>
+                                Rysunek konturu zewnętrznego (@wybranyStan.Kontur.Count segmentów) ID Regionu: @wybranyStan.IdRegion
+                            </h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomOut(5)" title="Pomniejsz (−)">
+                                        <i class="bi bi-dash-lg"></i>
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                            @onclick="() => ResetZoom(5)" title="Kliknij, aby zresetować do 100%">
+                                        @(Math.Round(GetZoom(5) * 100))%
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomIn(5)" title="Powiększ (+)">
+                                        <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </div>
-
-                                <div class="row">
-                                    @for (int i = 0; i < wybranyStan.Kontur.Count; i++)
-                                    {
-                                        var segment = wybranyStan.Kontur[i];
-                                        <div class="col-md-6 mb-3">
-                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                                <div class="card-header d-flex justify-content-between align-items-center
-                                                                                                                                    @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                                    <div>
-                                                        <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
-                                                            @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
-                                                        </span>
-                                                        <span class="ms-2 fw-semibold small">Segment #@(i + 1) Dotyczy: @segment.Informacja </span>
-                                                    </div>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="properties-grid small">
-                                                        <!-- Punkt początkowy -->
-                                                        <div class="property">
-                                                            <span class="property-label">Punkt początkowy:</span>
-                                                            <span class="property-value">
-                                                                X: @segment.Start.X.ToString("F2"), Y: @segment.Start.Y.ToString("F2")
-                                                            </span>
-                                                        </div>
-
-                                                        <!-- Punkt końcowy -->
-                                                        <div class="property">
-                                                            <span class="property-label">Punkt końcowy:</span>
-                                                            <span class="property-value">
-                                                                X: @segment.End.X.ToString("F2"), Y: @segment.End.Y.ToString("F2")
-                                                            </span>
-                                                        </div>
-
-                                                        @if (segment.Type == SegmentType.Arc)
-                                                        {
-                                                            <!-- Dane specyficzne dla łuku -->
-                                                            if (segment.Center != null)
-                                                            {
-                                                                <div class="property">
-                                                                    <span class="property-label">Środek łuku:</span>
-                                                                    <span class="property-value">
-                                                                        X: @segment.Center.Value.X.ToString("F2"), Y: @segment.Center.Value.Y.ToString("F2")
-                                                                    </span>
-                                                                </div>
-                                                            }
-
-                                                            <div class="property">
-                                                                <span class="property-label">Promień:</span>
-                                                                <span class="property-value">
-                                                                    @segment.Radius.ToString("F2")
-                                                                </span>
-                                                            </div>
-
-                                                            <div class="property">
-                                                                <span class="property-label">Kierunek:</span>
-                                                                <span class="property-value">
-                                                                    <span class="badge @(segment.CounterClockwise ? "bg-primary" : "bg-secondary")">
-                                                                        @(segment.CounterClockwise ? "Przeciwnie do ruchu wskazówek zegara" : "Zgodnie z ruchem wskazówek zegara")
-                                                                    </span>
-                                                                </span>
-                                                            </div>
-                                                            <div class="property">
-                                                                <span class="property-label">Informacja:</span>
-                                                                <span class="property-value">
-                                                                    @(segment.Informacja)
-                                                                </span>
-                                                            </div>
-                                                        }
-                                                        else
-                                                        {
-                                                            <!-- Informacja o długości linii -->
-                                                            <div class="property">
-                                                                <span class="property-label">Długość:</span>
-                                                                <span class="property-value">
-                                                                    @CalculateLineLength(segment).ToString("F2")
-                                                                </span>
-                                                            </div>
-                                                            <div class="property">
-                                                                <span class="property-label">Informacja:</span>
-                                                                <span class="property-value">
-                                                                    @(segment.Informacja)
-                                                                </span>
-                                                            </div>
-                                                        }
-
-                                                        <!-- Dodatkowe informacje o typie -->
-                                                        <div class="property">
-                                                            <span class="property-label">Typ segmentu:</span>
-                                                            <span class="property-value">
-                                                                @(segment.Type == SegmentType.Arc ? "Łuk" : "Odcinek prosty")
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
+                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                        @onclick="() => RedrawCanvas(5)">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                </button>
                             </div>
-                        }
-                        else if (aktywnaZakladka == 5 && wybranyStan?.Kontur != null)
-                        {
-                            <!-- ==================== NOWA ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY ==================== -->
-                            @if (widocznyRysunek1)
-                            {
-                                <div class="canvas-view">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
-                                            <i class="bi bi-pencil-square me-2"></i>
-                                            Rysunek konturu zewnętrznego (@wybranyStan.Kontur.Count segmentów) ID Regionu: @wybranyStan.IdRegion
-                                        </h5>
-                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                                @onclick="() => RedrawCanvas(5)">
-                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
-                                        </button>
-                                    </div>
-                                <div id="tab1" class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
-                                        <canvas id="contour-canvas-5"
-                                                style="width:100%; height:600px; display:block; border-radius:8px;
-                                                 border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");" ></canvas>
-                                    </div>
+                        </div>
+                        <div id="tab1" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                                    <canvas id="contour-canvas-5"
+                                            style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
+                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
+                {
+                    <!-- ==================== ZAKŁADKA 6: RYSUNEK ZEWN + WEWN + ZOOM ==================== -->
+                    <div class="mb-3" style="color: aquamarine;">
+                        <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty6" />
+                        <label for="pokazPunkty6">Pokaż wartości punktów</label>
+                    </div>
+                    <div class="canvas-view">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                <i class="bi bi-bounding-box me-2"></i>
+                                Rysunek konturu zewnętrznego + wewnętrznego
+                            </h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomOut(6)" title="Pomniejsz (−)">
+                                        <i class="bi bi-dash-lg"></i>
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                            @onclick="() => ResetZoom(6)" title="Kliknij, aby zresetować do 100%">
+                                        @(Math.Round(GetZoom(6) * 100))%
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomIn(6)" title="Powiększ (+)">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
                                 </div>
+                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                        @onclick="() => RedrawCanvas(6)">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                            <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                            @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
+                            {
+                                <span class="badge ms-2" style="background:#28a745;">■ Wewnętrzny</span>
                             }
-                        }
-                        else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
-                        {
-                        <!-- ==================== NOWA ZAKŁADKA 6: RYSUNEK ZEWN + WEWN ==================== -->
-                            @if (widocznyRysunek2)
+                            else
                             {
-                                <div class="mb-3" style="color: aquamarine;">
-                                    <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty" />
-                                    <label for="pokazPunkty">Pokaż wartości punktów</label>
-                                </div>
-
-                                <div class="canvas-view">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
-                                            <i class="bi bi-bounding-box me-2"></i>
-                                            Rysunek konturu zewnętrznego + wewnętrznego
-                                        </h5>
-                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                                @onclick="() => RedrawCanvas(6)">
-                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
-                                        </button>
-                                    </div>
-                                    <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
-                                        <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
-                                        @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
-                                        {
-                                            <span class="badge ms-2" style="background:#28a745;">■ Wewnętrzny</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge ms-2 bg-secondary">Brak konturu wewnętrznego</span>
-                                        }
-                                </div>
-
-                                <div id="tab2" class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
+                                <span class="badge ms-2 bg-secondary">Brak konturu wewnętrznego</span>
+                            }
+                        </div>
+                        <div id="tab2" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
                                     <canvas id="contour-canvas-6"
-                                            style="width:100%; height:600px; display:block; border-radius:8px;
-                                                                                   border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                            style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
+                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                        </div>
+                    </div>
+                }
+                else if (aktywnaZakladka == 7 && wybranyStan?.Kontur != null)
+                {
+                    <!-- ==================== ZAKŁADKA 7: RYSUNEK + SZYBY + ZOOM ==================== -->
+                    <div class="mb-3" style="color: aquamarine;">
+                        <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty7" />
+                        <label for="pokazPunkty7">Pokaż wartości punktów</label>
+                    </div>
+                    <div class="canvas-view">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                <i class="bi bi-bounding-box me-2"></i>
+                                Rysunek konturu zewnętrznego + szyby
+                            </h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomOut(7)" title="Pomniejsz (−)">
+                                        <i class="bi bi-dash-lg"></i>
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                            @onclick="() => ResetZoom(7)" title="Kliknij, aby zresetować do 100%">
+                                        @(Math.Round(GetZoom(7) * 100))%
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomIn(7)" title="Powiększ (+)">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
                                 </div>
+                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                        @onclick="() => RedrawCanvas(7)">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                </button>
                             </div>
+                        </div>
+                        <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                            <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                            @if (wybranyStan.KonturSzyby != null && wybranyStan.KonturSzyby.Count > 0)
+                            {
+                                <span class="badge ms-2" style="background:yellow;color:#000;">■ Szyby</span>
                             }
-                        }
-                    </div>
-                </div>
-            }
-            else
-            {
-                <!-- WIDOK JSON -->
-                <div class="card-body p-0">
-                    <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
-                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
-                                <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Zawijaj tekst</label>
-                            </div>
-                            <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" @bind="dekodujZnaki" />
-                                <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Polskie znaki</label>
-                            </div>
+                            else
+                            {
+                                <span class="badge ms-2 bg-secondary">Brak konturu szyby</span>
+                            }
                         </div>
-                        <div>
-                            <span class="badge @(ciemnyMotyw ? "bg-secondary" : "bg-light text-dark")">
-                                @GetFormattedJson()?.Length znaków
-                            </span>
+                        <div id="tab3" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                                    <canvas id="contour-canvas-7"
+                                            style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
+                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                         </div>
                     </div>
-                    <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
-                         style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
-                        @if (uzyjHighlightJS)
-                        {
-                            <HighlightCode Language="json" Code="@GetFormattedJson()" />
-                        }
-                        else
-                        {
-                            <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
-                                                                                       font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                                                                                       font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
-                        }
-
+                }
+                else if (aktywnaZakladka == 8 && wybranyStan?.Kontur != null)
+                {
+                    <!-- ==================== ZAKŁADKA 8: RYSUNEK + OKUCIA + ZOOM ==================== -->
+                    <div class="mb-3" style="color: aquamarine;">
+                        <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty8" />
+                        <label for="pokazPunkty8">Pokaż wartości punktów</label>
                     </div>
-                </div>
-            }
-
-            @if (pokazKomunikatKopiowania)
-            {
-                <div class="card-footer bg-success text-white py-2 d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="bi bi-check-circle me-2"></i> <strong>Skopiowano do schowka!</strong>
+                    <div class="canvas-view">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                <i class="bi bi-bounding-box me-2"></i>
+                                Rysunek konturu zewnętrznego + kształt rowka okuciowego
+                            </h5>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomOut(8)" title="Pomniejsz (−)">
+                                        <i class="bi bi-dash-lg"></i>
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                            @onclick="() => ResetZoom(8)" title="Kliknij, aby zresetować do 100%">
+                                        @(Math.Round(GetZoom(8) * 100))%
+                                    </button>
+                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="() => ZoomIn(8)" title="Powiększ (+)">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
+                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                        @onclick="() => RedrawCanvas(8)">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                            <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                            @if (wybranyStan.KonturOkucia != null && wybranyStan.KonturOkucia.Count > 0)
+                            {
+                                <span class="badge ms-2" style="background:gold;color:#000;">■ Okucia</span>
+                            }
+                            else
+                            {
+                                <span class="badge ms-2 bg-secondary">Brak konturu okucia</span>
+                            }
+                        </div>
+                        <div id="tab4" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                                    <canvas id="contour-canvas-8"
+                                            style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
+                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                        </div>
                     </div>
-                    <button class="btn btn-sm btn-light" @onclick="() => pokazKomunikatKopiowania = false">
-                        <i class="bi bi-x"></i>
-                    </button>
-                </div>
-            }
-
+                }
+            </div>
         </div>
-    }
+                }
+                else
+        {
+            <!-- WIDOK JSON -->
+            <div class="card-body p-0">
+                <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
+                     style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
+                                    border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
+                            <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Zawijaj tekst</label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" @bind="dekodujZnaki" />
+                            <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Polskie znaki</label>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge @(ciemnyMotyw ? "bg-secondary" : "bg-light text-dark")">
+                            @GetFormattedJson()?.Length znaków
+                        </span>
+                    </div>
+                </div>
+                <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
+                     style="max-height: @(rozwinJson ? "80vh" : "500px");
+                                    background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                    @if (uzyjHighlightJS)
+                    {
+                        <HighlightCode Language="json" Code="@GetFormattedJson()" />
+                    }
+                    else
+                    {
+                        <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
+                                                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                                                font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (pokazKomunikatKopiowania)
+        {
+            <div class="card-footer bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                <div><i class="bi bi-check-circle me-2"></i> <strong>Skopiowano do schowka!</strong></div>
+                <button class="btn btn-sm btn-light" @onclick="() => pokazKomunikatKopiowania = false">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        }
+    </div>
+        }
 </div>
 
 @code {
@@ -2238,14 +2092,12 @@
     private GeneratorState? stanDoUsuniecia;
     private string? tytulPunktow;
 
-    // Flagi stanu
     private bool szczegolyWidoczne = false;
     private bool punktyWidoczne = false;
     private bool pokazModalUsuwania = false;
     private bool pokazKomunikatKopiowania = false;
     private bool pokazWidokSzczegolowy = true;
 
-    // Ustawienia wyświetlania
     private bool rozwinJson = false;
     private bool zawijajTekst = false;
     private bool dekodujZnaki = true;
@@ -2253,18 +2105,22 @@
     private bool uzyjHighlightJS = false;
     private int aktywnaZakladka = 3;
 
-    // Filtry
     private string filtrTekst = string.Empty;
     private string filtrTyp = string.Empty;
     private string filtrKształt = string.Empty;
 
     private string AktywnaZakladka = "outer";
 
-    // NOWE: śledzenie ostatnio rysowanej zakładki (do auto-rerenderu canvasa)
     private int _lastRenderedTab = -1;
     private string? _lastRenderedStanId = null;
 
     bool pokazWartosciPunktow = true;
+
+    // ========== NOWE: per-zakładka zoom dla canvasów ==========
+    private readonly Dictionary<int, double> tabZoom = new();
+    private const double ZoomMin = 0.1;
+    private const double ZoomMax = 20.0;
+    private const double ZoomStep = 1.25;
 
     private readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -2308,7 +2164,6 @@
     private int GetLiczbaWszystkichPunktow()
     {
         if (StateContainer?.States == null) return 0;
-
         return StateContainer.States.Sum(s =>
             (s.Value.Wierzcholki?.Count ?? 0) +
             (s.Value.WierzcholkiWartosciNominalne?.Count ?? 0)
@@ -2318,7 +2173,6 @@
     private Dictionary<string, GeneratorState> GetFiltrowaneStany()
     {
         if (StateContainer?.States == null) return new();
-
         var query = StateContainer.States.AsEnumerable();
 
         if (!string.IsNullOrEmpty(filtrTekst))
@@ -2329,40 +2183,35 @@
                 s.Value.WybranyKsztalt?.Contains(filtrTekst, StringComparison.OrdinalIgnoreCase) == true
             );
         }
-
         if (!string.IsNullOrEmpty(filtrTyp))
         {
             var isRama = filtrTyp == "Rama";
             query = query.Where(s => s.Value.CzyElementJestRama == isRama);
         }
-
         if (!string.IsNullOrEmpty(filtrKształt))
         {
             query = query.Where(s => s.Value.WybranyKsztalt == filtrKształt);
         }
-
         return query.ToDictionary(k => k.Key, v => v.Value);
     }
 
     private string GetStronaBadgeClass(string? strona)
     {
         if (string.IsNullOrEmpty(strona)) return "bg-secondary";
-
         return strona.ToLower() switch
         {
-            "góra" or "gora" => "↑",
-            "dół" or "dol" => "↓",
-            "lewa" => "←",
-            "prawa" => "→",
-            _ => "?"
+            "góra" or "gora" => "bg-success",
+            "dół" or "dol" => "bg-danger",
+            "lewa" => "bg-info",
+            "prawa" => "bg-warning text-dark",
+            _ => "bg-secondary"
         };
     }
 
     private string GetStronaIcon(string? strona)
     {
-        if (string.IsNullOrEmpty(strona)) return "bi-question-circle";
-
-        return strona?.ToLower() switch
+        if (string.IsNullOrEmpty(strona)) return "?";
+        return strona.ToLower() switch
         {
             "góra" or "gora" => "↑",
             "dół" or "dol" => "↓",
@@ -2399,15 +2248,11 @@
                             var point = vertices[i];
                             bool hasPrevious = i > 0;
                             double distance = 0;
-
                             if (hasPrevious)
                             {
                                 var prevPoint = vertices[i - 1];
-                                distance = Math.Sqrt(
-                                Math.Pow(point.X - prevPoint.X, 2) +
-                                Math.Pow(point.Y - prevPoint.Y, 2));
+                                distance = Math.Sqrt(Math.Pow(point.X - prevPoint.X, 2) + Math.Pow(point.Y - prevPoint.Y, 2));
                             }
-
                             <tr>
                                 <td><span class="badge bg-primary">@i</span></td>
                                 <td><code>@Math.Round(point.X, 2)</code></td>
@@ -2427,9 +2272,7 @@
                     }
                 </tbody>
             </table>
-        </div>
-
-    ;
+        </div>;
     }
 
     // ========== METODY AKCJI ==========
@@ -2443,6 +2286,9 @@
         _lastRenderedTab = -1;
         _lastRenderedStanId = null;
 
+        // resetujemy zoom dla nowego modelu
+        tabZoom.Clear();
+
         StateHasChanged();
 
         await InvokeAsync(StateHasChanged);
@@ -2453,7 +2299,6 @@
             await InvokeAsync(async () =>
             {
                 await ScrollDoElementu("szczegoly-panel");
-
                 if (uzyjHighlightJS && !pokazWidokSzczegolowy)
                 {
                     await PrzeladujHighlight();
@@ -2465,15 +2310,11 @@
     private void PokazPunkty(List<XPoint> punkty, List<XPoint> punktyInner, List<ContourSegment> punktyZLukami, List<ContourSegment> punktyZLukamiInner, string tytul)
     {
         wybranePunkty = punkty
-        .Select(p => new XPoint(
-            Math.Round(p.X, 2),
-            Math.Round(p.Y, 2)))
-        .ToList();
+            .Select(p => new XPoint(Math.Round(p.X, 2), Math.Round(p.Y, 2)))
+            .ToList();
 
         WierzcholkiInner = punktyInner
-            .Select(p => new XPoint(
-                Math.Round(p.X, 2),
-                Math.Round(p.Y, 2)))
+            .Select(p => new XPoint(Math.Round(p.X, 2), Math.Round(p.Y, 2)))
             .ToList();
 
         wybranePunktyZLukami = punktyZLukami;
@@ -2481,7 +2322,6 @@
         tytulPunktow = tytul;
         punktyWidoczne = true;
 
-        // Dodaj informację do debugu
         if (punktyZLukami != null && punktyZLukami.Count > 0)
         {
             int arcCount = punktyZLukami.Count(s => s.Type == SegmentType.Arc);
@@ -2502,27 +2342,21 @@
         sb.AppendLine($"Data: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         sb.AppendLine();
 
-        // =====================
-        // 1. PUNKTY ZEWNĘTRZNE (wierzchołki)
-        // =====================
         if (wybranePunkty != null && wybranePunkty.Count > 0)
         {
             sb.AppendLine("📌 PUNKTY ZEWNĘTRZNE (wierzchołki):");
             sb.AppendLine("┌─────┬────────────┬────────────┬────────────┐");
             sb.AppendLine("│  #  │     X      │     Y      │ Odległość  │");
             sb.AppendLine("├─────┼────────────┼────────────┼────────────┤");
-
             for (int i = 0; i < wybranePunkty.Count; i++)
             {
                 var p = wybranePunkty[i];
                 double? distance = null;
-
                 if (i > 0)
                 {
                     var prev = wybranePunkty[i - 1];
                     distance = Math.Sqrt(Math.Pow(p.X - prev.X, 2) + Math.Pow(p.Y - prev.Y, 2));
                 }
-
                 string distStr = distance.HasValue ? $"{distance.Value,8:F2}" : "    -     ";
                 sb.AppendLine($"│ {i,3} │ {p.X,10:F2} │ {p.Y,10:F2} │ {distStr} │");
             }
@@ -2530,28 +2364,22 @@
             sb.AppendLine();
         }
 
-        // =====================
-        // 2. SEGMENTY ZEWNĘTRZNE (z łukami)
-        // =====================
         if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
         {
             sb.AppendLine("🔷 SEGMENTY ZEWNĘTRZNE (linie i łuki):");
             sb.AppendLine("┌─────┬──────────┬────────────────┬────────────────┬──────────────────────┬──────────┬──────────┬──────────────────┐");
             sb.AppendLine("│  #  │   Typ    │    Start X,Y    │     End X,Y     │       Środek        │ Promień  │ Kierunek │    Długość       │");
             sb.AppendLine("├─────┼──────────┼────────────────┼────────────────┼──────────────────────┼──────────┼──────────┼──────────────────┤");
-
             for (int i = 0; i < wybranePunktyZLukami.Count; i++)
             {
                 var seg = wybranePunktyZLukami[i];
                 string typ = seg.Type == SegmentType.Arc ? "Łuk" : "Linia";
                 string startStr = $"({seg.Start.X,7:F2},{seg.Start.Y,7:F2})";
                 string endStr = $"({seg.End.X,7:F2},{seg.End.Y,7:F2})";
-
                 string centerStr = "-";
                 string radiusStr = "-";
                 string kierunekStr = "-";
                 string dlugoscStr = "-";
-
                 if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
                     centerStr = $"({seg.Center.Value.X,7:F2},{seg.Center.Value.Y,7:F2})";
@@ -2561,46 +2389,34 @@
                 }
                 else if (seg.Type == SegmentType.Line)
                 {
-                    double lineLength = Math.Sqrt(
-                        Math.Pow(seg.End.X - seg.Start.X, 2) +
-                        Math.Pow(seg.End.Y - seg.Start.Y, 2)
-                    );
+                    double lineLength = Math.Sqrt(Math.Pow(seg.End.X - seg.Start.X, 2) + Math.Pow(seg.End.Y - seg.Start.Y, 2));
                     dlugoscStr = $"{lineLength,8:F2}";
                 }
-
                 sb.AppendLine($"│ {i,3} │ {typ,8} │ {startStr} │ {endStr} │ {centerStr,20} │ {radiusStr,8} │ {kierunekStr,8} │ {dlugoscStr} │");
             }
             sb.AppendLine("└─────┴──────────┴────────────────┴────────────────┴──────────────────────┴──────────┴──────────┴──────────────────┘");
             sb.AppendLine();
-
-            // Podsumowanie zewnętrzne
             int arcCountOuter = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Arc);
             int lineCountOuter = wybranePunktyZLukami.Count(s => s.Type == SegmentType.Line);
             sb.AppendLine($"📊 Podsumowanie zewnętrzne: {wybranePunktyZLukami.Count} segmentów (linie: {lineCountOuter}, łuki: {arcCountOuter})");
             sb.AppendLine();
         }
 
-        // =====================
-        // 3. PUNKTY WEWNĘTRZNE
-        // =====================
         if (WierzcholkiInner != null && WierzcholkiInner.Count > 0)
         {
             sb.AppendLine("📍 PUNKTY WEWNĘTRZNE (wierzchołki):");
             sb.AppendLine("┌─────┬────────────┬────────────┬────────────┐");
             sb.AppendLine("│  #  │     X      │     Y      │ Odległość  │");
             sb.AppendLine("├─────┼────────────┼────────────┼────────────┤");
-
             for (int i = 0; i < WierzcholkiInner.Count; i++)
             {
                 var p = WierzcholkiInner[i];
                 double? distance = null;
-
                 if (i > 0)
                 {
                     var prev = WierzcholkiInner[i - 1];
                     distance = Math.Sqrt(Math.Pow(p.X - prev.X, 2) + Math.Pow(p.Y - prev.Y, 2));
                 }
-
                 string distStr = distance.HasValue ? $"{distance.Value,8:F2}" : "    -     ";
                 sb.AppendLine($"│ {i,3} │ {p.X,10:F2} │ {p.Y,10:F2} │ {distStr} │");
             }
@@ -2608,28 +2424,22 @@
             sb.AppendLine();
         }
 
-        // =====================
-        // 4. SEGMENTY WEWNĘTRZNE (z łukami)
-        // =====================
         if (KonturInner != null && KonturInner.Count > 0)
         {
             sb.AppendLine("🔶 SEGMENTY WEWNĘTRZNE (linie i łuki):");
             sb.AppendLine("┌─────┬──────────┬────────────────┬────────────────┬──────────────────────┬──────────┬──────────┬──────────────────┐");
             sb.AppendLine("│  #  │   Typ    │    Start X,Y    │     End X,Y     │       Środek        │ Promień  │ Kierunek │    Długość       │");
             sb.AppendLine("├─────┼──────────┼────────────────┼────────────────┼──────────────────────┼──────────┼──────────┼──────────────────┤");
-
             for (int i = 0; i < KonturInner.Count; i++)
             {
                 var seg = KonturInner[i];
                 string typ = seg.Type == SegmentType.Arc ? "Łuk" : "Linia";
                 string startStr = $"({seg.Start.X,7:F2},{seg.Start.Y,7:F2})";
                 string endStr = $"({seg.End.X,7:F2},{seg.End.Y,7:F2})";
-
                 string centerStr = "-";
                 string radiusStr = "-";
                 string kierunekStr = "-";
                 string dlugoscStr = "-";
-
                 if (seg.Type == SegmentType.Arc && seg.Center != null)
                 {
                     centerStr = $"({seg.Center.Value.X,7:F2},{seg.Center.Value.Y,7:F2})";
@@ -2639,48 +2449,34 @@
                 }
                 else if (seg.Type == SegmentType.Line)
                 {
-                    double lineLength = Math.Sqrt(
-                        Math.Pow(seg.End.X - seg.Start.X, 2) +
-                        Math.Pow(seg.End.Y - seg.Start.Y, 2)
-                    );
+                    double lineLength = Math.Sqrt(Math.Pow(seg.End.X - seg.Start.X, 2) + Math.Pow(seg.End.Y - seg.Start.Y, 2));
                     dlugoscStr = $"{lineLength,8:F2}";
                 }
-
                 sb.AppendLine($"│ {i,3} │ {typ,8} │ {startStr} │ {endStr} │ {centerStr,20} │ {radiusStr,8} │ {kierunekStr,8} │ {dlugoscStr} │");
             }
             sb.AppendLine("└─────┴──────────┴────────────────┴────────────────┴──────────────────────┴──────────┴──────────┴──────────────────┘");
             sb.AppendLine();
-
-            // Podsumowanie wewnętrzne
             int arcCountInner = KonturInner.Count(s => s.Type == SegmentType.Arc);
             int lineCountInner = KonturInner.Count(s => s.Type == SegmentType.Line);
             sb.AppendLine($"📊 Podsumowanie wewnętrzne: {KonturInner.Count} segmentów (linie: {lineCountInner}, łuki: {arcCountInner})");
             sb.AppendLine();
         }
 
-        // =====================
-        // 5. PODSUMOWANIE OGÓLNE
-        // =====================
         sb.AppendLine("========== PODSUMOWANIE OGÓLNE ==========");
-
         int totalPoints = (wybranePunkty?.Count ?? 0) + (WierzcholkiInner?.Count ?? 0);
         int totalSegments = (wybranePunktyZLukami?.Count ?? 0) + (KonturInner?.Count ?? 0);
         int totalArcs = (wybranePunktyZLukami?.Count(s => s.Type == SegmentType.Arc) ?? 0) +
                         (KonturInner?.Count(s => s.Type == SegmentType.Arc) ?? 0);
         int totalLines = (wybranePunktyZLukami?.Count(s => s.Type == SegmentType.Line) ?? 0) +
                          (KonturInner?.Count(s => s.Type == SegmentType.Line) ?? 0);
-
         sb.AppendLine($"Łączna liczba punktów: {totalPoints}");
         sb.AppendLine($"Łączna liczba segmentów: {totalSegments} (linie: {totalLines}, łuki: {totalArcs})");
         sb.AppendLine("==========================================");
 
-        // Kopiuj do schowka
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
 
-        // Pokaż komunikat
         pokazKomunikatKopiowania = true;
         StateHasChanged();
-
         await Task.Delay(2000);
         pokazKomunikatKopiowania = false;
         StateHasChanged();
@@ -2689,11 +2485,9 @@
     private async Task KopiujPunktyDoSchowkaProsty(bool tylkoKszalty)
     {
         var sb = new StringBuilder();
-
         sb.AppendLine("========== DANE KONTURU ==========");
         sb.AppendLine();
 
-        // Punkty zewnętrzne
         if (wybranePunkty != null && wybranePunkty.Count > 0 && !tylkoKszalty)
         {
             sb.AppendLine("PUNKTY ZEWNĘTRZNE:");
@@ -2705,7 +2499,6 @@
             sb.AppendLine();
         }
 
-        // Segmenty zewnętrzne
         if (wybranePunktyZLukami != null && wybranePunktyZLukami.Count > 0)
         {
             sb.AppendLine("SEGMENTY ZEWNĘTRZNE:");
@@ -2724,7 +2517,6 @@
             sb.AppendLine();
         }
 
-        // Punkty wewnętrzne
         if (WierzcholkiInner != null && WierzcholkiInner.Count > 0 && !tylkoKszalty)
         {
             sb.AppendLine("PUNKTY WEWNĘTRZNE:");
@@ -2736,7 +2528,6 @@
             sb.AppendLine();
         }
 
-        // Segmenty wewnętrzne
         if (KonturInner != null && KonturInner.Count > 0)
         {
             sb.AppendLine("SEGMENTY WEWNĘTRZNE:");
@@ -2771,7 +2562,6 @@
 
         pokazKomunikatKopiowania = true;
         StateHasChanged();
-
         await Task.Delay(2000);
         pokazKomunikatKopiowania = false;
         StateHasChanged();
@@ -2779,14 +2569,11 @@
 
     private async Task CopySegmentDataToClipboard()
     {
-        if (wybranyStan?.Kontur == null || !wybranyStan.Kontur.Any())
-            return;
+        if (wybranyStan?.Kontur == null || !wybranyStan.Kontur.Any()) return;
 
         try
         {
-            // Tworzenie tekstu z danymi wszystkich segmentów
-            var sb = new System.Text.StringBuilder();
-
+            var sb = new StringBuilder();
             sb.AppendLine("=== DANE SEGMENTÓW KONTURU ===");
             sb.AppendLine($"Liczba segmentów: {wybranyStan.Kontur.Count}");
             sb.AppendLine($"Data: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
@@ -2795,7 +2582,6 @@
             for (int i = 0; i < wybranyStan.Kontur.Count; i++)
             {
                 var segment = wybranyStan.Kontur[i];
-
                 sb.AppendLine($"\n📌 SEGMENT #{i + 1}");
                 sb.AppendLine($"   Typ: {(segment.Type == SegmentType.Arc ? "ŁUK" : "LINIA")}");
                 sb.AppendLine($"   Informacja: {segment.Informacja ?? "brak"}");
@@ -2812,43 +2598,30 @@
                     sb.AppendLine($"      Promień: {segment.Radius:F4}");
                     sb.AppendLine($"      Kierunek: {(segment.CounterClockwise ? "Przeciwnie do ruchu wskazówek zegara" : "Zgodnie z ruchem wskazówek zegara")}");
 
-                    // Oblicz kąt początkowy i końcowy
                     if (segment.Center.HasValue)
                     {
-                        double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y,
-                                                       segment.Start.X - segment.Center.Value.X) * 180 / Math.PI;
-                        double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y,
-                                                     segment.End.X - segment.Center.Value.X) * 180 / Math.PI;
-
+                        double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y, segment.Start.X - segment.Center.Value.X) * 180 / Math.PI;
+                        double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y, segment.End.X - segment.Center.Value.X) * 180 / Math.PI;
                         if (startAngle < 0) startAngle += 360;
                         if (endAngle < 0) endAngle += 360;
-
                         sb.AppendLine($"      Kąt początkowy: {startAngle:F2}°");
                         sb.AppendLine($"      Kąt końcowy: {endAngle:F2}°");
                     }
                 }
                 else
                 {
-                    // Dla linii - oblicz długość
-                    double length = Math.Sqrt(
-                        Math.Pow(segment.End.X - segment.Start.X, 2) +
-                        Math.Pow(segment.End.Y - segment.Start.Y, 2)
-                    );
+                    double length = Math.Sqrt(Math.Pow(segment.End.X - segment.Start.X, 2) + Math.Pow(segment.End.Y - segment.Start.Y, 2));
                     sb.AppendLine($"   → DŁUGOŚĆ LINII: {length:F4}");
                 }
-
                 sb.AppendLine(new string('-', 40));
             }
 
-            // Dodaj podsumowanie
             sb.AppendLine($"\n📊 PODSUMOWANIE:");
             sb.AppendLine($"   Łuki: {wybranyStan.Kontur.Count(s => s.Type == SegmentType.Arc)}");
             sb.AppendLine($"   Linie: {wybranyStan.Kontur.Count(s => s.Type == SegmentType.Line)}");
 
-            // Kopiuj do schowka używając JSRuntime
             await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", sb.ToString());
 
-            // Pokaż komunikat (używając Twojego mechanizmu)
             pokazKomunikatKopiowania = true;
             StateHasChanged();
             await Task.Delay(2000);
@@ -2858,42 +2631,22 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Błąd podczas kopiowania: {ex.Message}");
-            // Opcjonalnie pokaż błąd
         }
     }
 
     private double CalculateArcLength(ContourSegment segment)
     {
-        if (segment.Type != SegmentType.Arc || !segment.Center.HasValue)
-            return 0;
-
-        double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y,
-                                       segment.Start.X - segment.Center.Value.X);
-        double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y,
-                                     segment.End.X - segment.Center.Value.X);
-
+        if (segment.Type != SegmentType.Arc || !segment.Center.HasValue) return 0;
+        double startAngle = Math.Atan2(segment.Start.Y - segment.Center.Value.Y, segment.Start.X - segment.Center.Value.X);
+        double endAngle = Math.Atan2(segment.End.Y - segment.Center.Value.Y, segment.End.X - segment.Center.Value.X);
         double angleDiff = Math.Abs(endAngle - startAngle);
         if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
-
         return segment.Radius * angleDiff;
-    }
-
-    // Metoda pomocnicza do wyświetlania notyfikacji (jeśli nie masz własnej)
-    private async Task ShowNotification(string message, string type = "info")
-    {
-        // Możesz zastąpić swoją implementacją notyfikacji
-        Console.WriteLine($"[{type.ToUpper()}] {message}");
-
-        // Przykład z użyciem JavaScript (jeśli masz skonfigurowane)
-        await JSRuntime.InvokeVoidAsync("console.log", $"[{type}] {message}");
     }
 
     private async Task KopiujObecnyJson()
     {
-        if (wybranyStan != null)
-        {
-            await KopiujDoSchowka(wybranyStan);
-        }
+        if (wybranyStan != null) await KopiujDoSchowka(wybranyStan);
     }
 
     private void UsunStan(GeneratorState stan)
@@ -2906,15 +2659,12 @@
     {
         if (stanDoUsuniecia != null && StateContainer?.States != null)
         {
-            // Tutaj powinna być logika usuwania stanu
-            // StateContainer.States.Remove(...);
-
             if (stanDoUsuniecia.Id == wybranyStan?.Id)
             {
                 szczegolyWidoczne = false;
                 wybranyStan = null;
+                tabZoom.Clear();
             }
-
             pokazModalUsuwania = false;
             stanDoUsuniecia = null;
             StateHasChanged();
@@ -2936,31 +2686,18 @@
     private void ToggleWidokSzczegolowy()
     {
         pokazWidokSzczegolowy = !pokazWidokSzczegolowy;
-        if (pokazWidokSzczegolowy)
-        {
-            aktywnaZakladka = 0;
-        }
+        if (pokazWidokSzczegolowy) aktywnaZakladka = 0;
         else if (uzyjHighlightJS)
         {
             Task.Delay(100).ContinueWith(async _ =>
             {
-                await InvokeAsync(async () =>
-                {
-                    await PrzeladujHighlight();
-                });
+                await InvokeAsync(async () => { await PrzeladujHighlight(); });
             });
         }
     }
 
-    private void ToggleMotyw()
-    {
-        ciemnyMotyw = !ciemnyMotyw;
-    }
-
-    private void ToggleRozwinJson()
-    {
-        rozwinJson = !rozwinJson;
-    }
+    private void ToggleMotyw() => ciemnyMotyw = !ciemnyMotyw;
+    private void ToggleRozwinJson() => rozwinJson = !rozwinJson;
 
     private async Task PrzeladujHighlight()
     {
@@ -2983,16 +2720,10 @@
     private string GetFormattedJson()
     {
         if (wybranyStan == null) return "{}";
-
         try
         {
             var json = JsonSerializer.Serialize(wybranyStan, jsonOptions);
-
-            if (dekodujZnaki)
-            {
-                json = System.Text.RegularExpressions.Regex.Unescape(json);
-            }
-
+            if (dekodujZnaki) json = System.Text.RegularExpressions.Regex.Unescape(json);
             return json;
         }
         catch (Exception ex)
@@ -3011,7 +2742,6 @@
     private async Task EksportujWszystkie()
     {
         if (StateContainer?.States == null) return;
-
         var wszystkieDane = new
         {
             LiczbaStanow = StateContainer.States.Count,
@@ -3019,24 +2749,16 @@
             StanowSkrzydel = GetLiczbaSkrzydel(),
             Stany = StateContainer.States.Select(s => s.Value)
         };
-
         var json = JsonSerializer.Serialize(wszystkieDane, jsonOptions);
         await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", json);
-
         pokazKomunikatKopiowania = true;
         StateHasChanged();
-
         await Task.Delay(2000);
         pokazKomunikatKopiowania = false;
         StateHasChanged();
     }
 
-    private void Odswiez()
-    {
-        // Tutaj powinna być logika odświeżania danych
-        // np. ponowne załadowanie z API
-        StateHasChanged();
-    }
+    private void Odswiez() => StateHasChanged();
 
     private async Task ScrollDoGory()
     {
@@ -3052,35 +2774,44 @@
                }}");
     }
 
-    // ========== NOWE: OBSŁUGA ZAKŁADEK + RYSOWANIE NA CANVAS ==========
-    bool widocznyRysunek1 = false;
-    bool widocznyRysunek2 = false;
+    // ========== ZOOM (NOWE) ==========
+
+    private double GetZoom(int tab)
+    {
+        return tabZoom.TryGetValue(tab, out var z) ? z : 1.0;
+    }
+
+    private void SetZoom(int tab, double value)
+    {
+        tabZoom[tab] = Math.Clamp(value, ZoomMin, ZoomMax);
+    }
+
+    private void ZoomIn(int tab)
+    {
+        SetZoom(tab, GetZoom(tab) * ZoomStep);
+        // RedrawCanvas zostanie wywołany w OnAfterRenderAsync (dla aktywnych zakładek canvas)
+        StateHasChanged();
+    }
+
+    private void ZoomOut(int tab)
+    {
+        SetZoom(tab, GetZoom(tab) / ZoomStep);
+        StateHasChanged();
+    }
+
+    private void ResetZoom(int tab)
+    {
+        SetZoom(tab, 1.0);
+        StateHasChanged();
+    }
+
+    // ========== OBSŁUGA ZAKŁADEK + RYSOWANIE NA CANVAS ==========
+
     private async Task SwitchTab(int tab)
     {
-        if (tab == 5 || tab == 6)
-        {
-            if (tab == 5)
-            {
-                widocznyRysunek1 = true;
-                widocznyRysunek2 = false;
-            }
-            else
-            {
-                widocznyRysunek1 = false;
-                widocznyRysunek2 = true;
-            }
-
-        }
-        else
-        {
-            widocznyRysunek1 = false;
-            widocznyRysunek2 = false;
-        }
-
         aktywnaZakladka = tab;
-
+        await Task.Yield();
         StateHasChanged();
-        // Reszta dzieje się w OnAfterRenderAsync – tam canvas już istnieje w DOM
         await Task.CompletedTask;
     }
 
@@ -3102,10 +2833,19 @@
                 informacja = s.Informacja
             }).ToList();
 
+        string kolorLinii = tabIndex switch
+        {
+            6 => "#28a745",
+            7 => "yellow",
+            8 => "gold",
+            _ => "#0d6efd"
+        };
+
         var outer = Project(wybranyStan.Kontur);
         var inner = (tabIndex == 6) ? Project(wybranyStan.KonturInner) : null;
+        if (tabIndex == 7) inner = Project(wybranyStan.KonturSzyby);
+        else if (tabIndex == 8) inner = Project(wybranyStan.KonturOkucia);
 
-        // Daj Blazorowi chwilę na wstawienie elementu canvas do DOM
         await Task.Delay(50);
 
         try
@@ -3115,16 +2855,17 @@
                 $"contour-canvas-{tabIndex}",
                 outer,
                 inner,
-               new
-               {
-                   bgColor = ciemnyMotyw ? "#1e1e1e" : "#ffffff",
-                   outerColor = "#0d6efd",
-                   innerColor = "#28a745",
-                   showVertices = true,
-                   showLabels = true,
-                   showDimensions = true,
-                   showPointLabels = pokazWartosciPunktow   // <-- NOWE
-               });
+                new
+                {
+                    bgColor = ciemnyMotyw ? "#1e1e1e" : "#ffffff",
+                    outerColor = "#0d6efd",
+                    innerColor = kolorLinii,
+                    showVertices = true,
+                    showLabels = true,
+                    showDimensions = true,
+                    showPointLabels = pokazWartosciPunktow,
+                    zoom = GetZoom(tabIndex)   // <-- NOWE
+                });
         }
         catch (Exception ex)
         {
@@ -3133,6 +2874,7 @@
     }
 
     // ========== LIFECYCLE ==========
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -3146,10 +2888,9 @@
             catch { uzyjHighlightJS = false; }
         }
 
-        // Jeśli jesteśmy na zakładce rysunku i widok szczegółowy jest aktywny,
-        // zawsze przerysuj – RedrawCanvas jest idempotentny i szybki.
+        // Zawsze przerysuj aktywny canvas (idempotentne) – obejmuje również zmianę zoomu
         if (szczegolyWidoczne && pokazWidokSzczegolowy &&
-            (aktywnaZakladka == 5 || aktywnaZakladka == 6))
+            (aktywnaZakladka == 5 || aktywnaZakladka == 6 || aktywnaZakladka == 7 || aktywnaZakladka == 8))
         {
             await RedrawCanvas(aktywnaZakladka);
         }
@@ -3159,7 +2900,6 @@
     {
         Console.WriteLine("GeneratorStateViewer initialized.");
         szczegolyWidoczne = false;
-
         await Task.Yield();
     }
 }
