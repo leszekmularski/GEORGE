@@ -35,92 +35,352 @@
 @implements IAsyncDisposable
 
 <style>
-    /* Globalne ustawienia */
+    :root {
+        --cad-bg: #eef5fc;
+        --cad-panel: #f7faff;
+        --cad-panel-2: #e8f1fb;
+        --cad-panel-3: #d9e9f8;
+        --cad-border: #bfd2e5;
+        --cad-border-light: #9eb9d3;
+        --cad-text: #243447;
+        --cad-muted: #687b8f;
+        --cad-accent: #0d6efd;
+        --cad-accent-dark: #0a58ca;
+        --cad-grid: rgba(13, 110, 253, .10);
+    }
+
     html, body {
         height: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-        background-color: #f8f9fa;
+        overflow-x: hidden;
+        overflow-y: auto;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: var(--cad-bg);
+        color: var(--cad-text);
     }
 
-    /* Specjalna klasa dla resetu */
     .cursor-reset * {
         cursor: default !important;
         pointer-events: auto !important;
     }
 
-    /* Kontener główny */
-    .window-model-container {
+    /* ==================== CAD HEADER ==================== */
+    .cad-page-header {
+        height: 48px;
         display: flex;
-        height: 70vh;
-        background-color: #fff;
-        padding: 10px;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px;
         box-sizing: border-box;
+        background: #f5f9fe;
+        border: 1px solid var(--cad-border);
+        border-bottom-color: #bfd2e5;
+        color: var(--cad-text);
+        box-shadow: 0 3px 12px rgba(0,0,0,.25);
     }
 
-    /* Panel boczny z modelami */
-    .wing-model-container {
-        flex: 0 0 250px; /* Szerokość panelu bocznego */
-        height: 100%;
-        overflow-y: auto;
-        border-right: 2px solid #ddd;
-        padding: 10px;
-        background: #f8f9fa;
+    .cad-page-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 190px;
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: .25px;
+        color: #1f3850;
     }
 
-        /* Tabela modeli */
-        .wing-model-container table {
-            font-size: 13px;
-            width: 100%;
-            border-collapse: collapse;
+        .cad-page-title::before {
+            content: "";
+            width: 5px;
+            height: 22px;
+            border-radius: 2px;
+            background: var(--cad-accent);
+            box-shadow: 0 0 8px rgba(13,110,253,.25);
         }
 
-        .wing-model-container th, .wing-model-container td {
-            padding: 6px;
-            text-align: center;
+    .cad-header-spacer {
+        flex: 1;
+    }
+
+    .cad-header-button.ant-btn,
+    .cad-header-button.btn {
+        height: 32px !important;
+        flex-grow: 0 !important;
+        min-width: 110px;
+        padding: 0 12px;
+        border-radius: 4px;
+        border: 1px solid var(--cad-border-light);
+        background: var(--cad-panel-2);
+        color: var(--cad-text);
+        box-shadow: none;
+        font-size: 12px;
+    }
+
+    .cad-header-button:hover,
+    .cad-header-button:focus {
+        background: var(--cad-panel-3) !important;
+        border-color: var(--cad-accent) !important;
+        color: #fff !important;
+    }
+
+    /* ==================== OPTIONS / INFORMATION ==================== */
+    .cad-options {
+        margin: 10px 0 16px !important;
+        background: var(--cad-panel);
+        border: 1px solid var(--cad-border) !important;
+        border-radius: 5px;
+        color: var(--cad-text);
+    }
+
+        .cad-options .ant-collapse-item,
+        .cad-options .ant-collapse-header,
+        .cad-options .ant-collapse-content {
+            border-color: var(--cad-border) !important;
+        }
+
+        .cad-options .ant-collapse-header {
+            padding: 8px 12px !important;
+            background: #e5eff9;
+            color: #334e68 !important;
+            font-size: 12px !important;
+        }
+
+        .cad-options .ant-collapse-content {
+            background: #f8fbff !important;
+            color: #334e68;
+        }
+
+        .cad-options .scrollable-panel {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .cad-options .ant-collapse-content-box {
+            padding: 10px 12px !important;
+        }
+
+        .cad-options .info-panel {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+
+    /* ==================== MAIN CAD WORKSPACE ==================== */
+    .window-model-container {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 70vh;
+        min-height: 450px;
+        box-sizing: border-box;
+        overflow: hidden;
+        background: #e7f0f8;
+        border: 1px solid #b7cde1;
+        border-radius: 5px;
+        box-shadow: 0 8px 30px rgba(0,0,0,.35);
+    }
+
+    /* ==================== MODEL BROWSER ==================== */
+    .wing-model-container {
+        position: relative;
+        flex: 0 0 250px;
+        height: 100%;
+        min-width: 250px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 9px;
+        background: linear-gradient(180deg, #f4f8fc 0%, #e7f0f8 100%);
+        border-right: 1px solid var(--cad-border);
+        color: var(--cad-text);
+        scrollbar-width: thin;
+        scrollbar-color: #9eb9d3 #e7f0f8;
+    }
+
+        .wing-model-container::before {
+            content: "Wybiarz model";
+            display: block;
+            margin: 2px 4px 9px;
+            padding: 0 0 7px;
+            border-bottom: 1px solid var(--cad-border);
+            color: #55708a;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+        }
+
+        .wing-model-container .form-select {
+            height: 32px !important;
+            padding: 4px 8px;
+            background: #f7fbff !important;
+            border: 1px solid var(--cad-border-light) !important;
+            border-radius: 4px !important;
+            color: #243b53 !important;
+            font-size: 11px;
+            box-shadow: none !important;
+        }
+
+            .wing-model-container .form-select:focus {
+                border-color: var(--cad-accent) !important;
+                box-shadow: 0 0 0 2px rgba(13,110,253,.12) !important;
+            }
+
+        /* model table is intentionally kept in the same left-side location */
+        .wing-model-container table {
+            width: 100%;
+            margin-top: 9px;
+            border-collapse: separate;
+            border-spacing: 0 3px;
+            color: var(--cad-text);
+            font-size: 11px;
+        }
+
+        .wing-model-container thead {
+            position: sticky;
+            top: 0;
+            z-index: 5;
         }
 
         .wing-model-container th {
-            background-color: #007bff;
-            color: white;
+            padding: 6px 4px;
+            background: #d9e8f6 !important;
+            color: #4f6b83 !important;
+            border-top: 1px solid var(--cad-border);
+            border-bottom: 1px solid var(--cad-border);
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .45px;
         }
 
-        .wing-model-container tr:hover {
-            background-color: rgba(0, 123, 255, 0.1);
-        }
-
-        /* Miniatury modeli */
-        .wing-model-container img {
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-            cursor: -webkit-grab; /* Obsługa w Safari */
-            cursor: grab;
-            transition: transform 0.2s ease-in-out;
-        }
-
-            .wing-model-container img:hover {
-                transform: scale(1.1);
+            .wing-model-container th:first-child {
+                border-left: 1px solid var(--cad-border);
+                border-radius: 4px 0 0 4px;
             }
 
-    /* Główne okno wyświetlania */
+            .wing-model-container th:last-child {
+                border-right: 1px solid var(--cad-border);
+                border-radius: 0 4px 4px 0;
+            }
+
+        .wing-model-container td {
+            padding: 6px 4px;
+            background: #eef5fb !important;
+            border-top: 1px solid transparent;
+            border-bottom: 1px solid transparent;
+            color: #334e68 !important;
+            vertical-align: middle;
+        }
+
+        .wing-model-container tbody tr:hover td {
+            background: #dcecf9 !important;
+            border-top-color: #b3cbe0;
+            border-bottom-color: #b3cbe0;
+        }
+
+            .wing-model-container tbody tr:hover td:first-child {
+                border-left: 2px solid var(--cad-accent);
+            }
+
+    .model-name {
+        line-height: 1.2;
+        color: #243b53;
+        font-weight: 500;
+    }
+
+    .model-size {
+        color: #688198;
+        font-size: 9px;
+        line-height: 1.25;
+        white-space: nowrap;
+    }
+
+    .model-thumbnail {
+        width: 48px !important;
+        height: 48px !important;
+        max-width: 48px !important;
+        max-height: 48px !important;
+        padding: 3px;
+        object-fit: contain;
+        box-sizing: border-box;
+        background: #f5f9fd;
+        border: 1px solid #a8bfd5 !important;
+        border-radius: 4px;
+        cursor: grab;
+        transition: .15s ease;
+    }
+
+        .model-thumbnail:hover {
+            transform: scale(1.06);
+            border-color: #6c9bc7 !important;
+            background: #eaf3fb;
+        }
+
+        .model-thumbnail.selected {
+            border: 2px solid var(--cad-accent) !important;
+            box-shadow: 0 0 0 1px rgba(13,110,253,.25), 0 0 12px rgba(13,110,253,.16);
+            background: #dcecff;
+        }
+
+    .wing-model-container .ant-radio-group {
+        width: 100%;
+        margin-top: 9px;
+    }
+
+    .wing-model-container .ant-radio-button-wrapper {
+        width: 50%;
+        box-sizing: border-box;
+        padding: 0 4px;
+        background: #eef5fb !important;
+        border-color: var(--cad-border) !important;
+        color: #9da7b2 !important;
+        font-size: 10px;
+        text-align: center;
+    }
+
+    .wing-model-container .ant-radio-button-wrapper-checked {
+        background: #0d6efd !important;
+        border-color: var(--cad-accent) !important;
+        color: white !important;
+    }
+
+    /* ==================== VIEWPORT ==================== */
     .display-window {
-        flex-grow: 1;
-        height: 100%;
-        min-height: 400px; /* Zapewnienie minimalnej wysokości */
-        border: 2px solid #ddd;
-        background-color: #fff;
+        position: relative;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        box-sizing: border-box;
+        overflow: visible !important;
         display: flex;
         justify-content: center;
         align-items: center;
-        padding: 10px;
-        box-sizing: border-box;
-        position: relative;
-        overflow: hidden;
+        padding: 0 !important;
+        background-color: #e9edf2;
+        background-image: linear-gradient(var(--cad-grid) 1px, transparent 1px), linear-gradient(90deg, var(--cad-grid) 1px, transparent 1px);
+        background-size: 20px 20px;
+        border: 0 !important;
         cursor: crosshair;
     }
+
+        .display-window::before {
+            content: "CAD VIEWPORT";
+            position: absolute;
+            left: 12px;
+            bottom: 9px;
+            z-index: 50;
+            padding: 3px 7px;
+            background: rgba(245,249,254,.94);
+            border: 1px solid rgba(137,166,194,.8);
+            border-radius: 3px;
+            color: #5f7890;
+            font-size: 9px;
+            letter-spacing: .8px;
+            pointer-events: none;
+        }
 
     .container {
         position: relative;
@@ -129,190 +389,283 @@
     }
 
     .canvas-container {
-        width: 100% !important; /* ✅ Zawsze 100% szerokości */
-        height: 100% !important; /* ✅ Zawsze 100% wysokości */
-        pointer-events: none; /* Wyłącz interakcje z canvasem */
+        width: 100% !important;
+        height: 100% !important;
         max-width: 100%;
         max-height: 100%;
-        border: 2px solid #ddd;
-        background-color: #fff;
-        border-radius: 5px;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        border-radius: 0;
         display: flex;
         justify-content: center;
         align-items: center;
-        overflow: auto; /* Ukrywa przewijanie */
+        overflow: hidden;
         position: relative;
+        box-sizing: border-box;
+        pointer-events: none;
+        will-change: transform;
     }
 
-    /* ===== CANVAS ELEMENT ===== */
     canvas {
-        display: block; /* ✅ Ważne: display block */
-        width: 100% !important; /* ✅ Zawsze 100% szerokości */
-        height: 100% !important; /* ✅ Zawsze 100% wysokości */
-        background-color: white !important;
-        /* Zapobiega artefaktom */
-        image-rendering: crisp-edges;
-        image-rendering: pixelated;
-        transform: translateZ(0); /* ✅ Reset transformacji */
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: #f5f6f8 !important;
+        image-rendering: auto;
+        transform: translateZ(0);
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.14);
     }
 
     .interactive-layer {
         position: absolute;
         top: 0;
         left: 0;
-        z-index: 2; /* Warstwa NAD canvasem */
-        pointer-events: auto; /* Włącz interakcje */
-    }
-    /* Paski przewijania */
-    .wing-model-container::-webkit-scrollbar {
-        width: 8px;
+        z-index: 2;
+        pointer-events: auto;
     }
 
-    .wing-model-container::-webkit-scrollbar-thumb {
-        background: #007bff;
-        border-radius: 5px;
-    }
-
-        .wing-model-container::-webkit-scrollbar-thumb:hover {
-            background: #0056b3;
-        }
-
-    /* 🔹 Toolbar z przyciskami */
-    .toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        justify-content: center;
-        padding: 10px;
-        background: #fff;
-    }
-
-        /* Styl dla przycisków */
-        .toolbar .btn {
-            flex: 1;
-            min-width: 90px;
-            font-size: 13px;
-            padding: 6px 8px;
-            transition: all 0.2s ease-in-out;
-        }
-
-            .toolbar .btn:hover {
-                transform: scale(1.05);
-            }
-
+    /* ==================== CAD TOOLBAR ==================== */
     .zoom-controls {
         position: absolute;
-        top: 170px; /* Ustawienie 10px od góry */
-        right: 10px; /* Ustawienie 10px od prawej */
-        display: flex;
-        gap: 10px; /* Odstęp między przyciskami */
-        z-index: 1000; /* Upewnia się, że są na wierzchu */
-    }
-
-    .btn-zoom {
-        width: 40px;
-        height: 40px;
-        font-size: 20px;
-        border-radius: 50%; /* Okrągłe przyciski */
-        border: none;
-        background-color: #007bff; /* Niebieski, możesz zmienić */
-        color: white;
-        cursor: pointer;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
         display: flex;
         align-items: center;
+        gap: 4px;
+        padding: 5px;
+        background: rgba(248,251,255,.97);
+        border: 1px solid #b7cde1;
+        border-radius: 5px;
+        box-shadow: 0 5px 18px rgba(0,0,0,.32);
+        backdrop-filter: blur(5px);
+    }
+
+        .zoom-controls label {
+            display: flex;
+            align-items: center;
+            min-width: 105px;
+            padding: 0 7px;
+            color: #587188;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+    .btn-zoom {
+        width: 31px;
+        height: 31px;
+        min-width: 31px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
-        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Delikatny cień */
-        transition: background-color 0.3s ease;
+        border: 1px solid #a8bfd5;
+        border-radius: 4px;
+        background: #e5eff8;
+        color: #29445b;
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: none;
+        transition: .15s ease;
     }
 
         .btn-zoom:hover {
-            background-color: #0056b3; /* Ciemniejszy niebieski przy najechaniu */
+            background: #d3e5f5;
+            border-color: #6d9bc4;
+            color: #ffffff;
         }
 
-    /* Panel zajmuje pełną szerokość */
+        .btn-zoom:active {
+            background: #d7e8f7;
+            border-color: var(--cad-accent);
+        }
+
+    /* ==================== INFORMATION PANELS ==================== */
     .scrollable-panel {
         width: 100%;
-        max-height: 400px; /* Możesz zmienić na więcej, np. 600px */
-        overflow-y: auto; /* Włącza przewijanie w pionie */
+        max-height: 400px;
+        overflow-y: auto;
     }
 
-    /* Sider zajmuje całą szerokość */
     .info-panel {
-        background-color: #222;
-        color: #ffeb99;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
-        width: 500px; /* Pełna szerokość */
+        width: 100%;
         max-width: 1000px;
-    }
-
-    /* Lista informacji */
-    .info-list {
-        list-style: none;
-        padding: 0;
-        width: 760px;
-    }
-
-    /* Każdy element ma własne miejsce */
-    .info-item {
-        background: #333;
+        box-sizing: border-box;
         padding: 12px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        background: #f5f9fd !important;
+        color: #334e68;
+        border: 1px solid #c3d6e8;
+        border-radius: 4px;
+        box-shadow: none;
+    }
+
+    .info-list,
+    .materials-list {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .info-item,
+    .material-item {
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 6px;
+        padding: 8px;
+        background: #eaf3fb !important;
+        border: 1px solid #c3d6e8;
+        border-radius: 4px;
+        box-shadow: none;
         display: flex;
         flex-direction: column;
-        gap: 6px;
-        width: 760px;
+        gap: 4px;
     }
 
-        /* Tekst jasnożółty */
-        .info-item span {
-            color: #ffeb99;
-            font-size: 1em;
+        .info-item span,
+        .material-item span {
+            color: #48657d;
+            font-size: 11px;
         }
 
-        .info-item strong {
-            color: #ffcc00;
+        .info-item strong,
+        .material-item strong {
+            color: #0b63ce;
         }
 
-    /* Obsługa braku danych */
     .no-data {
-        color: red;
+        padding: 8px;
+        color: #ef7777;
         text-align: center;
         font-style: italic;
+        font-size: 11px;
     }
 
-    /* Lista materiałów */
-    .materials-list {
-        list-style: none;
-        padding: 0;
-        width: 100%;
+    /* ==================== MODAL / DEBUG ==================== */
+    .cad-debug-modal .modal-content {
+        background: #f4f8fc !important;
+        color: #29445b;
+        border: 1px solid #b7cde1;
+        border-radius: 5px;
+        box-shadow: 0 15px 50px rgba(0,0,0,.55);
     }
 
-    /* Pojedynczy materiał */
-    .material-item {
-        background: #333;
+    .cad-debug-modal .modal-header {
+        background: #e3eef8;
+        border-bottom: 1px solid #c3d6e8;
+    }
+
+    .cad-debug-modal .modal-title,
+    .cad-debug-modal label,
+    .cad-debug-modal strong,
+    .cad-debug-modal p {
+        color: #34536b;
+    }
+
+    .cad-debug-modal .modal-body {
+        background: #181c21;
+    }
+
+    .cad-debug-modal .card {
+        background: #e9f2fa !important;
+        border-color: #bfd3e5 !important;
+        color: #34536b;
+    }
+
+    .cad-debug-modal .list-group-item {
+        background: #edf5fb !important;
+        border-color: #c3d6e8 !important;
+        color: #334e68;
+    }
+
+    .cad-debug-modal .property-panel {
+        background: #eaf3fb;
+        border: 1px solid #bfd3e5;
+        border-radius: 4px;
         padding: 12px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        width: 100%;
     }
 
-        /* Kolor jasny dla tekstu */
-        .material-item span {
-            color: #ffeb99;
-            font-size: 1em;
+    .property-row {
+        display: grid;
+        grid-template-columns: minmax(160px, 1fr) 160px;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+
+    .property-label {
+        color: #587188;
+        font-size: 11px;
+    }
+
+    .property-value {
+        color: #dce3e9;
+        font-size: 11px;
+    }
+
+    .property-input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 4px 6px;
+        background: #f7fbff;
+        border: 1px solid #a8bfd5;
+        border-radius: 3px;
+        color: #243447;
+        font-size: 11px;
+    }
+
+    /* ==================== SCROLLBARS ==================== */
+    .wing-model-container::-webkit-scrollbar,
+    .scrollable-panel::-webkit-scrollbar {
+        width: 7px;
+    }
+
+    .wing-model-container::-webkit-scrollbar-track,
+    .scrollable-panel::-webkit-scrollbar-track {
+        background: #e7f0f8;
+    }
+
+    .wing-model-container::-webkit-scrollbar-thumb,
+    .scrollable-panel::-webkit-scrollbar-thumb {
+        background: #9ab5cc;
+        border-radius: 4px;
+    }
+
+        .wing-model-container::-webkit-scrollbar-thumb:hover,
+        .scrollable-panel::-webkit-scrollbar-thumb:hover {
+            background: #789ab8;
         }
 
-        .material-item strong {
-            color: #ffcc00;
-        }
+    @@media (max-width: 900px) {
+        .wing-model-container
+
+    {
+        flex-basis: 215px;
+        min-width: 215px;
+    }
+
+    .zoom-controls label {
+        display: none;
+    }
+
+    }
+
+    @@media (max-width: 700px) {
+        .wing-model-container
+
+    {
+        flex-basis: 185px;
+        min-width: 185px;
+    }
+
+    .wing-model-container th:nth-child(2),
+    .wing-model-container td:nth-child(2) {
+        display: none;
+    }
+
+    }
 </style>
 
 <script>
@@ -455,19 +808,159 @@
 
 <!-- Nagłówek Skypty są zapisane w pliku \JS\canvasHelpers.js i podpięte w index.html wyłączone!!!-->
 
-<div class="d-flex justify-content-between align-items-center mt-2 mb-2">
-    <h3 class="mb-0">Modele Okienne &nbsp;</h3>
-    <Button Icon="@IconType.Fill.Tool" Style="flex-grow: 1; height: 35px;" OnClick="GoCAD">
+<div class="cad-page-header">
+    <h3 class="cad-page-title">Modele Okienne</h3>
+    <div class="cad-header-spacer"></div>
+    <Button Icon="@IconType.Fill.Tool" Class="cad-header-button" OnClick="GoCAD">
         OKNO-CAD
     </Button>
     &nbsp;&nbsp;
-    <button class="btn btn-primary" @onclick="GoBack">
+    <button class="btn cad-header-button" @onclick="GoBack">
         <i class="fas fa-arrow-left"></i> Wróć do poprzedniej strony
     </button>
 
 </div>
 
-<Collapse Animation>
+
+
+<!-- Kontener na modele i canvas -->
+<div class="window-model-container">
+    <!-- Kontener na przyciski -->
+    <div class="zoom-controls">
+        <label>@mousePosition skala: @((int)(_aktywnaSkala * 100))</label>
+        <button @onclick="async () => { KonfiguracjeSystemu = null; ListaModeli = null; Console.Clear(); await PobierzDaneSystemu(); }" class="btn-zoom" title="Odśwież dane">↻</button>
+        <button @onclick="PokazWlasciwosciOkna" class="btn-zoom" title="Wymiary okien zmień">⌑</button>
+        <button @onclick="UsunOstatniObiekt" class="btn-zoom" title="Usuń ostatni obiekt">×</button>
+        <button @onclick="ZoomIn" class="btn-zoom" title="Powiększ">+</button>
+        <button @onclick="ZoomOut" class="btn-zoom" title="Pomniejsz">−</button>
+        <button @onclick="PokazModal" class="btn-zoom" title="Pokaż elementy">◇</button>
+        <button class="btn btn-zoom" @onclick="OtworzPrzeglad" title="Właściwości">⌕</button>
+    </div>
+    <!-- Panel boczny z modelami -->
+    <div class="wing-model-container">
+
+        @if (Systemy != null && Systemy.Any())
+        {
+            <!-- 🔹 Wybór systemu -->
+            <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
+                <div class="d-flex">
+                    @if (Systemy != null && Systemy.Any())
+                    {
+                        <select class="form-select me-2" style="width:100%" @onchange="@(async (args) => await OnSystemSelected(args))">
+                            <option value="" disabled selected="@(string.IsNullOrEmpty(SelectedSystemId))">-- Wybierz system --</option>
+                            @foreach (var system in Systemy)
+                            {
+                                <option value="@system.RowId" selected="@(system.RowId.ToString() == SelectedSystemId)">
+                                    @system.Nazwa_Systemu
+                                </option>
+                            }
+                        </select>
+                    }
+                </div>
+            </Tooltip>
+        }
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Wymiary</th>
+                    <th>Miniaturka</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @if (ListaModeli != null)
+                {
+                    @foreach (var model in FiltrowaneModele)
+                    {
+                        <tr>
+                            <td><div class="model-name">@model.NazwaKonfiguracji</div></td>
+
+                            <td>
+                                <div class="model-size">
+                                    @model.KonstrMinSzer x @model.KonstrMinWys
+                                    →
+                                    @model.KonstrMaxSzer x @model.KonstrMaxWys
+                                </div>
+                            </td>
+
+                            <td>
+                                @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
+                                {
+                                    <img id="@($"wing-{model.Typ}")"
+                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                         @onclick="@(() => WybierzModel(model))"
+                                         @ondragstart="@(e => JS.InvokeVoidAsync(
+                                         "SetCurrentModel",
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                model.RowId))"
+                             @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
+                             draggable="true"
+                             class="model-thumbnail @(model == WybranyModel ? "selected" : "")" />
+                                                }
+                                else
+                                {
+                                    <span class="text-muted">Brak</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+        <div>
+            <RadioGroup @bind-Value="radioValueSelect"
+                        ButtonStyle="RadioButtonStyle.Solid"
+                        TValue="string"
+                        OnChange="@OnRadioValueChanged">
+
+                <Radio RadioButton
+                       Value="@("Rama")"
+                       Style="width:100%">
+                    Tylko ramy
+                </Radio>
+
+                <Radio RadioButton
+                       Value="@("Skrzydła")"
+                       Style="width:100%">
+                    Tylko skrzydła i słupki
+                </Radio>
+
+            </RadioGroup>
+        </div>
+    </div>
+
+    <!-- Główne okno wyświetlania -->
+
+    <div class="display-window" @onmouseup="OnMouseUp" @onmousemove="OnMouseMove"
+         @onwheel="HandleWheel"
+         @onwheel:preventDefault="false"
+         style="position: relative; /* Wymagane dla warstw */
+                overflow: visible; /* Zapobiega przycinaniu kursora */
+                cursor: inherit; /* Dziedziczy kursor z JS */">
+
+        <!-- Tutaj elementy reagujące na kursor (np. przyciski) -->
+        @if (hasCanvasError)
+        {
+            <p style="color: red; position: relative; z-index: 100;">❌ Błąd: Nie udało się załadować canvasu!</p>
+        }
+        else
+        {
+            <!-- Canvas -->
+            <Spin Spinning="_czekajNaZaladowanie" Delay="25"
+                  Style="@($"width:250px; height:250px")">
+                <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
+                    <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
+                </div>
+            </Spin>
+        }
+    </div>
+
+</div>
+
+<!-- Panele informacyjne przeniesione pod rysunek CAD -->
+<Collapse Animation class="cad-options">
 
     <Panel Header="Informacje o wyrobie restrykcje, ustawienia wyświetlania" Key="2" class="scrollable-panel">
         <br />
@@ -551,151 +1044,10 @@
 
 </Collapse>
 
-<!-- Kontener na modele i canvas -->
-<div class="window-model-container">
-    <!-- Kontener na przyciski -->
-    <div class="zoom-controls">
-        <label>@mousePosition skala: @((int)(_aktywnaSkala * 100))</label>
-        <button @onclick="async () => { KonfiguracjeSystemu = null; ListaModeli = null; Console.Clear(); await PobierzDaneSystemu(); }" class="btn-zoom" title="Odśwież dane">🔄</button>
-        <button @onclick="PokazWlasciwosciOkna" class="btn-zoom" title="Wymiary okien zmień">📖</button>
-        <button @onclick="UsunOstatniObiekt" class="btn-zoom" title="Usuń ostatni obiekt">🗑️</button>
-        <button @onclick="ZoomIn" class="btn-zoom">➕</button>
-        <button @onclick="ZoomOut" class="btn-zoom">➖</button>
-        <button @onclick="PokazModal" class="btn-zoom">💎</button>
-        <button class="btn btn-zoom" @onclick="OtworzPrzeglad" title="Właściwości">🔍</button>
-    </div>
-    <!-- Panel boczny z modelami -->
-    <div class="wing-model-container">
-
-        @if (Systemy != null && Systemy.Any())
-        {
-            <!-- 🔹 Wybór systemu -->
-            <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
-                <div class="d-flex">
-                    @if (Systemy != null && Systemy.Any())
-                    {
-                        <select class="form-select me-2" style="width:100%" @onchange="@(async (args) => await OnSystemSelected(args))">
-                            <option value="" disabled selected="@(string.IsNullOrEmpty(SelectedSystemId))">-- Wybierz system --</option>
-                            @foreach (var system in Systemy)
-                            {
-                                <option value="@system.RowId" selected="@(system.RowId.ToString() == SelectedSystemId)">
-                                    @system.Nazwa_Systemu
-                                </option>
-                            }
-                        </select>
-                    }
-                </div>
-            </Tooltip>
-        }
-
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Nazwa</th>
-                    <th>Wymiary</th>
-                    <th>Miniaturka</th>
-                </tr>
-            </thead>
-            <tbody>
-
-                @if (ListaModeli != null)
-                {
-                    @foreach (var model in FiltrowaneModele)
-                    {
-                        <tr>
-                            <td>@model.NazwaKonfiguracji</td>
-
-                            <td style="font-size:10px">
-                                @model.KonstrMinSzer x @model.KonstrMinWys
-                                →
-                                @model.KonstrMaxSzer x @model.KonstrMaxWys
-                            </td>
-
-                            <td>
-                                @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
-                                {
-                                    <img id="@($"wing-{model.Typ}")"
-                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onclick="@(() => WybierzModel(model))"
-                                         @ondragstart="@(e => JS.InvokeVoidAsync(
-                                         "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   model.RowId))"
-                             @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
-                             draggable="true"
-                             style="cursor: grab;
-                                width: auto;
-                                height: auto;
-                                max-width: 50px;
-                                max-height: 50px;
-                                border: @(model == WybranyModel
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ? "4px solid #007bff"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       : "none")" />
-                                                }
-                                else
-                                {
-                                    <span class="text-muted">Brak</span>
-                                }
-                            </td>
-                        </tr>
-                    }
-                }
-            </tbody>
-        </table>
-        <div>
-            <RadioGroup @bind-Value="radioValueSelect"
-                        ButtonStyle="RadioButtonStyle.Solid"
-                        TValue="string"
-                        OnChange="@OnRadioValueChanged">
-
-                <Radio RadioButton
-                       Value="@("Rama")"
-                       Style="width:100%">
-                    Tylko ramy
-                </Radio>
-
-                <Radio RadioButton
-                       Value="@("Skrzydła")"
-                       Style="width:100%">
-                    Tylko skrzydła i słupki
-                </Radio>
-
-            </RadioGroup>
-        </div>
-    </div>
-
-    <!-- Główne okno wyświetlania -->
-
-    <div class="display-window" @onmouseup="OnMouseUp" @onmousemove="OnMouseMove"
-         @onwheel="HandleWheel"
-         @onwheel:preventDefault="false"
-         style="position: relative; /* Wymagane dla warstw */
-                overflow: visible; /* Zapobiega przycinaniu kursora */
-                cursor: inherit; /* Dziedziczy kursor z JS */">
-
-        <!-- Tutaj elementy reagujące na kursor (np. przyciski) -->
-        @if (hasCanvasError)
-        {
-            <p style="color: red; position: relative; z-index: 100;">❌ Błąd: Nie udało się załadować canvasu!</p>
-        }
-        else
-        {
-            <!-- Canvas -->
-            <Spin Spinning="_czekajNaZaladowanie" Delay="25"
-                  Style="@($"width:250px; height:250px")">
-                <div class="canvas-container" style="padding:0px;background-color: transparent;border: 0px; will-change: transform; transform: translateZ(0)">
-                    <BECanvas @ref="CanvasRef" Width="@CanvasWidth" Height="@CanvasHeight" />
-                </div>
-            </Spin>
-        }
-    </div>
-
-</div>
-
 <div class="modal fade @classShowTWZ"
      tabindex="-1"
      @ref="modalRef"
-     style="display:@displayTWZ; position:absolute; top:20vh; left:50%; width:80%;">
+     style="display:@displayTWZ; position:absolute; top:12vh; left:20%; width:80%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content"
              style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(6px); border-radius: 10px;">
@@ -1446,7 +1798,7 @@
        DefaultMaximized="@true">
 
     <Generator_state_viewer @key="_generatorViewerKey"
-                            StateContainer="StateContainer">
+                            StateContainer="StateContainer" OnSaveDelete="UsunWybranyObiekt">
     </Generator_state_viewer>
 
 </Modal>
@@ -1468,6 +1820,8 @@
     </div>
 
 </Modal>
+
+
 
 @code {
     [Parameter]
@@ -3019,6 +3373,32 @@
         }
     }
 
+    private async Task UsunWybranyObiekt(GeneratorState statesid)
+    {
+        if (_generatorStates.Count == 0)
+            return;
+
+        if (string.IsNullOrWhiteSpace(statesid.IdRegion))
+            return;
+
+        if (_generatorStates.TryGetValue(statesid.IdRegion, out var state))
+        {
+
+            _generatorStates.Remove(statesid.IdRegion);
+
+            _ksztaltyNaRegion.Remove(state.IdRegion);
+            ksztalty = _ksztaltyNaRegion.Values.SelectMany(x => x).ToList();
+        }
+
+        isTextureLoaded = false;
+
+        await Task.Delay(10);
+        // await RedrawCanvas();
+        await DrawStructureAndRestrykcje();
+
+        await ApplyZoom();
+    }
+
     private async Task UsunOstatniObiekt()
     {
         if (_generatorStates.Count == 0)
@@ -3037,10 +3417,6 @@
             _ksztaltyNaRegion.Remove(state.IdRegion);
             ksztalty = _ksztaltyNaRegion.Values.SelectMany(x => x).ToList();
         }
-
-        //  await ClearCanvas();
-
-        //Console.Clear();
 
         isTextureLoaded = false;
 
@@ -3103,58 +3479,182 @@
 
     private async Task ApplyZoom(double newScale = -1)
     {
-        if (CanvasWidth == 0 || CanvasHeight == 0 || CanvasRef == null)
+        if (CanvasWidth <= 0 ||
+            CanvasHeight <= 0 ||
+            CanvasRef == null ||
+            ShapeService?.Shapes == null ||
+            !ShapeService.Shapes.Any())
+        {
             return;
+        }
 
         try
         {
-            double minX = 0, minY = 0;
+            // ============================================================
+            // 1. OBLICZENIE BOUNDING BOXA CAŁEGO RYSUNKU
+            // ============================================================
 
-            if (newScale == -1)
+            double minX = double.MaxValue;
+            double minY = double.MaxValue;
+            double maxX = double.MinValue;
+            double maxY = double.MinValue;
+
+            foreach (var shape in ShapeService.Shapes)
             {
-                // ✅ Bbox z tych samych współrzędnych co Draw (po Rozwiązaniu 1 = NominalPoints)
-                double realMinX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
-                double realMinY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
-                double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-                double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
+                try
+                {
+                    var bb = shape.GetBoundingBox();
 
-                double shapesWidth = maxX - realMinX;
-                double shapesHeight = maxY - realMinY;
+                    minX = Math.Min(minX, bb.Left);
+                    minY = Math.Min(minY, bb.Top);
 
-                double scaleX = CanvasWidth / shapesWidth;
-                double scaleY = CanvasHeight / shapesHeight;
-                _aktywnaSkala = Math.Min(scaleX, scaleY) * 0.95;
-
-                // ✅ Zapamiętaj lewy-górny róg do wyśrodkowania
-                minX = realMinX;
-                minY = realMinY;
+                    maxX = Math.Max(maxX, bb.Left + bb.Width);
+                    maxY = Math.Max(maxY, bb.Top + bb.Height);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"⚠️ Błąd GetBoundingBox: {ex.Message}");
+                }
             }
 
+            if (minX == double.MaxValue ||
+                maxX == double.MinValue)
+            {
+                return;
+            }
+
+            double shapesWidth = maxX - minX;
+            double shapesHeight = maxY - minY;
+
+            if (shapesWidth <= 0 || shapesHeight <= 0)
+            {
+                Console.WriteLine(
+                    $"⚠️ Nieprawidłowy BBox: {shapesWidth}x{shapesHeight}");
+
+                return;
+            }
+
+            // ============================================================
+            // 2. WYZNACZENIE SKALI
+            // ============================================================
+
+            if (newScale < 0)
+            {
+                /*
+                 * Dopasowanie całego rysunku do viewportu.
+                 *
+                 * 0.90 = 10% marginesu.
+                 */
+
+                double scaleX =
+                    CanvasWidth / shapesWidth;
+
+                double scaleY =
+                    CanvasHeight / shapesHeight;
+
+                _aktywnaSkala =
+                    Math.Min(scaleX, scaleY) * 0.90;
+            }
+            else
+            {
+                _aktywnaSkala = Math.Clamp(
+                    newScale,
+                    0.1,
+                    10.0);
+            }
+
+            // ============================================================
+            // 3. WYLICZENIE RZECZYWISTEGO ROZMIARU RYSUNKU PO SKALOWANIU
+            // ============================================================
+
+            double scaledWidth =
+                shapesWidth * _aktywnaSkala;
+
+            double scaledHeight =
+                shapesHeight * _aktywnaSkala;
+
+            // ============================================================
+            // 4. ŚRODEK VIEWPORTU
+            // ============================================================
+
+            double viewportCenterX =
+                CanvasWidth / 2.0;
+
+            double viewportCenterY =
+                CanvasHeight / 2.0;
+
+            // ============================================================
+            // 5. ŚRODEK RYSUNKU
+            // ============================================================
+
+            double shapesCenterX =
+                minX + shapesWidth / 2.0;
+
+            double shapesCenterY =
+                minY + shapesHeight / 2.0;
+
+            // ============================================================
+            // 6. PRZESUNIĘCIE TAK, ABY ŚRODEK RYSUNKU
+            //    ZNALAZŁ SIĘ W ŚRODKU CANVASU
+            // ============================================================
+
+            _offsetX =
+                viewportCenterX -
+                shapesCenterX * _aktywnaSkala;
+
+            _offsetY =
+                viewportCenterY -
+                shapesCenterY * _aktywnaSkala;
+
+            Console.WriteLine(
+                $"📐 BBox: X={minX:F2}..{maxX:F2}, " +
+                $"Y={minY:F2}..{maxY:F2}");
+
+            Console.WriteLine(
+                $"📏 Model: {shapesWidth:F2} x {shapesHeight:F2}");
+
+            Console.WriteLine(
+                $"🔍 Skala: {_aktywnaSkala:F4}");
+
+            Console.WriteLine(
+                $"🎯 Offset: X={_offsetX:F2}, Y={_offsetY:F2}");
+
+            // ============================================================
+            // 7. RYSOWANIE
+            // ============================================================
+
             if (_context == null)
-                _context = await CanvasRef.CreateCanvas2DAsync();
+            {
+                _context =
+                    await CanvasRef.CreateCanvas2DAsync();
+            }
 
-            await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
-            await ClearCanvas();
+            await _context.SetTransformAsync(
+                1, 0, 0, 1, 0, 0);
 
-            // ✅ Wyśrodkuj: przesuń o -minX * skala i dołóż margines (5%)
-            double offsetX = -minX * _aktywnaSkala + (CanvasWidth - (/* szerokość*_skala */ 0)) * 0.5;
-            double offsetY = -minY * _aktywnaSkala + (CanvasHeight - (/* wysokość*_skala */ 0)) * 0.5;
+            await _context.ClearRectAsync(
+                0,
+                0,
+                CanvasWidth,
+                CanvasHeight);
 
-            // Prostszy wariant: wyśrodkowanie całego bboxa
-            double bboxW = (/* maxX - minX */ 0);
-            // ... (pełna implementacja zależy od tego, czy chcesz też środkować, gdy skala jest ograniczona wysokością)
+            await _context.TranslateAsync(
+                _offsetX,
+                _offsetY);
 
-            await _context.TranslateAsync(-minX * _aktywnaSkala, -minY * _aktywnaSkala);
-            await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
+            await _context.ScaleAsync(
+                _aktywnaSkala,
+                _aktywnaSkala);
 
             await DrawAllCanvasElements();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd podczas zoomowania: {ex.Message}");
+            Console.WriteLine(
+                $"🔥 Błąd podczas zoomowania: {ex.Message}");
         }
     }
-
     // private async Task ApplyZoom(double newScale = -1)
     // {
     //     if (CanvasWidth == 0 || CanvasHeight == 0 || CanvasRef == null)

@@ -1375,7 +1375,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                        border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
                                 <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
@@ -1415,8 +1415,8 @@
                     <div class="json-content @(rozwinJson ? "expanded" : "")"
                          @key="aktywnaZakladka"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                        background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
-                                        padding: 20px;">
+                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                                                padding: 20px;">
 
                         @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
                         {
@@ -1490,597 +1490,604 @@
                                                             <span class="property-value">
                                                                 @if (kwadrat.WierzcholkiSasiadaA is not null && kwadrat.WierzcholkiSasiadaA.Any())
                                                                 {
-                                                                    <ul>@foreach (var p in kwadrat.WierzcholkiSasiadaA) {
-                                                                    <li>@($"X: {p.X}; Y: {p.Y}")</li>
+                                                                    <ul>
+                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaA)
+                                                                        {
+                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
+                                                                        }
+                                                                    </ul>
                                                                 }
-                </ul>
-                                                            }
-                                                                                                else
-                                                            {
-
-                                                                <em>Brak danych</em>
-                                                            }
-                                                        </span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Punkty sąsiada strona B</span>
-                                                        <span class="property-value">
-                                                            @if (kwadrat.WierzcholkiSasiadaB is not null && kwadrat.WierzcholkiSasiadaB.Any())
-                                                            {
-                                                                <ul>@foreach (var p in kwadrat.WierzcholkiSasiadaB) {
-                                                                <li>@($"X: {p.X}; Y: {p.Y}")</li>
-                                                            }
-            </ul>
-                                                        }
-                                                        else
-                                                        {
-
-                                                            <em>Brak danych</em>
-                                                        }
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 1)
-                {
-                    <div class="vertices-view">
-                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                            <i class="bi bi-pin-map me-2"></i> Wszystkie Punkty
-                        </h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
-                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
-                                        <div><i class="bi bi-geo me-2"></i> Podstawowe</div>
-                                        <span class="badge bg-primary">@wybranyStan?.Wierzcholki?.Count</span>
-                                    </div>
-                                    <div class="card-body">@RenderVerticesTable(wybranyStan?.Wierzcholki, "Podstawowe")</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
-                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
-                                        <div><i class="bi bi-geo-alt me-2"></i> Nominalne</div>
-                                        <span class="badge bg-primary">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</span>
-                                    </div>
-                                    <div class="card-body">@RenderVerticesTable(wybranyStan?.WierzcholkiWartosciNominalne, "Nominalne")</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 2 && wybranyStan?.MVCKonfModelu?.KonfSystem != null)
-                {
-                    <div class="elements-view">
-                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                            <i class="bi bi-puzzle me-2"></i>
-                            Elementy Systemu (@wybranyStan.MVCKonfModelu.KonfSystem.Count)
-                        </h5>
-                        <div class="row">
-                            @foreach (var element in wybranyStan.MVCKonfModelu.KonfSystem)
-                            {
-                                <div class="col-md-6 mb-3">
-                                    <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                        <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                            <div>
-                                                <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">@element.Typ</span>
-                                                <span class="ms-2 fw-semibold small">@element.Nazwa</span>
-                                            </div>
-                                            <div><small class="text-muted">@element.IndeksElementu</small></div>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="properties-grid small">
-                                                <div class="property">
-                                                    <span class="property-label">Występowanie:</span>
-                                                    <span class="property-value">
-                                                        @if (element.WystepujeDol)
-                                                        {
-                                                            <span class="badge bg-success me-1 mb-1">Dół</span>
-                                                        }
-                                                        @if (element.WystepujeLewa)
-                                                        {
-                                                            <span class="badge bg-success me-1 mb-1">Lewa</span>
-                                                        }
-                                                        @if (element.WystepujeGora)
-                                                        {
-                                                            <span class="badge bg-success me-1 mb-1">Góra</span>
-                                                        }
-                                                        @if (element.WystepujePrawa)
-                                                        {
-                                                            <span class="badge bg-success me-1 mb-1">Prawa</span>
-                                                        }
-                                                    </span>
-                                                </div>
-                                                <div class="property">
-                                                    <span class="property-label">Wymiary pionowe:</span>
-                                                    <span class="property-value">Lewa: @element.PionLewa, Prawa: @element.PionPrawa</span>
-                                                </div>
-                                                <div class="property">
-                                                    <span class="property-label">Wymiary poziome:</span>
-                                                    <span class="property-value">Dół: @element.PoziomDol, Góra: @element.PoziomGora</span>
-                                                </div>
-                                                <div class="property"><span class="property-label">ID:</span><span class="property-value small">@element.RowId.ToString()</span></div>
-                                                <div class="property"><span class="property-label">Typ:</span><span class="property-value small">@element.Typ.ToString()</span></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 3)
-                {
-                    <div class="summary-view">
-                        <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
-                            <i class="bi bi-info-circle me-2"></i> Podsumowanie Stanu
-                        </h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
-                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                        <i class="bi bi-card-checklist me-2"></i> Informacje podstawowe
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="properties-grid">
-                                            <div class="property"><span class="property-label">ID:</span><span class="property-value fw-bold">@wybranyStan.Id</span></div>
-                                            <div class="property"><span class="property-label">Region:</span><span class="property-value">@wybranyStan.IdRegion</span></div>
-                                            <div class="property"><span class="property-label">Z-Index:</span><span class="property-value">@wybranyStan.ZIndeks</span></div>
-                                            <div class="property">
-                                                <span class="property-label">Typ:</span>
-                                                <span class="property-value">
-                                                    <span class="badge @(wybranyStan.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
-                                                        @(wybranyStan.CzyElementJestRama ? "Rama" : "Skrzydło")
-                                                    </span>
-                                                </span>
-                                            </div>
-                                            <div class="property">
-                                                <span class="property-label">Kształt:</span>
-                                                <span class="property-value"><span class="badge bg-secondary">@wybranyStan.WybranyKsztalt</span></span>
-                                            </div>
-                                            <div class="property">
-                                                <span class="property-label">Logi:&nbsp;</span>
-                                                <span class="property-value">
-                                                    @if (wybranyStan.Generator?.Komunikaty?.Any() == true)
-                                                    {
-                                                        <div class="mb-2">
-                                                            <strong class="text-info"><i class="bi bi-info-circle me-1"></i>Komunikaty:</strong>
-                                                            <ol class="list-group list-group-numbered list-group-flush">
-                                                                @foreach (var komunikat in wybranyStan.Generator.Komunikaty)
+                                                                else
                                                                 {
-                                                                    <li class="list-group-item py-1 px-2 bg-transparent small text-wrap" style="color:darkorange">@komunikat</li>
+
+                                                                    <em>Brak danych</em>
                                                                 }
-                                                            </ol>
+                                                            </span>
                                                         </div>
-                                                    }
-                                                    @if (wybranyStan.Generator?.BledySystemowe?.Any() == true)
-                                                    {
-                                                        <div>
-                                                            <strong class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Błędy:</strong>
-                                                            <ol class="list-group list-group-numbered list-group-flush">
-                                                                @foreach (var blad in wybranyStan.Generator.BledySystemowe)
-                                                                {
-                                                                    <li class="list-group-item py-1 px-2 bg-transparent small text-wrap text-break text-danger">@blad</li>
-                                                                }
-                                                            </ol>
-                                                        </div>
-                                                    }
-                                                    @if (!(wybranyStan.Generator?.Komunikaty?.Any() == true) && !(wybranyStan.Generator?.BledySystemowe?.Any() == true))
-                                                    {
-                                                        <span class="text-muted small">Brak</span>
-                                                    }
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
-                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                        <i class="bi bi-box-seam me-2"></i> Model
-                                    </div>
-                                    <div class="card-body">
-                                        @if (wybranyStan.WybranyModel != null)
-                                        {
-                                            <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark")">@wybranyStan.WybranyModel.NazwaKonfiguracji</h6>
-                                            <div class="properties-grid small">
-                                                <div class="property"><span class="property-label">Typ:</span><span class="property-value">@wybranyStan.WybranyModel.Typ</span></div>
-                                                <div class="property"><span class="property-label">Min. szerokość:</span><span class="property-value">@wybranyStan.WybranyModel.KonstrMinSzer</span></div>
-                                                <div class="property"><span class="property-label">Max. szerokość:</span><span class="property-value">@wybranyStan.WybranyModel.KonstrMaxSzer</span></div>
-                                                <div class="property"><span class="property-label">ID systemu:</span><span class="property-value small">@wybranyStan.RowIdSystemu.ToString()</span></div>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <p class="text-muted mb-0">Brak wybranego modelu</p>
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                    <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
-                                        <div><i class="bi bi-calculator me-2"></i> Statystyki</div>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row text-center">
-                                            <div class="col-md-3">
-                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                    <div class="h4">@wybranyStan?.Wierzcholki?.Count</div>
-                                                    <div class="small">Punktów podstawowych</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                    <div class="h4">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</div>
-                                                    <div class="small">Punktów nominalnych</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                    <div class="h4">@wybranyStan?.ListaKwadratow?.Count</div>
-                                                    <div class="small">Kwadratów</div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
-                                                    <div class="h4">@wybranyStan?.MVCKonfModelu?.KonfSystem?.Count</div>
-                                                    <div class="small">Elementów systemu</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 4 && wybranyStan?.Kontur != null)
-                {
-                    <div class="elements-view">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark")">
-                                <i class="bi bi-puzzle me-2"></i> Segmenty konturu (@wybranyStan.Kontur.Count)
-                            </h5>
-                            <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                    @onclick="CopySegmentDataToClipboard">
-                                <i class="bi bi-clipboard me-1"></i> Kopiuj wszystkie dane
-                            </button>
-                        </div>
-                        <div class="row">
-                            @for (int i = 0; i < wybranyStan.Kontur.Count; i++)
-                            {
-                                var segment = wybranyStan.Kontur[i];
-                                <div class="col-md-6 mb-3">
-                                    <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
-                                        <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
-                                            <div>
-                                                <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
-                                                    @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
-                                                </span>
-                                                <span class="ms-2 fw-semibold small">Segment #@(i + 1) Dotyczy: @segment.Informacja</span>
-                                            </div>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="properties-grid small">
-                                                <div class="property">
-                                                    <span class="property-label">Punkt początkowy:</span>
-                                                    <span class="property-value">X: @segment.Start.X.ToString("F2"), Y: @segment.Start.Y.ToString("F2")</span>
-                                                </div>
-                                                <div class="property">
-                                                    <span class="property-label">Punkt końcowy:</span>
-                                                    <span class="property-value">X: @segment.End.X.ToString("F2"), Y: @segment.End.Y.ToString("F2")</span>
-                                                </div>
-                                                @if (segment.Type == SegmentType.Arc)
-                                                {
-                                                    if (segment.Center != null)
-                                                    {
                                                         <div class="property">
-                                                            <span class="property-label">Środek łuku:</span>
-                                                            <span class="property-value">X: @segment.Center.Value.X.ToString("F2"), Y: @segment.Center.Value.Y.ToString("F2")</span>
+                                                            <span class="property-label">Punkty sąsiada strona B</span>
+                                                            <span class="property-value">
+                                                                @if (kwadrat.WierzcholkiSasiadaB is not null && kwadrat.WierzcholkiSasiadaB.Any())
+                                                                {
+                                                                    <ul>
+                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaB)
+                                                                        {
+                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                                else
+                                                                {
+
+                                                                    <em>Brak danych</em>
+                                                                }
+                                                            </span>
                                                         </div>
-                                                    }
-                                                    <div class="property">
-                                                        <span class="property-label">Promień:</span>
-                                                        <span class="property-value">@segment.Radius.ToString("F2")</span>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 1)
+                        {
+                            <div class="vertices-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-pin-map me-2"></i> Wszystkie Punkty
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                                <div><i class="bi bi-geo me-2"></i> Podstawowe</div>
+                                                <span class="badge bg-primary">@wybranyStan?.Wierzcholki?.Count</span>
+                                            </div>
+                                            <div class="card-body">@RenderVerticesTable(wybranyStan?.Wierzcholki, "Podstawowe")</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") h-100">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                                <div><i class="bi bi-geo-alt me-2"></i> Nominalne</div>
+                                                <span class="badge bg-primary">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</span>
+                                            </div>
+                                            <div class="card-body">@RenderVerticesTable(wybranyStan?.WierzcholkiWartosciNominalne, "Nominalne")</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 2 && wybranyStan?.MVCKonfModelu?.KonfSystem != null)
+                        {
+                            <div class="elements-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-puzzle me-2"></i>
+                                    Elementy Systemu (@wybranyStan.MVCKonfModelu.KonfSystem.Count)
+                                </h5>
+                                <div class="row">
+                                    @foreach (var element in wybranyStan.MVCKonfModelu.KonfSystem)
+                                    {
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                                <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                    <div>
+                                                        <span class="badge @(element.Typ == "Rama" ? "bg-warning text-dark" : "bg-info")">@element.Typ</span>
+                                                        <span class="ms-2 fw-semibold small">@element.Nazwa</span>
+                                                    </div>
+                                                    <div><small class="text-muted">@element.IndeksElementu</small></div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="properties-grid small">
+                                                        <div class="property">
+                                                            <span class="property-label">Występowanie:</span>
+                                                            <span class="property-value">
+                                                                @if (element.WystepujeDol)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Dół</span>
+                                                                }
+                                                                @if (element.WystepujeLewa)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Lewa</span>
+                                                                }
+                                                                @if (element.WystepujeGora)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Góra</span>
+                                                                }
+                                                                @if (element.WystepujePrawa)
+                                                                {
+                                                                    <span class="badge bg-success me-1 mb-1">Prawa</span>
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Wymiary pionowe:</span>
+                                                            <span class="property-value">Lewa: @element.PionLewa, Prawa: @element.PionPrawa</span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Wymiary poziome:</span>
+                                                            <span class="property-value">Dół: @element.PoziomDol, Góra: @element.PoziomGora</span>
+                                                        </div>
+                                                        <div class="property"><span class="property-label">ID:</span><span class="property-value small">@element.RowId.ToString()</span></div>
+                                                        <div class="property"><span class="property-label">Typ:</span><span class="property-value small">@element.Typ.ToString()</span></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 3)
+                        {
+                            <div class="summary-view">
+                                <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-4">
+                                    <i class="bi bi-info-circle me-2"></i> Podsumowanie Stanu
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                <i class="bi bi-card-checklist me-2"></i> Informacje podstawowe
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="properties-grid">
+                                                    <div class="property"><span class="property-label">ID:</span><span class="property-value fw-bold">@wybranyStan.Id</span></div>
+                                                    <div class="property"><span class="property-label">Region:</span><span class="property-value">@wybranyStan.IdRegion</span></div>
+                                                    <div class="property"><span class="property-label">Z-Index:</span><span class="property-value">@wybranyStan.ZIndeks</span></div>
                                                     <div class="property">
-                                                        <span class="property-label">Kierunek:</span>
+                                                        <span class="property-label">Typ:</span>
                                                         <span class="property-value">
-                                                            <span class="badge @(segment.CounterClockwise ? "bg-primary" : "bg-secondary")">
-                                                                @(segment.CounterClockwise ? "Przeciwnie do ruchu wskazówek zegara" : "Zgodnie z ruchem wskazówek zegara")
+                                                            <span class="badge @(wybranyStan.CzyElementJestRama ? "bg-warning text-dark" : "bg-info")">
+                                                                @(wybranyStan.CzyElementJestRama ? "Rama" : "Skrzydło")
                                                             </span>
                                                         </span>
                                                     </div>
                                                     <div class="property">
-                                                        <span class="property-label">Informacja:</span>
-                                                        <span class="property-value">@(segment.Informacja)</span>
+                                                        <span class="property-label">Kształt:</span>
+                                                        <span class="property-value"><span class="badge bg-secondary">@wybranyStan.WybranyKsztalt</span></span>
+                                                    </div>
+                                                    <div class="property">
+                                                        <span class="property-label">Logi:&nbsp;</span>
+                                                        <span class="property-value">
+                                                            @if (wybranyStan.Generator?.Komunikaty?.Any() == true)
+                                                            {
+                                                                <div class="mb-2">
+                                                                    <strong class="text-info"><i class="bi bi-info-circle me-1"></i>Komunikaty:</strong>
+                                                                    <ol class="list-group list-group-numbered list-group-flush">
+                                                                        @foreach (var komunikat in wybranyStan.Generator.Komunikaty)
+                                                                        {
+                                                                            <li class="list-group-item py-1 px-2 bg-transparent small text-wrap" style="color:darkorange">@komunikat</li>
+                                                                        }
+                                                                    </ol>
+                                                                </div>
+                                                            }
+                                                            @if (wybranyStan.Generator?.BledySystemowe?.Any() == true)
+                                                            {
+                                                                <div>
+                                                                    <strong class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Błędy:</strong>
+                                                                    <ol class="list-group list-group-numbered list-group-flush">
+                                                                        @foreach (var blad in wybranyStan.Generator.BledySystemowe)
+                                                                        {
+                                                                            <li class="list-group-item py-1 px-2 bg-transparent small text-wrap text-break text-danger">@blad</li>
+                                                                        }
+                                                                    </ol>
+                                                                </div>
+                                                            }
+                                                            @if (!(wybranyStan.Generator?.Komunikaty?.Any() == true) && !(wybranyStan.Generator?.BledySystemowe?.Any() == true))
+                                                            {
+                                                                <span class="text-muted small">Brak</span>
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border") mb-3">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                <i class="bi bi-box-seam me-2"></i> Model
+                                            </div>
+                                            <div class="card-body">
+                                                @if (wybranyStan.WybranyModel != null)
+                                                {
+                                                    <h6 class="@(ciemnyMotyw ? "text-light" : "text-dark")">@wybranyStan.WybranyModel.NazwaKonfiguracji</h6>
+                                                    <div class="properties-grid small">
+                                                        <div class="property"><span class="property-label">Typ:</span><span class="property-value">@wybranyStan.WybranyModel.Typ</span></div>
+                                                        <div class="property"><span class="property-label">Min. szerokość:</span><span class="property-value">@wybranyStan.WybranyModel.KonstrMinSzer</span></div>
+                                                        <div class="property"><span class="property-label">Max. szerokość:</span><span class="property-value">@wybranyStan.WybranyModel.KonstrMaxSzer</span></div>
+                                                        <div class="property"><span class="property-label">ID systemu:</span><span class="property-value small">@wybranyStan.RowIdSystemu.ToString()</span></div>
                                                     </div>
                                                 }
                                                 else
                                                 {
-                                                    <div class="property">
-                                                        <span class="property-label">Długość:</span>
-                                                        <span class="property-value">@CalculateLineLength(segment).ToString("F2")</span>
-                                                    </div>
-                                                    <div class="property">
-                                                        <span class="property-label">Informacja:</span>
-                                                        <span class="property-value">@(segment.Informacja)</span>
-                                                    </div>
+                                                    <p class="text-muted mb-0">Brak wybranego modelu</p>
                                                 }
-                                                <div class="property">
-                                                    <span class="property-label">Typ segmentu:</span>
-                                                    <span class="property-value">@(segment.Type == SegmentType.Arc ? "Łuk" : "Odcinek prosty")</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="card @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                            <div class="card-header @(ciemnyMotyw ? "bg-secondary" : "bg-light") d-flex justify-content-between">
+                                                <div><i class="bi bi-calculator me-2"></i> Statystyki</div>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row text-center">
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.Wierzcholki?.Count</div>
+                                                            <div class="small">Punktów podstawowych</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.WierzcholkiWartosciNominalne?.Count</div>
+                                                            <div class="small">Punktów nominalnych</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.ListaKwadratow?.Count</div>
+                                                            <div class="small">Kwadratów</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-2">
+                                                            <div class="h4">@wybranyStan?.MVCKonfModelu?.KonfSystem?.Count</div>
+                                                            <div class="small">Elementów systemu</div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            }
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 5 && wybranyStan?.Kontur != null)
-                {
-                    <!-- ==================== ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY + ZOOM ==================== -->
-                    <div class="canvas-view">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
-                                <i class="bi bi-pencil-square me-2"></i>
-                                Rysunek konturu zewnętrznego (@wybranyStan.Kontur.Count segmentów) ID Regionu: @wybranyStan.IdRegion
-                            </h5>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomOut(5)" title="Pomniejsz (−)">
-                                        <i class="bi bi-dash-lg"></i>
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
-                                            @onclick="() => ResetZoom(5)" title="Kliknij, aby zresetować do 100%">
-                                        @(Math.Round(GetZoom(5) * 100))%
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomIn(5)" title="Powiększ (+)">
-                                        <i class="bi bi-plus-lg"></i>
+                            </div>
+                        }
+                        else if (aktywnaZakladka == 4 && wybranyStan?.Kontur != null)
+                        {
+                            <div class="elements-view">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark")">
+                                        <i class="bi bi-puzzle me-2"></i> Segmenty konturu (@wybranyStan.Kontur.Count)
+                                    </h5>
+                                    <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                            @onclick="CopySegmentDataToClipboard">
+                                        <i class="bi bi-clipboard me-1"></i> Kopiuj wszystkie dane
                                     </button>
                                 </div>
-                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                        @onclick="() => RedrawCanvas(5)">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
-                                </button>
+                                <div class="row">
+                                    @for (int i = 0; i < wybranyStan.Kontur.Count; i++)
+                                    {
+                                        var segment = wybranyStan.Kontur[i];
+                                        <div class="col-md-6 mb-3">
+                                            <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
+                                                <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
+                                                    <div>
+                                                        <span class="badge @(segment.Type == SegmentType.Arc ? "bg-warning text-dark" : "bg-info")">
+                                                            @(segment.Type == SegmentType.Arc ? "Łuk" : "Linia")
+                                                        </span>
+                                                        <span class="ms-2 fw-semibold small">Segment #@(i + 1) Dotyczy: @segment.Informacja</span>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="properties-grid small">
+                                                        <div class="property">
+                                                            <span class="property-label">Punkt początkowy:</span>
+                                                            <span class="property-value">X: @segment.Start.X.ToString("F2"), Y: @segment.Start.Y.ToString("F2")</span>
+                                                        </div>
+                                                        <div class="property">
+                                                            <span class="property-label">Punkt końcowy:</span>
+                                                            <span class="property-value">X: @segment.End.X.ToString("F2"), Y: @segment.End.Y.ToString("F2")</span>
+                                                        </div>
+                                                        @if (segment.Type == SegmentType.Arc)
+                                                        {
+                                                            if (segment.Center != null)
+                                                            {
+                                                                <div class="property">
+                                                                    <span class="property-label">Środek łuku:</span>
+                                                                    <span class="property-value">X: @segment.Center.Value.X.ToString("F2"), Y: @segment.Center.Value.Y.ToString("F2")</span>
+                                                                </div>
+                                                            }
+                                                            <div class="property">
+                                                                <span class="property-label">Promień:</span>
+                                                                <span class="property-value">@segment.Radius.ToString("F2")</span>
+                                                            </div>
+                                                            <div class="property">
+                                                                <span class="property-label">Kierunek:</span>
+                                                                <span class="property-value">
+                                                                    <span class="badge @(segment.CounterClockwise ? "bg-primary" : "bg-secondary")">
+                                                                        @(segment.CounterClockwise ? "Przeciwnie do ruchu wskazówek zegara" : "Zgodnie z ruchem wskazówek zegara")
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                            <div class="property">
+                                                                <span class="property-label">Informacja:</span>
+                                                                <span class="property-value">@(segment.Informacja)</span>
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="property">
+                                                                <span class="property-label">Długość:</span>
+                                                                <span class="property-value">@CalculateLineLength(segment).ToString("F2")</span>
+                                                            </div>
+                                                            <div class="property">
+                                                                <span class="property-label">Informacja:</span>
+                                                                <span class="property-value">@(segment.Informacja)</span>
+                                                            </div>
+                                                        }
+                                                        <div class="property">
+                                                            <span class="property-label">Typ segmentu:</span>
+                                                            <span class="property-value">@(segment.Type == SegmentType.Arc ? "Łuk" : "Odcinek prosty")</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
                             </div>
-                        </div>
-                        <div id="tab1" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                        }
+                        else if (aktywnaZakladka == 5 && wybranyStan?.Kontur != null)
+                        {
+                            <!-- ==================== ZAKŁADKA 5: RYSUNEK ZEWNĘTRZNY + ZOOM ==================== -->
+                            <div class="canvas-view">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                        <i class="bi bi-pencil-square me-2"></i>
+                                        Rysunek konturu zewnętrznego (@wybranyStan.Kontur.Count segmentów) ID Regionu: @wybranyStan.IdRegion
+                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomOut(5)" title="Pomniejsz (−)">
+                                                <i class="bi bi-dash-lg"></i>
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                                    @onclick="() => ResetZoom(5)" title="Kliknij, aby zresetować do 100%">
+                                                @(Math.Round(GetZoom(5) * 100))%
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomIn(5)" title="Powiększ (+)">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                @onclick="() => RedrawCanvas(5)">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="tab1" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
                                     <canvas id="contour-canvas-5"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
-                {
-                    <!-- ==================== ZAKŁADKA 6: RYSUNEK ZEWN + WEWN + ZOOM ==================== -->
-                    <div class="mb-3" style="color: aquamarine;">
-                        <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty6" />
-                        <label for="pokazPunkty6">Pokaż wartości punktów</label>
-                    </div>
-                    <div class="canvas-view">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
-                                <i class="bi bi-bounding-box me-2"></i>
-                                Rysunek konturu zewnętrznego + wewnętrznego
-                            </h5>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomOut(6)" title="Pomniejsz (−)">
-                                        <i class="bi bi-dash-lg"></i>
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
-                                            @onclick="() => ResetZoom(6)" title="Kliknij, aby zresetować do 100%">
-                                        @(Math.Round(GetZoom(6) * 100))%
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomIn(6)" title="Powiększ (+)">
-                                        <i class="bi bi-plus-lg"></i>
-                                    </button>
+                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                 </div>
-                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                        @onclick="() => RedrawCanvas(6)">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
-                                </button>
                             </div>
-                        </div>
-                        <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
-                            <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
-                            @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
-                            {
-                                <span class="badge ms-2" style="background:#28a745;">■ Wewnętrzny</span>
-                            }
-                            else
-                            {
-                                <span class="badge ms-2 bg-secondary">Brak konturu wewnętrznego</span>
-                            }
-                        </div>
-                        <div id="tab2" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                        }
+                        else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
+                        {
+                            <!-- ==================== ZAKŁADKA 6: RYSUNEK ZEWN + WEWN + ZOOM ==================== -->
+                            <div class="mb-3" style="color: aquamarine;">
+                                <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty6" />
+                                <label for="pokazPunkty6">Pokaż wartości punktów</label>
+                            </div>
+                            <div class="canvas-view">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                        <i class="bi bi-bounding-box me-2"></i>
+                                        Rysunek konturu zewnętrznego + wewnętrznego
+                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomOut(6)" title="Pomniejsz (−)">
+                                                <i class="bi bi-dash-lg"></i>
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                                    @onclick="() => ResetZoom(6)" title="Kliknij, aby zresetować do 100%">
+                                                @(Math.Round(GetZoom(6) * 100))%
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomIn(6)" title="Powiększ (+)">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                @onclick="() => RedrawCanvas(6)">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                                    <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                                    @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
+                                    {
+                                        <span class="badge ms-2" style="background:#28a745;">■ Wewnętrzny</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge ms-2 bg-secondary">Brak konturu wewnętrznego</span>
+                                    }
+                                </div>
+                                <div id="tab2" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
                                     <canvas id="contour-canvas-6"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 7 && wybranyStan?.Kontur != null)
-                {
-                    <!-- ==================== ZAKŁADKA 7: RYSUNEK + SZYBY + ZOOM ==================== -->
-                    <div class="mb-3" style="color: aquamarine;">
-                        <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty7" />
-                        <label for="pokazPunkty7">Pokaż wartości punktów</label>
-                    </div>
-                    <div class="canvas-view">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
-                                <i class="bi bi-bounding-box me-2"></i>
-                                Rysunek konturu zewnętrznego + szyby
-                            </h5>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomOut(7)" title="Pomniejsz (−)">
-                                        <i class="bi bi-dash-lg"></i>
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
-                                            @onclick="() => ResetZoom(7)" title="Kliknij, aby zresetować do 100%">
-                                        @(Math.Round(GetZoom(7) * 100))%
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomIn(7)" title="Powiększ (+)">
-                                        <i class="bi bi-plus-lg"></i>
-                                    </button>
+                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                 </div>
-                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                        @onclick="() => RedrawCanvas(7)">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
-                                </button>
                             </div>
-                        </div>
-                        <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
-                            <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
-                            @if (wybranyStan.KonturSzyby != null && wybranyStan.KonturSzyby.Count > 0)
-                            {
-                                <span class="badge ms-2" style="background:yellow;color:#000;">■ Szyby</span>
-                            }
-                            else
-                            {
-                                <span class="badge ms-2 bg-secondary">Brak konturu szyby</span>
-                            }
-                        </div>
-                        <div id="tab3" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                        }
+                        else if (aktywnaZakladka == 7 && wybranyStan?.Kontur != null)
+                        {
+                            <!-- ==================== ZAKŁADKA 7: RYSUNEK + SZYBY + ZOOM ==================== -->
+                            <div class="mb-3" style="color: aquamarine;">
+                                <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty7" />
+                                <label for="pokazPunkty7">Pokaż wartości punktów</label>
+                            </div>
+                            <div class="canvas-view">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                        <i class="bi bi-bounding-box me-2"></i>
+                                        Rysunek konturu zewnętrznego + szyby
+                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomOut(7)" title="Pomniejsz (−)">
+                                                <i class="bi bi-dash-lg"></i>
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                                    @onclick="() => ResetZoom(7)" title="Kliknij, aby zresetować do 100%">
+                                                @(Math.Round(GetZoom(7) * 100))%
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomIn(7)" title="Powiększ (+)">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                @onclick="() => RedrawCanvas(7)">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                                    <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                                    @if (wybranyStan.KonturSzyby != null && wybranyStan.KonturSzyby.Count > 0)
+                                    {
+                                        <span class="badge ms-2" style="background:yellow;color:#000;">■ Szyby</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge ms-2 bg-secondary">Brak konturu szyby</span>
+                                    }
+                                </div>
+                                <div id="tab3" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
                                     <canvas id="contour-canvas-7"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
-                        </div>
-                    </div>
-                }
-                else if (aktywnaZakladka == 8 && wybranyStan?.Kontur != null)
-                {
-                    <!-- ==================== ZAKŁADKA 8: RYSUNEK + OKUCIA + ZOOM ==================== -->
-                    <div class="mb-3" style="color: aquamarine;">
-                        <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty8" />
-                        <label for="pokazPunkty8">Pokaż wartości punktów</label>
-                    </div>
-                    <div class="canvas-view">
-                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                            <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
-                                <i class="bi bi-bounding-box me-2"></i>
-                                Rysunek konturu zewnętrznego + kształt rowka okuciowego
-                            </h5>
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomOut(8)" title="Pomniejsz (−)">
-                                        <i class="bi bi-dash-lg"></i>
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
-                                            @onclick="() => ResetZoom(8)" title="Kliknij, aby zresetować do 100%">
-                                        @(Math.Round(GetZoom(8) * 100))%
-                                    </button>
-                                    <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                            @onclick="() => ZoomIn(8)" title="Powiększ (+)">
-                                        <i class="bi bi-plus-lg"></i>
-                                    </button>
+                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                 </div>
-                                <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
-                                        @onclick="() => RedrawCanvas(8)">
-                                    <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
-                                </button>
                             </div>
-                        </div>
-                        <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
-                            <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
-                            @if (wybranyStan.KonturOkucia != null && wybranyStan.KonturOkucia.Count > 0)
-                            {
-                                <span class="badge ms-2" style="background:gold;color:#000;">■ Okucia</span>
-                            }
-                            else
-                            {
-                                <span class="badge ms-2 bg-secondary">Brak konturu okucia</span>
-                            }
-                        </div>
-                        <div id="tab4" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+                        }
+                        else if (aktywnaZakladka == 8 && wybranyStan?.Kontur != null)
+                        {
+                            <!-- ==================== ZAKŁADKA 8: RYSUNEK + OKUCIA + ZOOM ==================== -->
+                            <div class="mb-3" style="color: aquamarine;">
+                                <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty8" />
+                                <label for="pokazPunkty8">Pokaż wartości punktów</label>
+                            </div>
+                            <div class="canvas-view">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
+                                        <i class="bi bi-bounding-box me-2"></i>
+                                        Rysunek konturu zewnętrznego + kształt rowka okuciowego
+                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomOut(8)" title="Pomniejsz (−)">
+                                                <i class="bi bi-dash-lg"></i>
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary") zoom-badge-btn"
+                                                    @onclick="() => ResetZoom(8)" title="Kliknij, aby zresetować do 100%">
+                                                @(Math.Round(GetZoom(8) * 100))%
+                                            </button>
+                                            <button class="btn @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                    @onclick="() => ZoomIn(8)" title="Powiększ (+)">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
+                                        <button class="btn btn-sm @(ciemnyMotyw ? "btn-outline-light" : "btn-outline-primary")"
+                                                @onclick="() => RedrawCanvas(8)">
+                                            <i class="bi bi-arrow-clockwise me-1"></i> Odśwież
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
+                                    <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
+                                    @if (wybranyStan.KonturOkucia != null && wybranyStan.KonturOkucia.Count > 0)
+                                    {
+                                        <span class="badge ms-2" style="background:gold;color:#000;">■ Okucia</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge ms-2 bg-secondary">Brak konturu okucia</span>
+                                    }
+                                </div>
+                                <div id="tab4" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
                                     <canvas id="contour-canvas-8"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
-                }
-                else
-        {
-            <!-- WIDOK JSON -->
-            <div class="card-body p-0">
-                <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
-                     style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                    border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
-                            <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Zawijaj tekst</label>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" @bind="dekodujZnaki" />
-                            <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Polskie znaki</label>
-                        </div>
-                    </div>
-                    <div>
-                        <span class="badge @(ciemnyMotyw ? "bg-secondary" : "bg-light text-dark")">
-                            @GetFormattedJson()?.Length znaków
-                        </span>
+                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </div>
-                <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
-                     style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                    background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
-                    @if (uzyjHighlightJS)
-                    {
-                        <HighlightCode Language="json" Code="@GetFormattedJson()" />
-                    }
-                    else
-                    {
-                        <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
-                                                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                                                font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
-                    }
+            }
+            else
+            {
+                <!-- WIDOK JSON -->
+                <div class="card-body p-0">
+                    <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
+                         style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
+                                            border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
+                                <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Zawijaj tekst</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" @bind="dekodujZnaki" />
+                                <label class="form-check-label @(ciemnyMotyw ? "text-light" : "text-dark")">Polskie znaki</label>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge @(ciemnyMotyw ? "bg-secondary" : "bg-light text-dark")">
+                                @GetFormattedJson()?.Length znaków
+                            </span>
+                        </div>
+                    </div>
+                    <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
+                         style="max-height: @(rozwinJson ? "80vh" : "500px");
+                                            background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                        @if (uzyjHighlightJS)
+                        {
+                            <HighlightCode Language="json" Code="@GetFormattedJson()" />
+                        }
+                        else
+                        {
+                            <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
+                                                            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                                                            font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
+                        }
+                    </div>
                 </div>
-            </div>
-        }
+            }
 
-        @if (pokazKomunikatKopiowania)
-        {
-            <div class="card-footer bg-success text-white py-2 d-flex justify-content-between align-items-center">
-                <div><i class="bi bi-check-circle me-2"></i> <strong>Skopiowano do schowka!</strong></div>
-                <button class="btn btn-sm btn-light" @onclick="() => pokazKomunikatKopiowania = false">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-        }
-    </div>
-        }
+            @if (pokazKomunikatKopiowania)
+            {
+                <div class="card-footer bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                    <div><i class="bi bi-check-circle me-2"></i> <strong>Skopiowano do schowka!</strong></div>
+                    <button class="btn btn-sm btn-light" @onclick="() => pokazKomunikatKopiowania = false">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            }
+        </div>
+    }
 </div>
 
 @code {
     [Parameter]
     public GeneratorStateContainer? StateContainer { get; set; }
+
+    [Parameter]
+    public EventCallback<GeneratorState> OnSaveDelete { get; set; }
 
     private GeneratorState? wybranyStan;
     private List<XPoint>? wybranePunkty;
@@ -2649,24 +2656,34 @@
         if (wybranyStan != null) await KopiujDoSchowka(wybranyStan);
     }
 
-    private void UsunStan(GeneratorState stan)
+    private async Task UsunStan(GeneratorState stan)
     {
         stanDoUsuniecia = stan;
         pokazModalUsuwania = true;
+
+        await Task.CompletedTask;
+
     }
 
-    private void PotwierdzUsuniecie()
+    private async Task PotwierdzUsuniecie()
     {
         if (stanDoUsuniecia != null && StateContainer?.States != null)
         {
+            StateContainer.States.Remove(stanDoUsuniecia.IdRegion);
+
+            await OnSaveDelete.InvokeAsync(stanDoUsuniecia);
+
             if (stanDoUsuniecia.Id == wybranyStan?.Id)
             {
+
                 szczegolyWidoczne = false;
                 wybranyStan = null;
                 tabZoom.Clear();
             }
+
             pokazModalUsuwania = false;
             stanDoUsuniecia = null;
+
             StateHasChanged();
         }
     }
