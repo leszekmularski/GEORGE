@@ -199,7 +199,7 @@ else
                                     {
                                         <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
                                             <label style="font-weight: 500; color: #333; display: block;
-                                                                                      margin-bottom: 3px; font-size: 13px;">
+                                          margin-bottom: 3px; font-size: 13px;">
                                                 @prop.Label
                                             </label>
 
@@ -213,6 +213,14 @@ else
                                                                   OnClick="@(() => ShowCalculator(index))"
                                                                   Size="small"
                                                                   Style="height: 32px;" />
+
+                                                <span title="Usuń całą tę linię z modelu">
+                                                    <AntDesign.Button Type="@ButtonType.Primary"
+                                                                      Icon="delete"
+                                                                      Size="small"
+                                                                      OnClick="@(() => UsunLinie(index))"
+                                                                      Style="height: 32px;" />
+                                                </span>
                                             </div>
                                         </div>
                                     }
@@ -1252,6 +1260,68 @@ else
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  USUŃ Linię — wyszukiwanie po indeksie właściwości
+    //  (analogicznie do HandleLiniaPionowaChange(index, value))
+    //
+    //  1. Bierze właściwość o `index`
+    //  2. Wyznacza jej grupę: (SplitGroupId ?? ShapeId) — czyli CAŁĄ linię
+    //  3. Usuwa XLineShape z ShapeService.Shapes
+    //  4. Usuwa wszystkie właściwości tej grupy z Model.EditableProperties
+    // ═══════════════════════════════════════════════════════════════
+    private async Task UsunLinie(int index)
+    {
+        if (Model?.EditableProperties == null
+            || index < 0
+            || index >= Model.EditableProperties.Count)
+            return;
+
+        var prop = Model.EditableProperties[index];
+
+        string? groupId = prop.SplitGroupId ?? prop.ShapeId;
+        string? shapeId = prop.ShapeId;
+
+        if (string.IsNullOrEmpty(groupId))
+        {
+            Console.WriteLine($"⚠️ UsunLinie: brak GroupId/ShapeId dla index={index}");
+            return;
+        }
+
+        Console.WriteLine($"🗑️ UsunLinie(index={index}): label='{prop.Label}', " +
+                          $"groupId={groupId}, shapeId={shapeId}");
+
+        // 1) usuń kształt z ShapeService
+        if (!string.IsNullOrEmpty(shapeId) && ShapeService?.Shapes != null)
+        {
+            var shape = ShapeService.Shapes.FirstOrDefault(s => s.ID == shapeId);
+            if (shape != null)
+            {
+                ShapeService.Shapes.Remove(shape);
+                Console.WriteLine($"   → usunięto shape ID={shapeId}");
+            }
+        }
+
+        // 2) usuń WSZYSTKIE właściwości tej grupy (cała linia, nie tylko jedna)
+        var doUsuniecia = Model.EditableProperties
+            .Where(p => (p.SplitGroupId ?? p.ShapeId) == groupId)
+            .ToList();
+
+        foreach (var p in doUsuniecia)
+            Model.EditableProperties.Remove(p);
+
+        Console.WriteLine($"   → usunięto {doUsuniecia.Count} właściwości grupy {groupId}");
+
+        // 3) jeśli kalkulator był otwarty na usuwanej właściwości — zamknij
+        if (_currentEditingIndex == index || _currentEditingIndex >= Model.EditableProperties.Count)
+        {
+            _calculatorVisible = false;
+            _currentEditingIndex = -1;
+        }
+
+        // 4) odśwież rodzica + UI
+        await ZapiszDoRodzica();
+        StateHasChanged();
+    }
 
     private void AppendToCalculator(string value) => _calculatorExpression += value;
     private void ClearCalculator() => _calculatorExpression = "";
