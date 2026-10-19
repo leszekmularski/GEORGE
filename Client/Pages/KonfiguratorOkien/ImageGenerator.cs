@@ -31,7 +31,13 @@ public class ImageGenerator
             woodTexture.Mutate(x => x.Resize(imageWidth, imageHeight));
 
             // Zmiana: tworzenie obrazu z przezroczystym tłem zamiast białego
-            using var image = new Image<Rgba32>(imageWidth, imageHeight, Color.Transparent);
+            // Tworzenie obrazu z przezroczystym tłem
+            using var image = new Image<Rgba32>(imageWidth, imageHeight);
+
+            image.Mutate(ctx =>
+            {
+                ctx.Clear(Color.Transparent);
+            });
 
             double profileTop = (model.FirstOrDefault(e => e.WystepujeGora)?.PoziomGora ?? 0) - (model.FirstOrDefault(e => e.WystepujeGora)?.PoziomDol ?? 0);
             double profileRight = (model.FirstOrDefault(e => e.WystepujePrawa)?.PionLewa ?? 0) - (model.FirstOrDefault(e => e.WystepujePrawa)?.PionPrawa ?? 0);

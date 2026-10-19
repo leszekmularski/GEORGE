@@ -38,43 +38,43 @@ else
                                 <div style="display: flex; align-items: center; gap: 5px;">
                                     <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                                            ValueChanged="@(async (double value) =>
-                                                            {
-                                                                var currentProp = Model.EditableProperties[index];
-                                                                var lbl = currentProp.Label?.ToLower() ?? "";
+                                                                                                                       {
+                                                                                                                           var currentProp = Model.EditableProperties[index];
+                                                                                                                           var lbl = currentProp.Label?.ToLower() ?? "";
 
-                                                                bool czySzerokosc = lbl.Trim().StartsWith("szerokość");
-                                                                bool czyWysokosc = lbl.Trim().StartsWith("wysokość");
-                                                                bool czyPromien = lbl.Trim().StartsWith("promień okna");
-                                                                bool czyKwadrat = lbl.Trim().StartsWith("wymiar okna kwadratowego");
+                                                                                                                           bool czySzerokosc = lbl.Trim().StartsWith("szerokość");
+                                                                                                                           bool czyWysokosc = lbl.Trim().StartsWith("wysokość");
+                                                                                                                           bool czyPromien = lbl.Trim().StartsWith("promień okna");
+                                                                                                                           bool czyKwadrat = lbl.Trim().StartsWith("wymiar okna kwadratowego");
 
-                                                                jestZmianaGabarytow = Model.UpdateEditableProperty(index, value);
+                                                                                                                           jestZmianaGabarytow = Model.UpdateEditableProperty(index, value);
 
-                                                                Console.WriteLine($"[DEBUG] ZmienWymiaryOkna.razor: ValueChanged dla index={index}, Label='{lbl}', Nowa wartość={value}, jestZmianaGabarytow={jestZmianaGabarytow}");
+                                                                                                                           Console.WriteLine($"[DEBUG] ZmienWymiaryOkna.razor: ValueChanged dla index={index}, Label='{lbl}', Nowa wartość={value}, jestZmianaGabarytow={jestZmianaGabarytow}");
 
-                                                                if (jestZmianaGabarytow)
-                                                                {
-                                                                    bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
-                                                                    bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
+                                                                                                                           if (jestZmianaGabarytow)
+                                                                                                                           {
+                                                                                                                               bool rozstawPionowe = czySzerokosc || czyPromien || czyKwadrat;
+                                                                                                                               bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
 
-                                                                    bool rozciagnij = czySzerokosc || czyWysokosc || czyPromien || czyKwadrat;
+                                                                                                                               bool rozciagnij = czySzerokosc || czyWysokosc || czyPromien || czyKwadrat;
 
-                                                                    await PodzielLinieSymetrycznieAsync(
-                                                                    ustawTylkoLinie: true,
-                                                                    pionowe: rozstawPionowe,
-                                                                    poziome: rozstawPoziome,
-                                                                    rozciagnijLinie: rozciagnij); 
-                                                                }
+                                                                                                                               await PodzielLinieSymetrycznieAsync(
+                                                                                                                               ustawTylkoLinie: true,
+                                                                                                                               pionowe: rozstawPionowe,
+                                                                                                                               poziome: rozstawPoziome,
+                                                                                                                               rozciagnijLinie: rozciagnij);
+                                                                                                                           }
 
-                                                                StateHasChanged();
-                                                            })"
+                                                                                                                           StateHasChanged();
+                                                                                                                       })"
                                            Style="flex: 1;" />
 
-                                    <AntDesign.Button Type="@ButtonType.Default"
-                                                        Icon="calculator"
-                                                        OnClick="@(() => ShowCalculator(index))"
-                                                        Size="small"
-                                                        Style="height: 32px;" />
-                                </div>
+                                                                                                <AntDesign.Button Type="@ButtonType.Default"
+                                                                                                                  Icon="calculator"
+                                                                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                                                                  Size="small"
+                                                                                                                  Style="height: 32px;" />
+                                                                                            </div>
                                 }
                             else
                             {
@@ -96,7 +96,10 @@ else
             @* ═══════════════════════════════════════════════════════════ *@
             <AntDesign.TabPane Key="2" Tab="Linie">
                 @{
-                    // ⭐ Zbierz wszystkie właściwości linii
+                    // ============================================================
+                    // ZBIERZ WSZYSTKIE WŁAŚCIWOŚCI LINII
+                    // ============================================================
+
                     var wszystkieLinie = Model.EditableProperties
                     .Select((p, i) => (Index: i, Prop: p))
                     .Where(x => !x.Prop.gabarytOkna &&
@@ -104,27 +107,27 @@ else
                     x.Prop.NazwaObiektu.ToLower().Contains("linia"))
                     .ToList();
 
-                    // ⭐ Grupuj właściwości po linii (SplitGroupId ?? ShapeId)
+                    // Grupuj właściwości po linii
                     var grupyLinii = wszystkieLinie
                     .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
                     .ToList();
 
-                    // ⭐ Linia pionowa = grupa, która ma właściwość z IsPionowa = true
+                    // Linie pionowe
                     var liniePionowe = grupyLinii
                     .Where(g => g.Any(x => x.Prop.IsPionowa))
                     .ToList();
 
-                    // ⭐ Linia pozioma
+                    // Linie poziome
                     var liniePoziome = grupyLinii
                     .Where(g => g.Any(x => x.Prop.IsPozioma))
                     .ToList();
 
-                    // ⭐ Linia skośna
+                    // Linie skośne
                     var linieSkosne = grupyLinii
                     .Where(g => g.Any(x => x.Prop.IsSkosna))
                     .ToList();
 
-                    // ⭐ Diagnostyka
+                    // Diagnostyka
                     var wszystkieLinieBezFlag = wszystkieLinie
                     .Where(x => !x.Prop.IsPionowa
                     && !x.Prop.IsPozioma
@@ -134,11 +137,18 @@ else
                     .ToList();
                 }
 
-                @* ═══════════════════════════════════════════════════════════ *@
-                @* DIAGNOSTYKA — widoczna na górze                                *@
-                @* ═══════════════════════════════════════════════════════════ *@
-                <div style="background: #fffbe6; padding: 8px; margin-bottom: 10px;
-                border: 1px solid #ffe58f; border-radius: 4px; font-size: 12px;">
+                @* ================================================================
+       DIAGNOSTYKA
+       ================================================================ *@
+
+                <div style="
+            background: #fffbe6;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            border: 1px solid #ffe58f;
+            border-radius: 6px;
+            font-size: 12px;">
+
                     🔍 <b>Linie:</b>
                     wszystkich=@grupyLinii.Count,
                     pionowe=@liniePionowe.Count,
@@ -146,33 +156,57 @@ else
                     skośne=@linieSkosne.Count
                 </div>
 
+
                 @if (!wszystkieLinie.Any())
                 {
-                    <p class="text-muted">Brak właściwości linii (NazwaObiektu nie zawiera "linia").</p>
+                    <p class="text-muted">
+                        Brak właściwości linii (NazwaObiektu nie zawiera "linia").
+                    </p>
                 }
                 else
                 {
-                    @* ═══════════════════════════════════════════════════════════ *@
-                    @* SEKCJA: LINIE PIONOWE                                          *@
-                    @* ═══════════════════════════════════════════════════════════ *@
+                    @* ============================================================
+           LINIE PIONOWE
+           ============================================================ *@
+
                     @if (liniePionowe.Any())
                     {
-                        <h6 style="margin-top: 10px; color: #1890ff;">
-                            📏 Linie pionowe (@liniePionowe.Count)
-                        </h6>
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            margin-top: 10px;
+                            margin-bottom: 8px;">
 
-                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <h6 style="
+                                margin: 0;
+                                color: #1890ff;
+                                font-weight: 600;">
+
+                                📏 Linie pionowe (@liniePionowe.Count)
+                            </h6>
+
                             <AntDesign.Button Type="@ButtonType.Primary"
                                               Icon="pic-center"
                                               Size="small"
-                                              OnClick="@(() => PodzielLinieSymetrycznieAsync(false, pionowe: true, poziome: false))">
-                                Rozstaw pionowe
+                                              OnClick="@(() => PodzielLinieSymetrycznieAsync(
+                                                                      false,
+                                                                      pionowe: true,
+                                                                      poziome: false))">
+
+                    Rozstaw pionowe
+
                             </AntDesign.Button>
                         </div>
 
-                        <div style="max-height: 400px; overflow-y: auto; padding: 5px; margin-bottom: 15px;">
 
-                            @{
+                        <div style="
+                            max-height: 400px;
+                            overflow-y: auto;
+                            padding: 2px;
+                            margin-bottom: 15px;">
+
+                @{
                                 int licznikPion = 0;
                             }
 
@@ -180,91 +214,227 @@ else
                             {
                                 licznikPion++;
 
-                                <div style="border: 2px solid #91d5ff; border-radius: 6px;
-                                                                    padding: 10px; margin-bottom: 12px; background: white;
-                                                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                var edytowalne = grupa
+                                .Where(x => !x.Prop.IsReadOnly)
+                                .ToList();
 
-                                    @* Nagłówek linii *@
-                                    <div style="background: #e6f7ff; padding: 6px 10px; border-radius: 4px;
-                                                                        margin-bottom: 10px; display: flex; justify-content: space-between;
-                                                                        align-items: center;">
-                                        <b style="color: #1890ff;">📏 Linia pionowa #@licznikPion</b>
-                                        <span style="color: #888; font-size: 11px;">
-                                            ID: @(grupa.Key?.Length >= 50 ? grupa.Key.Substring(0, 50) + "..." : grupa.Key)
-                                        </span>
-                                    </div>
+                                var tylkoOdczyt = grupa
+                                .Where(x => x.Prop.IsReadOnly)
+                                .ToList();
 
-                                    @* Właściwości linii — edytowalne *@
-                                    @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
-                                    {
-                                        <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
-                                            <label style="font-weight: 500; color: #333; display: block;
-                                          margin-bottom: 3px; font-size: 13px;">
-                                                @prop.Label
-                                            </label>
 
-                                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="
+                                        border: 1px solid #91d5ff;
+                                        border-radius: 6px;
+                                        margin-bottom: 8px;
+                                        background: white;
+                                        overflow: hidden;
+                                        box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+
+                                    @* ------------------------------------------------
+                           NAGŁÓWEK
+                           ------------------------------------------------ *@
+
+                                    <div style="
+                                            background: #e6f7ff;
+                                            padding: 6px 10px;
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;">
+
+                                        <b style="
+                                                color: #1890ff;
+                                                font-size: 13px;">
+
+                                            📏 Linia pionowa #@licznikPion
+
+                                        </b>
+
+                                        <span style="
+                                                color: #888;
+                                                font-size: 10px;">
+
+                                            ID:
+                                            @(grupa.Key?.Length >= 50
+                                                                        ? grupa.Key.Substring(0, 50) + "..."
+                                                                        : grupa.Key)
+
+                        </span>
+                    </div>
+
+
+                                    @* ------------------------------------------------
+                           PUNKTY + AKCJE
+                           ------------------------------------------------ *@
+
+                                    <div style="
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 8px;
+                                            padding: 8px 10px;
+                                            flex-wrap: wrap;">
+
+                        @foreach (var (index, prop) in edytowalne)
+                                        {
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 6px;
+                                                        flex: 1 1 220px;
+                                                        min-width: 200px;">
+
+                                                <label style="
+                                                            font-weight: 500;
+                                                            color: #444;
+                                                            font-size: 12px;
+                                                            white-space: nowrap;
+                                                            margin: 0;">
+
+                                                    @prop.Label
+
+                                                </label>
+
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                       ValueChanged="@(async (double value) => await HandleLiniaPionowaChange(index, value))"
-                                                                       Style="flex: 1;" />
+                                                                       ValueChanged="@(async (double value) =>
+                                                                                                                   await HandleLiniaPionowaChange(index, value))"
+                                                   Style="flex: 1; min-width: 90px; height: 32px;" />
+
+                                            </div>
+                                                }
+
+
+                                        @* ------------------------------------------------
+                               PRZYCISKI AKCJI
+                               ------------------------------------------------ *@
+
+                                        @if (edytowalne.Any())
+                                        {
+                                            var pierwszyIndex = edytowalne.First().Index;
+
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 5px;
+                                                        margin-left: auto;
+                                                        flex-shrink: 0;">
 
                                                 <AntDesign.Button Type="@ButtonType.Default"
                                                                   Icon="calculator"
-                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                  OnClick="@(() => ShowCalculator(pierwszyIndex))"
                                                                   Size="small"
                                                                   Style="height: 32px;" />
 
                                                 <span title="Usuń całą tę linię z modelu">
+
                                                     <AntDesign.Button Type="@ButtonType.Primary"
                                                                       Icon="delete"
                                                                       Size="small"
-                                                                      OnClick="@(() => UsunLinie(index))"
+                                                                      OnClick="@(() => UsunLinie(pierwszyIndex))"
                                                                       Style="height: 32px;" />
+
                                                 </span>
+
                                             </div>
-                                        </div>
-                                    }
+                                        }
 
-                                    @* Właściwości tylko do odczytu (np. Kąt) *@
-                                    @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
+                                    </div>
+
+
+                                    @* ------------------------------------------------
+                           WŁAŚCIWOŚCI TYLKO DO ODCZYTU
+                           ------------------------------------------------ *@
+
+                                    @if (tylkoOdczyt.Any())
                                     {
-                                        <div style="padding: 5px; margin-bottom: 6px;">
-                                            <label style="font-weight: 500; color: #888; display: block;
-                                                                                      margin-bottom: 3px; font-size: 13px;">
-                                                @prop.Label
-                                            </label>
+                                        <div style="
+                                                    border-top: 1px solid #f0f0f0;
+                                                    background: #fafafa;
+                                                    padding: 5px 10px;">
 
-                                            <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                   Style="width: 100%;"
-                                                                   Disabled="true" />
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 15px;
+                                                        flex-wrap: wrap;">
+
+                                                @foreach (var (index, prop) in tylkoOdczyt)
+                                                {
+                                                    <div style="
+                                                                    display: flex;
+                                                                    align-items: center;
+                                                                    gap: 5px;">
+
+                                                        <label style="
+                                                                        color: #888;
+                                                                        font-size: 11px;
+                                                                        margin: 0;
+                                                                        white-space: nowrap;">
+
+                                                            @prop.Label
+
+                                                        </label>
+
+                                                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                               Style="width: 100px; height: 28px;"
+                                                                               Disabled="true" />
+
+                                                    </div>
+                                                }
+
+                                            </div>
+
                                         </div>
                                     }
+
                                 </div>
                             }
+
                         </div>
                     }
 
-                    @* ═══════════════════════════════════════════════════════════ *@
-                    @* SEKCJA: LINIE POZIOME                                          *@
-                    @* ═══════════════════════════════════════════════════════════ *@
+
+                    @* ================================================================
+                       LINIE POZIOME
+                       ================================================================ *@
+
                     @if (liniePoziome.Any())
                     {
-                        <h6 style="margin-top: 10px; color: #52c41a;">
-                            📐 Linie poziome (@liniePoziome.Count)
-                        </h6>
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            margin-top: 10px;
+                            margin-bottom: 8px;">
 
-                        <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <h6 style="
+                                margin: 0;
+                                color: #52c41a;
+                                font-weight: 600;">
+
+                                📐 Linie poziome (@liniePoziome.Count)
+                            </h6>
+
                             <AntDesign.Button Type="@ButtonType.Primary"
                                               Icon="pic-center"
                                               Size="small"
-                                              OnClick="@(() => PodzielLinieSymetrycznieAsync(false, pionowe: false, poziome: true))">
-                                Rozstaw poziome
+                                              OnClick="@(() => PodzielLinieSymetrycznieAsync(
+                                                                      false,
+                                                                      pionowe: false,
+                                                                      poziome: true))">
+
+                    Rozstaw poziome
+
                             </AntDesign.Button>
                         </div>
 
-                        <div style="max-height: 400px; overflow-y: auto; padding: 5px; margin-bottom: 15px;">
 
-                            @{
+                        <div style="
+                            max-height: 400px;
+                            overflow-y: auto;
+                            padding: 2px;
+                            margin-bottom: 15px;">
+
+                @{
                                 int licznikPoz = 0;
                             }
 
@@ -272,71 +442,207 @@ else
                             {
                                 licznikPoz++;
 
-                                <div style="border: 2px solid #b7eb8f; border-radius: 6px;
-                                                                    padding: 10px; margin-bottom: 12px; background: white;
-                                                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                var edytowalne = grupa
+                                .Where(x => !x.Prop.IsReadOnly)
+                                .ToList();
 
-                                    <div style="background: #f6ffed; padding: 6px 10px; border-radius: 4px;
-                                                                        margin-bottom: 10px; display: flex; justify-content: space-between;
-                                                                        align-items: center;">
-                                        <b style="color: #52c41a;">📐 Linia pozioma #@licznikPoz</b>
-                                        <span style="color: #888; font-size: 11px;">
-                                            ID: @(grupa.Key?.Length >= 50 ? grupa.Key.Substring(0, 50) + "..." : grupa.Key)
-                                        </span>
-                                    </div>
+                                var tylkoOdczyt = grupa
+                                .Where(x => x.Prop.IsReadOnly)
+                                .ToList();
 
-                                    @* Właściwości linii — edytowalne *@
-                                    @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
-                                    {
-                                        <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
-                                            <label style="font-weight: 500; color: #333; display: block;
-                                                                                      margin-bottom: 3px; font-size: 13px;">
-                                                @prop.Label
-                                            </label>
 
-                                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="
+                                        border: 1px solid #b7eb8f;
+                                        border-radius: 6px;
+                                        margin-bottom: 8px;
+                                        background: white;
+                                        overflow: hidden;
+                                        box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+
+
+                                    @* NAGŁÓWEK *@
+
+                                    <div style="
+                                            background: #f6ffed;
+                                            padding: 6px 10px;
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;">
+
+                                        <b style="
+                                                color: #52c41a;
+                                                font-size: 13px;">
+
+                                            📐 Linia pozioma #@licznikPoz
+
+                                        </b>
+
+                                        <span style="
+                                                color: #888;
+                                                font-size: 10px;">
+
+                                            ID:
+                                            @(grupa.Key?.Length >= 50
+                                                                        ? grupa.Key.Substring(0, 50) + "..."
+                                                                        : grupa.Key)
+
+                        </span>
+                    </div>
+
+
+                                    @* PUNKTY + AKCJE *@
+
+                                    <div style="
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 8px;
+                                            padding: 8px 10px;
+                                            flex-wrap: wrap;">
+
+                        @foreach (var (index, prop) in edytowalne)
+                                        {
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 6px;
+                                                        flex: 1 1 220px;
+                                                        min-width: 200px;">
+
+                                                <label style="
+                                                            font-weight: 500;
+                                                            color: #444;
+                                                            font-size: 12px;
+                                                            white-space: nowrap;
+                                                            margin: 0;">
+
+                                                    @prop.Label
+
+                                                </label>
+
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                       ValueChanged="@(async (double value) => await HandleLiniaPoziomaChange(index, value))"
-                                                                       Style="flex: 1;" />
+                                                                       ValueChanged="@(async (double value) =>
+                                                                                                                   await HandleLiniaPoziomaChange(index, value))"
+                                                   Style="flex: 1; min-width: 90px; height: 32px;" />
+
+                                            </div>
+                                                }
+
+
+                                        @* AKCJE *@
+
+                                        @if (edytowalne.Any())
+                                        {
+                                            var pierwszyIndex = edytowalne.First().Index;
+
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 5px;
+                                                        margin-left: auto;
+                                                        flex-shrink: 0;">
 
                                                 <AntDesign.Button Type="@ButtonType.Default"
                                                                   Icon="calculator"
-                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                  OnClick="@(() => ShowCalculator(pierwszyIndex))"
                                                                   Size="small"
                                                                   Style="height: 32px;" />
+
+                                                <span title="Usuń całą tę linię z modelu">
+
+                                                    <AntDesign.Button Type="@ButtonType.Primary"
+                                                                      Icon="delete"
+                                                                      Size="small"
+                                                                      OnClick="@(() => UsunLinie(pierwszyIndex))"
+                                                                      Style="height: 32px;" />
+
+                                                </span>
+
                                             </div>
-                                        </div>
-                                    }
+                                        }
 
-                                    @* Właściwości tylko do odczytu *@
-                                    @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
+                                    </div>
+
+
+                                    @* WŁAŚCIWOŚCI TYLKO DO ODCZYTU *@
+
+                                    @if (tylkoOdczyt.Any())
                                     {
-                                        <div style="padding: 5px; margin-bottom: 6px;">
-                                            <label style="font-weight: 500; color: #888; display: block;
-                                                                                      margin-bottom: 3px; font-size: 13px;">
-                                                @prop.Label
-                                            </label>
+                                        <div style="
+                                                    border-top: 1px solid #f0f0f0;
+                                                    background: #fafafa;
+                                                    padding: 5px 10px;">
 
-                                            <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                   Style="width: 100%;"
-                                                                   Disabled="true" />
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 15px;
+                                                        flex-wrap: wrap;">
+
+                                                @foreach (var (index, prop) in tylkoOdczyt)
+                                                {
+                                                    <div style="
+                                                                    display: flex;
+                                                                    align-items: center;
+                                                                    gap: 5px;">
+
+                                                        <label style="
+                                                                        color: #888;
+                                                                        font-size: 11px;
+                                                                        margin: 0;
+                                                                        white-space: nowrap;">
+
+                                                            @prop.Label
+
+                                                        </label>
+
+                                                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                               Style="width: 100px; height: 28px;"
+                                                                               Disabled="true" />
+
+                                                    </div>
+                                                }
+
+                                            </div>
+
                                         </div>
                                     }
+
                                 </div>
                             }
+
                         </div>
                     }
 
-                    @* ═══════════════════════════════════════════════════════════ *@
-                    @* SEKCJA: LINIE SKOŚNE                                           *@
-                    @* ═══════════════════════════════════════════════════════════ *@
+
+                    @* ================================================================
+           LINIE SKOŚNE
+           ================================================================ *@
+
                     @if (linieSkosne.Any())
                     {
-                        <h6 style="margin-top: 10px; color: #fa8c16;">
-                            📐 Linie skośne (@linieSkosne.Count)
-                        </h6>
+                        <div style="
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            margin-top: 10px;
+                            margin-bottom: 8px;">
 
-                        <div style="max-height: 400px; overflow-y: auto; padding: 5px; margin-bottom: 15px;">
+                            <h6 style="
+                                margin: 0;
+                                color: #fa8c16;
+                                font-weight: 600;">
+
+                                📐 Linie skośne (@linieSkosne.Count)
+                            </h6>
+
+                        </div>
+
+
+                        <div style="
+                            max-height: 400px;
+                            overflow-y: auto;
+                            padding: 2px;
+                            margin-bottom: 15px;">
 
                             @{
                                 int licznikSko = 0;
@@ -346,58 +652,175 @@ else
                             {
                                 licznikSko++;
 
-                                <div style="border: 2px solid #ffd591; border-radius: 6px;
-                                                                    padding: 10px; margin-bottom: 12px; background: white;
-                                                                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                var edytowalne = grupa
+                                .Where(x => !x.Prop.IsReadOnly)
+                                .ToList();
 
-                                    <div style="background: #fff7e6; padding: 6px 10px; border-radius: 4px;
-                                                                        margin-bottom: 10px; display: flex; justify-content: space-between;
-                                                                        align-items: center;">
-                                        <b style="color: #fa8c16;">📐 Linia skośna #@licznikSko</b>
-                                        <span style="color: #888; font-size: 11px;">
-                                            ID: @(grupa.Key?.Length >= 50 ? grupa.Key.Substring(0, 50) + "..." : grupa.Key)
-                                        </span>
-                                    </div>
+                                var tylkoOdczyt = grupa
+                                .Where(x => x.Prop.IsReadOnly)
+                                .ToList();
 
-                                    @* Właściwości linii — edytowalne *@
-                                    @foreach (var (index, prop) in grupa.Where(x => !x.Prop.IsReadOnly))
-                                    {
-                                        <div style="padding: 5px; margin-bottom: 6px; border-bottom: 1px dashed #f0f0f0;">
-                                            <label style="font-weight: 500; color: #333; display: block;
-                                                                                      margin-bottom: 3px; font-size: 13px;">
-                                                @prop.Label
-                                            </label>
 
-                                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <div style="
+                                        border: 1px solid #ffd591;
+                                        border-radius: 6px;
+                                        margin-bottom: 8px;
+                                        background: white;
+                                        overflow: hidden;
+                                        box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+
+
+                                    @* NAGŁÓWEK *@
+
+                                    <div style="
+                                            background: #fff7e6;
+                                            padding: 6px 10px;
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;">
+
+                                        <b style="
+                                                color: #fa8c16;
+                                                font-size: 13px;">
+
+                                            📐 Linia skośna #@licznikSko
+
+                                        </b>
+
+                                        <span style="
+                                                color: #888;
+                                                font-size: 10px;">
+
+                                            ID:
+                                            @(grupa.Key?.Length >= 50
+                                                                        ? grupa.Key.Substring(0, 50) + "..."
+                                                                        : grupa.Key)
+
+                        </span>
+                    </div>
+
+
+                                    @* PUNKTY + AKCJE *@
+
+                                    <div style="
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 8px;
+                                            padding: 8px 10px;
+                                            flex-wrap: wrap;">
+
+                        @foreach (var (index, prop) in edytowalne)
+                                        {
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 6px;
+                                                        flex: 1 1 220px;
+                                                        min-width: 200px;">
+
+                                                <label style="
+                                                            font-weight: 500;
+                                                            color: #444;
+                                                            font-size: 12px;
+                                                            white-space: nowrap;
+                                                            margin: 0;">
+
+                                                    @prop.Label
+
+                                                </label>
+
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                       ValueChanged="@(async (double value) => await HandleLiniaSkosnaChange(index, value))"
-                                                                       Style="flex: 1;" />
+                                                                       ValueChanged="@(async (double value) =>
+                                                                                                                   await HandleLiniaSkosnaChange(index, value))"
+                                                   Style="flex: 1; min-width: 90px; height: 32px;" />
+
+                                            </div>
+                                                }
+
+
+                                        @* AKCJE *@
+
+                                        @if (edytowalne.Any())
+                                        {
+                                            var pierwszyIndex = edytowalne.First().Index;
+
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 5px;
+                                                        margin-left: auto;
+                                                        flex-shrink: 0;">
 
                                                 <AntDesign.Button Type="@ButtonType.Default"
                                                                   Icon="calculator"
-                                                                  OnClick="@(() => ShowCalculator(index))"
+                                                                  OnClick="@(() => ShowCalculator(pierwszyIndex))"
                                                                   Size="small"
-                                                                  Style="height: 32px;" />
+                                                                  Style="height: 32px;"
+                                                                  Title="Kalkulator" />
+
+                                                <span title="Usuń całą tę linię z modelu">
+
+                                                    <AntDesign.Button Type="@ButtonType.Primary"
+                                                                      Icon="delete"
+                                                                      Size="small"
+                                                                      OnClick="@(() => UsunLinie(pierwszyIndex))"
+                                                                      Style="height: 32px;" />
+
+                                                </span>
+
                                             </div>
-                                        </div>
-                                    }
+                                        }
 
-                                    @* Właściwości tylko do odczytu *@
-                                    @foreach (var (index, prop) in grupa.Where(x => x.Prop.IsReadOnly))
+                                    </div>
+
+
+                                    @* WŁAŚCIWOŚCI TYLKO DO ODCZYTU *@
+
+                                    @if (tylkoOdczyt.Any())
                                     {
-                                        <div style="padding: 5px; margin-bottom: 6px;">
-                                            <label style="font-weight: 500; color: #888; display: block;
-                                                                                      margin-bottom: 3px; font-size: 13px;">
-                                                @prop.Label
-                                            </label>
+                                        <div style="
+                                                    border-top: 1px solid #f0f0f0;
+                                                    background: #fafafa;
+                                                    padding: 5px 10px;">
 
-                                            <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
-                                                                   Style="width: 100%;"
-                                                                   Disabled="true" />
+                                            <div style="
+                                                        display: flex;
+                                                        align-items: center;
+                                                        gap: 15px;
+                                                        flex-wrap: wrap;">
+
+                                                @foreach (var (index, prop) in tylkoOdczyt)
+                                                {
+                                                    <div style="
+                                                                    display: flex;
+                                                                    align-items: center;
+                                                                    gap: 5px;">
+
+                                                        <label style="
+                                                                        color: #888;
+                                                                        font-size: 11px;
+                                                                        margin: 0;
+                                                                        white-space: nowrap;">
+
+                                                            @prop.Label
+
+                                                        </label>
+
+                                                        <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
+                                                                               Style="width: 100px; height: 28px;"
+                                                                               Disabled="true" />
+
+                                                    </div>
+                                                }
+
+                                            </div>
+
                                         </div>
                                     }
+
                                 </div>
                             }
+
                         </div>
                     }
                 }
@@ -497,8 +920,8 @@ else
                          Width="350">
             <div style="padding: 10px;">
                 <div style="background-color: #f0f0f0; padding: 10px; margin-bottom: 10px;
-                                                            text-align: right; font-size: 20px; font-weight: bold;
-                                                            border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
+                                                                    text-align: right; font-size: 20px; font-weight: bold;
+                                                                    border: 1px solid #d9d9d9; border-radius: 4px; min-height: 40px;">
                     @(_calculatorExpression.Length > 0 ? _calculatorExpression : "0")
                 </div>
 
@@ -854,186 +1277,186 @@ else
     /// Po rozstawieniu linii wywołujemy propagację styczności (Y pionowych
     /// dopasowuje się do najbliższej poziomej, z którą się styka).
     /// </summary>
-  private async Task PodzielLinieSymetrycznieAsync(
-    bool ustawTylkoLinie = false,
-    bool pionowe = true,
-    bool poziome = true,
-    bool rozciagnijLinie = false)
-{
-    if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
-        return;
-
-    Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
-
-    // ─────────────────────────────────────────────────────────────
-    // 1. Zbuduj grupy właściwości – każda grupa = jedna linia logiczna
-    // ─────────────────────────────────────────────────────────────
-    var grupyWlasciwosci = Model.EditableProperties
-        .Select((p, i) => (Index: i, Prop: p))
-        .Where(x => x.Prop.ShapeId != null && !string.IsNullOrEmpty(x.Prop.NazwaObiektu))
-        .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
-        .ToList();
-
-    // ─────────────────────────────────────────────────────────────
-    // 2. Rozdziel grupy po orientacji — NIE mieszamy pionowych z poziomymi
-    // ─────────────────────────────────────────────────────────────
-    var grupyPionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
-    var grupyPoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
-
-    foreach (var grupa in grupyWlasciwosci)
+    private async Task PodzielLinieSymetrycznieAsync(
+      bool ustawTylkoLinie = false,
+      bool pionowe = true,
+      bool poziome = true,
+      bool rozciagnijLinie = false)
     {
-        bool maPionowa = grupa.Any(g => g.Prop.IsPionowa);
-        bool maPozioma = grupa.Any(g => g.Prop.IsPozioma);
+        if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
+            return;
 
-        // ⚠️ Grupa mieszana — to błąd, ale logujemy i próbujemy uratować
-        //    traktując ją jako DWIE osobne logiczne linie.
-        if (maPionowa && maPozioma)
-        {
-            Console.WriteLine($"⚠️ Grupa MIESZANA klucz='{grupa.Key}' — rozbijam na pionową i poziomą");
-        }
+        Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
 
-        // Zbierz X1/X2 z części pionowej
-        var x1Props = grupa
-            .Where(g => g.Prop.IsPionowa &&
-                (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi x1") == true))
-            .Select(g => g.Index).ToList();
-
-        var x2Props = grupa
-            .Where(g => g.Prop.IsPionowa &&
-                (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi x2") == true))
-            .Select(g => g.Index).ToList();
-
-        // Zbierz Y1/Y2 z części poziomej
-        var y1Props = grupa
-            .Where(g => g.Prop.IsPozioma &&
-                (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi y1") == true))
-            .Select(g => g.Index).ToList();
-
-        var y2Props = grupa
-            .Where(g => g.Prop.IsPozioma &&
-                (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
-                 g.Prop.Label?.ToLower().Contains("w osi y2") == true))
-            .Select(g => g.Index).ToList();
-
-        // ⚠️ KLUCZ: dodajemy do listy TYLKO jeśli grupa ma odpowiednią orientację
-        //    i NIE jest grupą mieszaną (albo — jeśli mieszana — dodajemy do obu list)
-        if (x1Props.Any() && (!maPozioma || maPionowa))
-        {
-            grupyPionowe.Add((x1Props, x2Props, grupa.Key!));
-        }
-
-        if (y1Props.Any() && (!maPionowa || maPozioma))
-        {
-            grupyPoziome.Add((y1Props, y2Props, grupa.Key!));
-        }
-    }
-
-    Console.WriteLine($"📐 PodzielLinie: pionowe={grupyPionowe.Count}, poziome={grupyPoziome.Count}");
-
-    // ─────────────────────────────────────────────────────────────
-    // 3. Rozstaw PIONOWE symetrycznie (X równo rozłożone w szerokości)
-    //    ⭐ SORTUJ grupy po aktualnym X żeby nie zamieniać kolejności
-    // ─────────────────────────────────────────────────────────────
-    if (pionowe && grupyPionowe.Count > 0 && Model.Szerokosc > 0)
-    {
-        double odstep = Model.Szerokosc / (grupyPionowe.Count + 1);
-
-        // ⭐ Sortuj grupy po aktualnym X (rosnąco — od lewej do prawej)
-        var grupyPionowePosortowane = grupyPionowe
-            .OrderBy(g => Model.GetPropertyValue(g.IndexesX1[0]))
+        // ─────────────────────────────────────────────────────────────
+        // 1. Zbuduj grupy właściwości – każda grupa = jedna linia logiczna
+        // ─────────────────────────────────────────────────────────────
+        var grupyWlasciwosci = Model.EditableProperties
+            .Select((p, i) => (Index: i, Prop: p))
+            .Where(x => x.Prop.ShapeId != null && !string.IsNullOrEmpty(x.Prop.NazwaObiektu))
+            .GroupBy(x => x.Prop.SplitGroupId ?? x.Prop.ShapeId)
             .ToList();
 
-        Console.WriteLine($"📐 PION — sortowanie grup po X (od lewej do prawej):");
-        for (int k = 0; k < grupyPionowePosortowane.Count; k++)
+        // ─────────────────────────────────────────────────────────────
+        // 2. Rozdziel grupy po orientacji — NIE mieszamy pionowych z poziomymi
+        // ─────────────────────────────────────────────────────────────
+        var grupyPionowe = new List<(List<int> IndexesX1, List<int> IndexesX2, string GroupId)>();
+        var grupyPoziome = new List<(List<int> IndexesY1, List<int> IndexesY2, string GroupId)>();
+
+        foreach (var grupa in grupyWlasciwosci)
         {
-            var g = grupyPionowePosortowane[k];
-            double aktX = Model.GetPropertyValue(g.IndexesX1[0]);
-            Console.WriteLine($"   [{k}] grupa={g.GroupId.Substring(0, Math.Min(8, g.GroupId.Length))} " +
-                              $"aktualne X={aktX:F1} → nowe X={Math.Round(odstep * (k + 1), 0):F1}");
+            bool maPionowa = grupa.Any(g => g.Prop.IsPionowa);
+            bool maPozioma = grupa.Any(g => g.Prop.IsPozioma);
+
+            // ⚠️ Grupa mieszana — to błąd, ale logujemy i próbujemy uratować
+            //    traktując ją jako DWIE osobne logiczne linie.
+            if (maPionowa && maPozioma)
+            {
+                Console.WriteLine($"⚠️ Grupa MIESZANA klucz='{grupa.Key}' — rozbijam na pionową i poziomą");
+            }
+
+            // Zbierz X1/X2 z części pionowej
+            var x1Props = grupa
+                .Where(g => g.Prop.IsPionowa &&
+                    (g.Prop.Label?.ToLower().StartsWith("x1") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi x1") == true))
+                .Select(g => g.Index).ToList();
+
+            var x2Props = grupa
+                .Where(g => g.Prop.IsPionowa &&
+                    (g.Prop.Label?.ToLower().StartsWith("x2") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi x2") == true))
+                .Select(g => g.Index).ToList();
+
+            // Zbierz Y1/Y2 z części poziomej
+            var y1Props = grupa
+                .Where(g => g.Prop.IsPozioma &&
+                    (g.Prop.Label?.ToLower().StartsWith("y1") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi y1") == true))
+                .Select(g => g.Index).ToList();
+
+            var y2Props = grupa
+                .Where(g => g.Prop.IsPozioma &&
+                    (g.Prop.Label?.ToLower().StartsWith("y2") == true ||
+                     g.Prop.Label?.ToLower().Contains("w osi y2") == true))
+                .Select(g => g.Index).ToList();
+
+            // ⚠️ KLUCZ: dodajemy do listy TYLKO jeśli grupa ma odpowiednią orientację
+            //    i NIE jest grupą mieszaną (albo — jeśli mieszana — dodajemy do obu list)
+            if (x1Props.Any() && (!maPozioma || maPionowa))
+            {
+                grupyPionowe.Add((x1Props, x2Props, grupa.Key!));
+            }
+
+            if (y1Props.Any() && (!maPionowa || maPozioma))
+            {
+                grupyPoziome.Add((y1Props, y2Props, grupa.Key!));
+            }
         }
 
-        for (int i = 0; i < grupyPionowePosortowane.Count; i++)
+        Console.WriteLine($"📐 PodzielLinie: pionowe={grupyPionowe.Count}, poziome={grupyPoziome.Count}");
+
+        // ─────────────────────────────────────────────────────────────
+        // 3. Rozstaw PIONOWE symetrycznie (X równo rozłożone w szerokości)
+        //    ⭐ SORTUJ grupy po aktualnym X żeby nie zamieniać kolejności
+        // ─────────────────────────────────────────────────────────────
+        if (pionowe && grupyPionowe.Count > 0 && Model.Szerokosc > 0)
         {
-            double nowaPozycjaX = Math.Round(odstep * (i + 1), 0);
-            var (indexesX1, indexesX2, groupId) = grupyPionowePosortowane[i];
+            double odstep = Model.Szerokosc / (grupyPionowe.Count + 1);
 
-            double aktX = Model.GetPropertyValue(indexesX1[0]);
-            Console.WriteLine($"📐 PION grupa={groupId.Substring(0, Math.Min(8, groupId.Length))}: " +
-                              $"X {aktX:F1} → {nowaPozycjaX}");
+            // ⭐ Sortuj grupy po aktualnym X (rosnąco — od lewej do prawej)
+            var grupyPionowePosortowane = grupyPionowe
+                .OrderBy(g => Model.GetPropertyValue(g.IndexesX1[0]))
+                .ToList();
 
-            foreach (var idx in indexesX1)
-                Model.UpdateEditableProperty(idx, nowaPozycjaX);
+            Console.WriteLine($"📐 PION — sortowanie grup po X (od lewej do prawej):");
+            for (int k = 0; k < grupyPionowePosortowane.Count; k++)
+            {
+                var g = grupyPionowePosortowane[k];
+                double aktX = Model.GetPropertyValue(g.IndexesX1[0]);
+                Console.WriteLine($"   [{k}] grupa={g.GroupId.Substring(0, Math.Min(8, g.GroupId.Length))} " +
+                                  $"aktualne X={aktX:F1} → nowe X={Math.Round(odstep * (k + 1), 0):F1}");
+            }
 
-            foreach (var idx in indexesX2)
-                Model.UpdateEditableProperty(idx, nowaPozycjaX);
+            for (int i = 0; i < grupyPionowePosortowane.Count; i++)
+            {
+                double nowaPozycjaX = Math.Round(odstep * (i + 1), 0);
+                var (indexesX1, indexesX2, groupId) = grupyPionowePosortowane[i];
+
+                double aktX = Model.GetPropertyValue(indexesX1[0]);
+                Console.WriteLine($"📐 PION grupa={groupId.Substring(0, Math.Min(8, groupId.Length))}: " +
+                                  $"X {aktX:F1} → {nowaPozycjaX}");
+
+                foreach (var idx in indexesX1)
+                    Model.UpdateEditableProperty(idx, nowaPozycjaX);
+
+                foreach (var idx in indexesX2)
+                    Model.UpdateEditableProperty(idx, nowaPozycjaX);
+            }
         }
+
+        // ─────────────────────────────────────────────────────────────
+        // 4. Rozstaw POZIOME symetrycznie (Y równo rozłożone w wysokości)
+        //    ⭐ SORTUJ grupy po aktualnym Y żeby nie zamieniać kolejności
+        // ─────────────────────────────────────────────────────────────
+        if (poziome && grupyPoziome.Count > 0 && Model.Wysokosc > 0)
+        {
+            double odstep = Model.Wysokosc / (grupyPoziome.Count + 1);
+
+            // ⭐ Sortuj grupy po aktualnym Y (rosnąco — od góry do dołu)
+            var grupyPoziomePosortowane = grupyPoziome
+                .OrderBy(g => Model.GetPropertyValue(g.IndexesY1[0]))
+                .ToList();
+
+            Console.WriteLine($"📐 POZ — sortowanie grup po Y (od góry do dołu):");
+            for (int k = 0; k < grupyPoziomePosortowane.Count; k++)
+            {
+                var g = grupyPoziomePosortowane[k];
+                double aktY = Model.GetPropertyValue(g.IndexesY1[0]);
+                Console.WriteLine($"   [{k}] grupa={g.GroupId.Substring(0, Math.Min(8, g.GroupId.Length))} " +
+                                  $"aktualne Y={aktY:F1} → nowe Y={Math.Round(odstep * (k + 1), 0):F1}");
+            }
+
+            for (int i = 0; i < grupyPoziomePosortowane.Count; i++)
+            {
+                double nowaPozycjaY = Math.Round(odstep * (i + 1), 0);
+                var (indexesY1, indexesY2, groupId) = grupyPoziomePosortowane[i];
+
+                double aktY = Model.GetPropertyValue(indexesY1[0]);
+                Console.WriteLine($"📐 POZ grupa={groupId.Substring(0, Math.Min(8, groupId.Length))}: " +
+                                  $"Y {aktY:F1} → {nowaPozycjaY}");
+
+                foreach (var idx in indexesY1)
+                    Model.UpdateEditableProperty(idx, nowaPozycjaY);
+
+                foreach (var idx in indexesY2)
+                    Model.UpdateEditableProperty(idx, nowaPozycjaY);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 5. ⭐ PROPAGACJA STYCZNOŚCI — pionowe końce dopasowują się do poziomych
+        // ─────────────────────────────────────────────────────────────
+        PropagujStycznoscPionowychDoPoziomych(
+            grupyPionowe,
+            grupyPoziome);
+
+        // ─────────────────────────────────────────────────────────────
+        // 6. Napraw zdegenerowane linie (punkty → odcinki)
+        // ─────────────────────────────────────────────────────────────
+        NaprawZdegenerowaneLinie(ShapeService.Shapes, Model.Szerokosc, Model.Wysokosc);
+
+        if (rozciagnijLinie)
+        {
+            Console.WriteLine("📐 PodzielLinie: rozciągam linie do shapes (zmiana wymiarów)");
+
+            await LineUtils.ExtendOrShortenLinesWithTangencyAsync(ShapeService.Shapes, 0.5);
+            await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+        }
+
+        if (!ustawTylkoLinie)
+            await ZapiszDoRodzica();
     }
-
-    // ─────────────────────────────────────────────────────────────
-    // 4. Rozstaw POZIOME symetrycznie (Y równo rozłożone w wysokości)
-    //    ⭐ SORTUJ grupy po aktualnym Y żeby nie zamieniać kolejności
-    // ─────────────────────────────────────────────────────────────
-    if (poziome && grupyPoziome.Count > 0 && Model.Wysokosc > 0)
-    {
-        double odstep = Model.Wysokosc / (grupyPoziome.Count + 1);
-
-        // ⭐ Sortuj grupy po aktualnym Y (rosnąco — od góry do dołu)
-        var grupyPoziomePosortowane = grupyPoziome
-            .OrderBy(g => Model.GetPropertyValue(g.IndexesY1[0]))
-            .ToList();
-
-        Console.WriteLine($"📐 POZ — sortowanie grup po Y (od góry do dołu):");
-        for (int k = 0; k < grupyPoziomePosortowane.Count; k++)
-        {
-            var g = grupyPoziomePosortowane[k];
-            double aktY = Model.GetPropertyValue(g.IndexesY1[0]);
-            Console.WriteLine($"   [{k}] grupa={g.GroupId.Substring(0, Math.Min(8, g.GroupId.Length))} " +
-                              $"aktualne Y={aktY:F1} → nowe Y={Math.Round(odstep * (k + 1), 0):F1}");
-        }
-
-        for (int i = 0; i < grupyPoziomePosortowane.Count; i++)
-        {
-            double nowaPozycjaY = Math.Round(odstep * (i + 1), 0);
-            var (indexesY1, indexesY2, groupId) = grupyPoziomePosortowane[i];
-
-            double aktY = Model.GetPropertyValue(indexesY1[0]);
-            Console.WriteLine($"📐 POZ grupa={groupId.Substring(0, Math.Min(8, groupId.Length))}: " +
-                              $"Y {aktY:F1} → {nowaPozycjaY}");
-
-            foreach (var idx in indexesY1)
-                Model.UpdateEditableProperty(idx, nowaPozycjaY);
-
-            foreach (var idx in indexesY2)
-                Model.UpdateEditableProperty(idx, nowaPozycjaY);
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 5. ⭐ PROPAGACJA STYCZNOŚCI — pionowe końce dopasowują się do poziomych
-    // ─────────────────────────────────────────────────────────────
-    PropagujStycznoscPionowychDoPoziomych(
-        grupyPionowe,
-        grupyPoziome);
-
-    // ─────────────────────────────────────────────────────────────
-    // 6. Napraw zdegenerowane linie (punkty → odcinki)
-    // ─────────────────────────────────────────────────────────────
-    NaprawZdegenerowaneLinie(ShapeService.Shapes, Model.Szerokosc, Model.Wysokosc);
-
-    if (rozciagnijLinie)
-    {
-        Console.WriteLine("📐 PodzielLinie: rozciągam linie do shapes (zmiana wymiarów)");
-
-        await LineUtils.ExtendOrShortenLinesWithTangencyAsync(ShapeService.Shapes, 0.5);
-        await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
-    }
-
-    if (!ustawTylkoLinie)
-        await ZapiszDoRodzica();
-}
 
 
 
