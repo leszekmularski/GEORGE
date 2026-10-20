@@ -350,7 +350,7 @@ namespace GEORGE.Client.Pages.Models
             {
             // ============ X1 ============
             new EditableProperty(
-                RuchomySlupek ? "Podział linii w osi X1" : "X1 ",
+                RuchomySlupek ? "X1 - podział " : "X1 ",
                 () => X1,
                 v => {
                     double parsedValue = ParseExpression(v.ToString());
@@ -379,7 +379,7 @@ namespace GEORGE.Client.Pages.Models
 
             // ============ Y1 ============
             new EditableProperty(
-                RuchomySlupek ? "Podział linii w osi Y1" : "Y1 ",
+                RuchomySlupek ? "Y1 - podział " : "Y1 ",
                 () => Y1,
                 v => {
                     double parsedValue = ParseExpression(v.ToString());
@@ -407,7 +407,7 @@ namespace GEORGE.Client.Pages.Models
 
             // ============ X2 ============
             new EditableProperty(
-                RuchomySlupek ? "Podział linii w osi X2" : "X2 ",
+                RuchomySlupek ? "X2 - podział " : "X2 ",
                 () => X2,
                 v => {
                     double parsedValue = ParseExpression(v.ToString());
@@ -436,7 +436,7 @@ namespace GEORGE.Client.Pages.Models
 
             // ============ Y2 ============
             new EditableProperty(
-                RuchomySlupek ? "Podział linii w osi Y2" : "Y2 ",
+                RuchomySlupek ? "Y2 - podział " : "Y2 ",
                 () => Y2,
                 v => {
                     double parsedValue = ParseExpression(v.ToString());
@@ -464,7 +464,7 @@ namespace GEORGE.Client.Pages.Models
 
             // ============ Kąt (tylko odczyt) ============
             new EditableProperty(
-                RuchomySlupek ? "Kąt linii" : "Kąt w stopniach ",
+                RuchomySlupek ? "Kąt linii " : "Kąt w stopniach ",
                 () => KatLinii,
                 v => { /* tylko odczyt */ },
                 NazwaObj,

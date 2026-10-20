@@ -241,47 +241,6 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 }
             }
 
-            //if (prop.gabarytOkna && !string.IsNullOrWhiteSpace(prop.Label))
-            //{
-            //    string label = prop.Label.Trim().ToLowerInvariant();
-
-            //    if (label.StartsWith("szerokość"))
-            //    {
-            //        jestZmianaGabarytow =
-            //            Math.Abs(Szerokosc - value) > 0.01;
-
-            //        Szerokosc = value;
-            //    }
-            //    else if (label.StartsWith("wysokość"))
-            //    {
-            //        jestZmianaGabarytow =
-            //            Math.Abs(Wysokosc - value) > 0.01;
-
-            //        Wysokosc = value;
-            //    }
-            //    else if (label.StartsWith("promień okna"))
-            //    {
-            //        double nowaSzerokosc = value * 2.0;
-            //        double nowaWysokosc = value * 2.0;
-
-            //        jestZmianaGabarytow =
-            //            Math.Abs(Szerokosc - nowaSzerokosc) > 0.01 ||
-            //            Math.Abs(Wysokosc - nowaWysokosc) > 0.01;
-
-            //        Szerokosc = nowaSzerokosc;
-            //        Wysokosc = nowaWysokosc;
-            //    }
-            //    else if (label.StartsWith("wymiar okna kwadratowego"))
-            //    {
-            //        jestZmianaGabarytow =
-            //            Math.Abs(Szerokosc - value) > 0.01 ||
-            //            Math.Abs(Wysokosc - value) > 0.01;
-
-            //        Szerokosc = value;
-            //        Wysokosc = value;
-            //    }
-            //}
-
             Console.WriteLine(
                 $"[UpdateEditableProperty] KONIEC: " +
                 $"Szerokosc={Szerokosc}, Wysokosc={Wysokosc}, " +

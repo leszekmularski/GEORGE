@@ -36,6 +36,15 @@ namespace GEORGE.Server.Controllers
                                  .ToListAsync();
         }
 
+        [HttpGet("find-rowid/{rowId}")]
+        public async Task<ActionResult<List<ZleceniaProdukcyjneWew>>> GetZleceniaProdukcyjneFindRowId(string rowId)
+        {
+            return await _context.ZleceniaProdukcyjneWew
+                                 .Where(c => c.RowId == rowId)  // Filtruj zlecenia z ostatniego roku
+                                 .OrderByDescending(e => e.DataZapisu)
+                                 .ToListAsync();
+        }
+
 
         [HttpPost]
         public async Task<ActionResult> AddZlecenieProdukcyjneWewAsync(ZleceniaProdukcyjneWew zlecenieWew)

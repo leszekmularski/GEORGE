@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
-	<AssemblyVersion>1.1.4.5</AssemblyVersion>
-	<FileVersion>1.1.4.5</FileVersion>
+	<AssemblyVersion>1.1.4.6</AssemblyVersion>
+	<FileVersion>1.1.4.6</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
     <SignAssembly>False</SignAssembly>
@@ -21,7 +21,6 @@
     <PackageReference Include="lmNetDXF" Version="1.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.91.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="4.1.3" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
 	<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.32" />

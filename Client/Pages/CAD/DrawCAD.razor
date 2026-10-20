@@ -731,7 +731,7 @@
 
         IShapeDC newShape = _selectedTool switch
         {
-            "line" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Lina skośna", false, false, false, false, true),
+            "line" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia skośna", false, false, false, false, true),
             "line_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. poziom.", false, true, false, false, true),
             "line_hvSLRuch" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia pion. sł. ruchomy", true),
             "line_dual_ram_hv" => new XLineShape(_startX, _startY, _currentX, _currentY, _scaleFactor, "Linia podziału ram", false, true, true),

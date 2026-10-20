@@ -394,6 +394,15 @@
                                                 OnClick="() => OnFileChange(schody.RowIdPliku.ToString())">
                                             Pobierz
                                         </Button>
+                                        <Button Type="@ButtonType.Primary"
+                                                Block
+                                                Icon="@IconType.Outline.AccountBook"
+                                                Loading="_whereUsedVisible"
+                                                Style="background-color: brown; color: white;"
+                                                Disabled="@(schody.RowIdPliku == Guid.Empty)"
+                                                OnClick="() => WhereWasItUsed(schody.RowIdPliku.ToString())">
+                                            W którym projekcie wykorzystano
+                                        </Button>
 
                                         @if (boolZmiana || boolAdmin)
                                         {
@@ -706,6 +715,42 @@
     </div>
 </Modal>
 
+<Modal Title="Gdzie wykorzystano plik"
+       Visible="@_whereUsedVisible"
+       OnOk="@HandleWhereUsedOk"
+       OnCancel="@HandleWhereUsedCancel"
+       Width="@("60%")"
+       Centered="true"
+       Maximizable="true">
+
+    @if (_whereUsedList.Count == 0)
+    {
+        <p>Nie znaleziono powiązanych zamówień.</p>
+    }
+    else
+    {
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Numer zamówienia</th>
+                    <th>Klient</th>
+                    <th>Data zapisu</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var z in _whereUsedList)
+                {
+                    <tr>
+                        <td>@z.NumerZamowienia</td>
+                        <td>@z.Klient</td>
+                        <td>@z.DataZapisu.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</Modal>
+
 @code
 {
     [Inject]
@@ -738,6 +783,10 @@
     private double? filtrWysokosc;
     private double? filtrSzerokosc;
     private double? filtrGlebokosc;
+
+    private bool _whereUsedVisible = false;
+    
+    List<ZleceniaProdukcyjneWew> _whereUsedList = new List<ZleceniaProdukcyjneWew>();
 
     private List<PlikiZlecenProdukcyjnych> przefiltrowanePliki = new();
 
@@ -839,6 +888,52 @@
             await DownloadFile(Plik.NazwaPliku);
         }
     }
+
+    private async Task WhereWasItUsed(string rowIdPliku)
+    {
+
+        if (_whereUsedVisible) return;
+
+        if (string.IsNullOrEmpty(rowIdPliku) || pliki == null)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Uwaga!!!!",
+                Description = "Zamówienie nie posiada załączonego pliku!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var rowIdZlec = pliki.FirstOrDefault(p => p.RowId == rowIdPliku)?.RowIdZleceniaProdukcyjne;
+
+        if (string.IsNullOrEmpty(rowIdZlec))
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Uwaga!!!!",
+                Description = "Nie wyszukano zlecenia!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var zleceniaProdukcyjneWew = await Http
+            .GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>($"api/ZleceniaProdukcyjneWew/find-rowid/{rowIdZlec}");
+
+        _whereUsedList = zleceniaProdukcyjneWew?
+            .Where(z => z.RowId == rowIdZlec)
+            .ToList() ?? new List<ZleceniaProdukcyjneWew>();
+
+        _whereUsedVisible = true;
+
+        StateHasChanged();
+ 
+    }
+
+    private void HandleWhereUsedOk() => _whereUsedVisible = false;
+    private void HandleWhereUsedCancel() => _whereUsedVisible = false;
+
 
     private async Task DownloadFile(string fileName)
     {

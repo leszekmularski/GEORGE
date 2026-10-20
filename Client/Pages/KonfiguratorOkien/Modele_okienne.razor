@@ -822,7 +822,6 @@
 </div>
 
 
-
 <!-- Kontener na modele i canvas -->
 <div class="window-model-container">
     <!-- Kontener na przyciski -->
@@ -3542,13 +3541,13 @@
             if (newScale < 0)
             {
                 /*
-                 * Dopasowanie całego rysunku do viewportu.
+                * Dopasowanie całego rysunku do viewportu.
                  *
-                 * 0.90 = 10% marginesu.
+                * 0.90 = 10% marginesu.
                  */
 
-                double scaleX =
-                    CanvasWidth / shapesWidth;
+                                double scaleX =
+                                    CanvasWidth / shapesWidth;
 
                 double scaleY =
                     CanvasHeight / shapesHeight;
@@ -4270,106 +4269,6 @@
         return null;
     }
 
-    // private ShapeRegion? FindRegionAtPosition(double x, double y, bool tylkoRama)
-    // {
-    //     // Console.WriteLine($"\n🔍 FindRegionAtPosition START: punkt ({x:F2}, {y:F2}), tylkoRama={tylkoRama}");
-
-    //     if (_regionsDualRama == null || !_regionsDualRama.Any() ||
-    //         _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
-    //     {
-    //         //Console.WriteLine("❌ Brak regionów do sprawdzenia!");
-    //         return null;
-    //     }
-
-    //     var regionsToCheck = tylkoRama ? _regionsDualRama : _regionsSkrzydlo;
-    //     Console.WriteLine($"   Sprawdzam {regionsToCheck.Count} regionów");
-
-    //     foreach (var region in regionsToCheck)
-    //     {
-    //         if (region.Wierzcholki == null || region.Wierzcholki.Count < 2)
-    //         {
-    //             // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - brak wierzchołków");
-    //             continue;
-    //         }
-
-    //         // 🔴 REGION = LINIA (Słupek stały)
-    //         if (SelectedModelType == "Słupek stały" &&
-    //             region.Wierzcholki.Count == 2)
-    //         {
-    //             var p1 = region.Wierzcholki[0];
-    //             var p2 = region.Wierzcholki[1];
-
-    //             // Console.WriteLine($"   🔴 Test region-linia {region.Id}");
-
-    //             if (IsPointNearLine(
-    //                 x, y,
-    //                 p1.X, p1.Y,
-    //                 p2.X, p2.Y,
-    //                 tolerance: 6 / _aktywnaSkala))
-    //             {
-    //                 // Console.WriteLine($"✅ Znaleziono region-linię: {region.Id}");
-    //                 return region;
-    //             }
-
-    //             continue;
-    //         }
-
-    //         // 🟢 REGION = WIELOKĄT
-    //         if (region.Wierzcholki.Count < 3)
-    //         {
-    //             // Console.WriteLine($"   ⚠️ Region {region.Id} pominięty - mniej niż 3 wierzchołki");
-    //             continue;
-    //         }
-
-    //         // Bounding box (optymalizacja + debug)
-    //         double minX = region.Wierzcholki.Min(p => p.X);
-    //         double maxX = region.Wierzcholki.Max(p => p.X);
-    //         double minY = region.Wierzcholki.Min(p => p.Y);
-    //         double maxY = region.Wierzcholki.Max(p => p.Y);
-
-    //         //  Console.WriteLine($"   Region {region.Id} bounding box: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
-    //         //  Console.WriteLine($"   Punkt: X={x:F2}, Y={y:F2}");
-
-    //         bool inBoundingBox = (x >= minX && x <= maxX && y >= minY && y <= maxY);
-    //         // Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
-
-    //         if (!inBoundingBox)
-    //         {
-    //             //  Console.WriteLine($"   ✗ Pomijam - punkt poza bounding box");
-    //             continue;
-    //         }
-
-    //         //Console.WriteLine($"   ✓ Przechodzę do dokładnego testu...");
-
-    //         // 1️⃣ Test: punkt w wielokącie
-    //         if (IsPointInPolygon(region.Wierzcholki, x, y))
-    //         {
-    //             //  Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
-    //             return region;
-    //         }
-
-    //         // 2️⃣ Test: punkt blisko krawędzi (KLUCZOWE dla trójkątów)
-    //         for (int i = 0; i < region.Wierzcholki.Count; i++)
-    //         {
-    //             var a = region.Wierzcholki[i];
-    //             var b = region.Wierzcholki[(i + 1) % region.Wierzcholki.Count];
-
-    //             if (IsPointNearLine(
-    //                 x, y,
-    //                 a.X, a.Y,
-    //                 b.X, b.Y,
-    //                 tolerance: 4 / _aktywnaSkala))
-    //             {
-    //                 // Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
-    //                 return region;
-    //             }
-    //         }
-    //     }
-
-    //     //Console.WriteLine("❌ Nie znaleziono regionu zawierającego punkt");
-    //     return null;
-    // }
-
     /// <summary>
     /// Znajduje region typu LINIA (dla słupka stałego) - szuka tylko regionów z 2 wierzchołkami
     /// </summary>
@@ -4878,7 +4777,7 @@
         bool strukturaZmieniona = false)
     {
 
-         if (!await _zmienWymiarySemaphore.WaitAsync(0))   // 0 = nie czekaj
+        if (!await _zmienWymiarySemaphore.WaitAsync(0))   // 0 = nie czekaj
         {
             Console.WriteLine("⏭️ ZmienWymiaryOknaRecznie: poprzednia operacja trwa, pomijam");
             return;
@@ -4985,6 +4884,11 @@
                 }
 
                 SynchronizujRegionyZWspolrzednymiShapes();
+
+                // ⭐ KLUCZ: pełna regeneracja regionów z zachowaniem ID
+                //    (obsługuje przesunięcie ORAZ usunięcie linii dzielących
+                //    w regionach wielokątnych — czego AktualizujGeometrieRegionowZLinii nie robi)
+                await RegenerujRegionyZPodzialuZachowujacId();
 
                 AktualizujGeometrieRegionowZLinii();
 
@@ -5762,43 +5666,43 @@
                 if (genState.Value.WybranyModel.Typ?.Trim() == "Słupek stały")
                 {
                     generator.ElementLiniowy = true;
-                //     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
-                //         .FirstOrDefault(r => r.Id == genState.Value.IdMaster);
+                    //     var wybranyRegionSlupek = _regionsDualRama.Concat(_regionsSkrzydlo)
+                    //         .FirstOrDefault(r => r.Id == genState.Value.IdMaster);
 
-                //     cleanId = wybranyRegionSlupek?.Id ?? "";
+                    //     cleanId = wybranyRegionSlupek?.Id ?? "";
 
-                //  Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id} && wybranyRegionSlupek: {wybranyRegionSlupek?.Id}");
+                    //  Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> r => r.Id == region.Id == {region.Id} && wybranyRegionSlupek: {wybranyRegionSlupek?.Id}");
 
-                // //     if (wybranyRegionSlupek != null)
-                // //     {
-                // //         var konfPolaczenia = genState.Value.ListaKwadratow?
-                // //             .FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
+                    // //     if (wybranyRegionSlupek != null)
+                    // //     {
+                    // //         var konfPolaczenia = genState.Value.ListaKwadratow?
+                    // //             .FirstOrDefault(s => s.Przesuniecia != null)?.Przesuniecia;
 
-                // //         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
+                    // //         double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
-                // //         if (konfPolaczenia != null && konfPolaczenia.Count > 0)
-                // //         {
-                // //             przesGora = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                // //                 p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 0);
-                // //             przesDol = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                // //                 p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 0);
-                // //             przesLewo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                // //                 p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 0);
-                // //             przesPrawo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
-                // //                 p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 0);
-                // //         }
+                    // //         if (konfPolaczenia != null && konfPolaczenia.Count > 0)
+                    // //         {
+                    // //             przesGora = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                    // //                 p.Strona.ToLower() == "góra" || p.Strona.ToLower() == "gora")?.PrzesuniecieYStycznej ?? 0);
+                    // //             przesDol = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                    // //                 p.Strona.ToLower() == "dół" || p.Strona.ToLower() == "dol")?.PrzesuniecieYStycznej ?? 0);
+                    // //             przesLewo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                    // //                 p.Strona.ToLower() == "lewa")?.PrzesuniecieYStycznej ?? 0);
+                    // //             przesPrawo = Math.Abs(konfPolaczenia.FirstOrDefault(p =>
+                    // //                 p.Strona.ToLower() == "prawa")?.PrzesuniecieYStycznej ?? 0);
+                    // //         }
 
-                // //         // await WyliczObszarSlupkaStalego(
-                // //         //     _generatorStates[cleanId],
-                // //         //     przesLewo, przesPrawo, przesGora, przesDol,
-                // //         //     generator, wybranyRegionSlupek);
+                    // //         // await WyliczObszarSlupkaStalego(
+                    // //         //     _generatorStates[cleanId],
+                    // //         //     przesLewo, przesPrawo, przesGora, przesDol,
+                    // //         //     generator, wybranyRegionSlupek);
 
-                // //         // // ⭐⭐⭐ NOWE: Zaktualizuj ListaKwadratow słupka na podstawie nowego regionu
-                // //         // AktualizujDaneKwadratuSlupka(
-                // //         //     genState.Value.ListaKwadratow,
-                // //         //     wybranyRegionSlupek,
-                // //         //     cleanId);
-                // //     }
+                    // //         // // ⭐⭐⭐ NOWE: Zaktualizuj ListaKwadratow słupka na podstawie nowego regionu
+                    // //         // AktualizujDaneKwadratuSlupka(
+                    // //         //     genState.Value.ListaKwadratow,
+                    // //         //     wybranyRegionSlupek,
+                    // //         //     cleanId);
+                    // //     }
                 }
 
                 // -----------------------------------------------------
@@ -7651,7 +7555,7 @@
         return "";
     }
 
-  
+
     private async Task ZapiszStanKoncowy(
     GeneratorState state,
     Generator generator,
@@ -10092,6 +9996,157 @@
     public IReadOnlyDictionary<string, GeneratorState> GetAllGeneratorStates()
     {
         return _generatorStates;
+    }
+
+
+    //Nowe funkcje usuń zmień linie
+
+    /// <summary>
+    /// Regeneruje regiony (DualRama + Skrzydło) z aktualnych Shapes,
+    /// zachowując ID przez GeometryUtils.DopasujIdPoTozsamosci.
+    ///
+    /// Używać po każdej zmianie linii dzielących (przesunięcie, usunięcie,
+    /// dodanie), gdy trzeba odbudować kontury regionów wielokątnych.
+    /// </summary>
+    /// 
+
+    private async Task RegenerujRegionyZPodzialuZachowujacId()
+    {
+        if (ShapeService?.Shapes == null || constWlasciwosciOkna == null)
+            return;
+
+        double szer = constWlasciwosciOkna.Szerokosc;
+        double wys = constWlasciwosciOkna.Wysokosc;
+
+        Console.WriteLine("═══════════════════════════════════════════════");
+        Console.WriteLine($"🔄 RegenerujRegionyZPodzialuZachowujacId: {szer:F1}x{wys:F1}");
+
+        var noweRama = await GeometryUtils.GenerujRegionyZPodzialu(
+            ShapeService.Shapes, szer, wys, rama: true, stareStany: _generatorStates);
+        var noweSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
+            ShapeService.Shapes, szer, wys, rama: false, stareStany: _generatorStates);
+
+        Console.WriteLine($"   → DualRama: {_regionsDualRama?.Count ?? 0} → {noweRama.Count}");
+        Console.WriteLine($"   → Skrzydło: {_regionsSkrzydlo?.Count ?? 0} → {noweSkrzydlo.Count}");
+
+        _regionsDualRama = noweRama;
+        _regionsSkrzydlo = noweSkrzydlo;
+
+        // ⭐ KLUCZ: usuń osierocone stany po merge
+        WyczyscOsieroconeStany();
+
+        Console.WriteLine("═══════════════════════════════════════════════");
+    }
+
+    /// <summary>
+    /// Usuwa z _generatorStates stany, których IdRegion nie odpowiada
+    /// żadnemu regionowi w _regionsDualRama / _regionsSkrzydlo.
+    ///
+    /// Taka sytuacja występuje po MERGE (usunięcie linii dzielącej):
+    /// dwa stare stany "sklejają się" w jeden nowy region, który dziedziczy
+    /// ID jednego z nich (pierwszego w _generatorStates). Drugi stan
+    /// staje się osierocony — jego model (WybranyModel, ListaKwadratow)
+    /// jest przenoszony do zwycięzcy (jeśli to możliwe), a następnie stan
+    /// jest usuwany.
+    /// </summary>
+    private void WyczyscOsieroconeStany()
+    {
+        var istniejaceId = new HashSet<string>(
+            _regionsDualRama.Concat(_regionsSkrzydlo)
+                .Where(r => !string.IsNullOrEmpty(r.Id))
+                .Select(r => r.Id!));
+
+        var doUsuniecia = _generatorStates
+            .Where(kvp => !string.IsNullOrEmpty(kvp.Value.IdRegion)
+                       && !istniejaceId.Contains(kvp.Value.IdRegion!))
+            .ToList();
+
+        if (doUsuniecia.Count == 0)
+            return;
+
+        Console.WriteLine($"🧹 WyczyscOsieroconeStany: {doUsuniecia.Count} stanów do usunięcia");
+
+        foreach (var kvp in doUsuniecia)
+        {
+            var osierocony = kvp.Value;
+
+            // Znajdź nowy region, który "pochłonął" ten stan
+            var nowyRegion = _regionsDualRama.Concat(_regionsSkrzydlo)
+                .FirstOrDefault(r => CzyStanPochlonientyPrzezRegion(osierocony, r));
+
+            if (nowyRegion != null)
+            {
+                // ⭐ Transfer danych modelu do zwycięzcy
+                var zwyciezca = _generatorStates.Values
+                    .FirstOrDefault(s => s.IdRegion == nowyRegion.Id);
+
+                if (zwyciezca != null)
+                {
+                    // ListaKwadratow — dopisz brakujące (po współrzędnych)
+                    if (osierocony.ListaKwadratow != null && osierocony.ListaKwadratow.Count > 0)
+                    {
+                        zwyciezca.ListaKwadratow ??= new List<DaneKwadratu>();
+                        int dodane = 0;
+                        foreach (var kw in osierocony.ListaKwadratow)
+                        {
+                            if (!zwyciezca.ListaKwadratow.Any(z => z.Equals(kw)))
+                            {
+                                zwyciezca.ListaKwadratow.Add(kw);
+                                dodane++;
+                            }
+                        }
+                        if (dodane > 0)
+                            Console.WriteLine($"      ↪ Przeniesiono {dodane} kwadratów " +
+                                              $"'{osierocony.IdRegion}' → '{zwyciezca.IdRegion}'");
+                    }
+
+                    // Jeśli zwycięzca nie ma modelu, a osierocony ma — przejmij
+                    if (zwyciezca.WybranyModel == null && osierocony.WybranyModel != null)
+                    {
+                        zwyciezca.WybranyModel = osierocony.WybranyModel;
+                        zwyciezca.RowIdModelu = osierocony.RowIdModelu;
+                        Console.WriteLine($"      ↪ Przejęto WybranyModel " +
+                                          $"'{osierocony.IdRegion}' → '{zwyciezca.IdRegion}'");
+                    }
+
+                    Console.WriteLine($"   🗑️ Osierocony '{osierocony.IdRegion}' " +
+                                      $"pochłonięty przez '{nowyRegion.Id}' → usuwam");
+                }
+                else
+                {
+                    Console.WriteLine($"   🗑️ Osierocony '{osierocony.IdRegion}' " +
+                                      $"pochłonięty przez '{nowyRegion.Id}' (brak zwycięzcy) → usuwam");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"   🗑️ Osierocony '{osierocony.IdRegion}' " +
+                                  $"— brak regionu zawierającego centroid → usuwam");
+            }
+
+            _generatorStates.Remove(kvp.Key);
+        }
+    }
+
+    private static bool CzyStanPochlonientyPrzezRegion(GeneratorState stan, ShapeRegion region)
+    {
+        if (stan.Wierzcholki == null || stan.Wierzcholki.Count == 0) return false;
+        if (region.Wierzcholki == null || region.Wierzcholki.Count < 3) return false;
+
+        // Centroid stanu
+        double cx = stan.Wierzcholki.Average(p => p.X);
+        double cy = stan.Wierzcholki.Average(p => p.Y);
+
+        // Ray casting (wielokąt)
+        bool inside = false;
+        var w = region.Wierzcholki;
+        for (int i = 0, j = w.Count - 1; i < w.Count; j = i++)
+        {
+            if (((w[i].Y > cy) != (w[j].Y > cy)) &&
+                (cx < (w[j].X - w[i].X) * (cy - w[i].Y) / (w[j].Y - w[i].Y) + w[i].X))
+                inside = !inside;
+        }
+        return inside;
     }
 
     private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat)
