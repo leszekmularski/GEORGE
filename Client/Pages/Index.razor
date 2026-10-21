@@ -26,28 +26,35 @@
         </p>
     </div>
 
-    <!-- KOMUNIKAT DNIA -->
-    @if (DateTime.Now.DayOfWeek == DayOfWeek.Monday)
-    {
-        <div class="day-message monday">
-            <span class="day-icon">📋</span>
-            <span>Dziś jest poniedziałek, czas na planowanie produkcji!</span>
+
+    <!-- HUMOR DNIA GEORGE -->
+    <div class="day-message humor">
+        <span class="day-icon">@dowcipDnia.Ikona</span>
+
+        <div class="humor-content">
+            <span class="humor-title">
+                @dowcipDnia.Kategoria
+            </span>
+
+            <span class="humor-text">
+                @dowcipDnia.Tekst
+            </span>
+
+            @if (ladowanieDowcipu)
+            {
+                <span class="humor-loading">Pobieram dowcip...</span>
+            }
         </div>
-    }
-    else if (DateTime.Now.DayOfWeek == DayOfWeek.Friday)
-    {
-        <div class="day-message friday">
-            <span class="day-icon">🎯</span>
-            <span>Dziś jest piątek, świetny dzień na podsumowanie tygodnia!</span>
-        </div>
-    }
-    else
-    {
-        <div class="day-message normal">
-            <span class="day-icon">🏭</span>
-            <span>Dziś jest kolejny dzień produkcyjny!</span>
-        </div>
-    }
+
+        <button type="button"
+                class="humor-button"
+                @onclick="(() => NastepnyDowcip())"
+                disabled="@ladowanieDowcipu"
+                title="Pokaż kolejny dowcip">
+            🔄 Następny dowcip
+        </button>
+    </div>
+
 
     <!-- POGODA -->
     @if (pobieraniePogody)
@@ -734,6 +741,73 @@
             height: auto;
         }
     }
+
+
+    /* HUMOR DNIA */
+    .day-message.humor {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        width: fit-content;
+        max-width: 95%;
+        margin: 0 auto 15px;
+        padding: 12px 18px;
+        border-radius: 16px;
+        color: #584019;
+        background: linear-gradient(135deg, #fff8df, #fff0c2);
+        border: 1px solid #efd48a;
+        box-shadow: 0 3px 10px rgba(120, 90, 20, 0.08);
+    }
+
+    .humor-content {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        max-width: 650px;
+    }
+
+    .humor-title {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #9b6b13;
+    }
+
+    .humor-text {
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+    }
+
+    .humor-button {
+        padding: 7px 12px;
+        border: 1px solid #e4c36d;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.75);
+        color: #75500b;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+        .humor-button:hover {
+            background: #fff;
+            transform: translateY(-1px);
+        }
+
+    @@media (max-width: 600px) {
+        .day-message.humor
+
+    {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    }
 </style>
 
 
@@ -765,6 +839,123 @@
     private PeriodicTimer? _weatherTimer;
     private CancellationTokenSource? _weatherCancellation;
 
+
+    /* HUMOR DNIA GEORGE */
+
+
+    [Inject]
+    private HttpClient Http { get; set; } = default!;
+
+    private bool ladowanieDowcipu = false;
+
+    private (string Ikona, string Kategoria, string Tekst) dowcipDnia =
+        ("😂", "Humor dnia", "Kliknij „Następny dowcip”!");
+
+
+    private async Task PobierzDowcip()
+    {
+        ladowanieDowcipu = true;
+
+        try
+        {
+            // Zbiór polskich dowcipów na Hugging Face.
+            // Pobieramy losowy fragment zawierający maksymalnie 100 wpisów.
+            int offset = Random.Shared.Next(0, 8901);
+
+            string adres =
+                "https://datasets-server.huggingface.co/rows" +
+                "?dataset=JonaszPotoniec%2Fdowcipy-polish-jokes-dataset" +
+                "&config=default" +
+                "&split=train" +
+                $"&offset={offset}&length=100";
+
+            var odpowiedz =
+                await Http.GetFromJsonAsync<HuggingFaceJokesResponse>(adres);
+
+            // Jeśli losowy fragment jest pusty, spróbuj pobrać początek zbioru.
+            if (odpowiedz?.Rows == null || odpowiedz.Rows.Count == 0)
+            {
+                adres =
+                    "https://datasets-server.huggingface.co/rows" +
+                    "?dataset=JonaszPotoniec%2Fdowcipy-polish-jokes-dataset" +
+                    "&config=default&split=train&offset=0&length=100";
+
+                odpowiedz =
+                    await Http.GetFromJsonAsync<HuggingFaceJokesResponse>(adres);
+            }
+
+            var dowcipy = odpowiedz?.Rows?
+                .Select(x => x.Row?.Joke?.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+
+            if (dowcipy == null || dowcipy.Count == 0)
+            {
+                PokazDowcipZapasowy();
+                return;
+            }
+
+            // Wybieramy dowcip z pobranego fragmentu.
+            string tekst = dowcipy[Random.Shared.Next(dowcipy.Count)]!;
+
+            dowcipDnia = (
+                "😂",
+                "Humor dnia",
+                tekst
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania dowcipu z Hugging Face: {ex.Message}");
+            PokazDowcipZapasowy();
+        }
+        finally
+        {
+            ladowanieDowcipu = false;
+        }
+    }
+
+    private async Task NastepnyDowcip()
+    {
+        await PobierzDowcip();
+    }
+
+    // Modele odpowiedzi JSON z Hugging Face
+    public class HuggingFaceJokesResponse
+    {
+        [JsonPropertyName("rows")]
+        public List<HuggingFaceJokeItem>? Rows { get; set; }
+    }
+
+    public class HuggingFaceJokeItem
+    {
+        [JsonPropertyName("row")]
+        public HuggingFaceJokeData? Row { get; set; }
+    }
+
+    public class HuggingFaceJokeData
+    {
+        [JsonPropertyName("joke")]
+        public string? Joke { get; set; }
+
+        [JsonPropertyName("upvotes")]
+        public int Upvotes { get; set; }
+
+        [JsonPropertyName("downvotes")]
+        public int Downvotes { get; set; }
+    }
+
+
+    private void PokazDowcipZapasowy()
+    {
+        dowcipDnia = (
+            "😄",
+            "Humor dnia",
+            "Dlaczego programista lubi ciemny tryb? Bo światło przyciąga błędy!"
+        );
+    }
+
     protected override async Task OnInitializedAsync()
     {
         if (AppState != null)
@@ -785,10 +976,13 @@
         // Pierwsze pobranie natychmiast po uruchomieniu strony
         await PobierzPogode();
 
+        await PobierzDowcip();
+
         // Automatyczne odświeżanie co 15 minut
         _weatherCancellation = new CancellationTokenSource();
         _ = AutomatyczneOdswiezaniePogody(_weatherCancellation.Token);
     }
+
 
     private async Task AutomatyczneOdswiezaniePogody(CancellationToken cancellationToken)
     {

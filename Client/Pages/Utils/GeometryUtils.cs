@@ -1029,7 +1029,7 @@ namespace GEORGE.Client.Pages.Utils
             // ============================================================
             if (stareStany != null && stareStany.Count > 0)
             {
-                DopasujStareIdDoNowychRegionow(regions, stareStany, _szerokosc, _wysokosc, rama);
+                DopasujIdPoTozsamosci(regions, stareStany, rama);  // ← nowa metoda
             }
             else
             {
@@ -1040,6 +1040,233 @@ namespace GEORGE.Client.Pages.Utils
             await Task.Yield();
 
             return regions;
+        }
+
+        /// <summary>
+        /// Dopasowanie ID oparte na tożsamości geometrycznej regionu.
+        ///
+        /// Kolejność:
+        ///   1. Pre-match regionów-linii po IdMaster (linia → linia, bez patrzenia na pozycję).
+        ///   2. 1:1 gdy środek ciężkości starego stanu wpada w nowy region.
+        ///   3. MERGE gdy ≥2 stare stany wpada w jeden nowy region (kasowanie linii)
+        ///      → wygrywa "pierwszy w _generatorStates".
+        ///   4. Fallback pozycyjny (najbliższy środek ciężkości) dla niedopasowanych.
+        /// </summary>
+        private static void DopasujIdPoTozsamosci(
+            List<ShapeRegion> nowe,
+            Dictionary<string, GeneratorState> stareStany,
+            bool rama)
+        {
+            if (nowe == null || nowe.Count == 0) return;
+
+            var starePasujace = stareStany.Values
+                .Where(s => !string.IsNullOrEmpty(s.IdRegion))
+                .Where(s => s.CzyElementJestRama == rama)
+                .ToList();
+
+            if (starePasujace.Count == 0)
+            {
+                Console.WriteLine($"🆔 DopasujIdPoTozsamosci [{rama}]: brak starych stanów");
+                return;
+            }
+
+            // ⭐ Kolejność stanów w _generatorStates (kryterium "pierwszeństwa")
+            var kolejnoscWStanie = new Dictionary<string, int>();
+            int poz = 0;
+            foreach (var kvp in stareStany)
+            {
+                if (!string.IsNullOrEmpty(kvp.Value.IdRegion) &&
+                    !kolejnoscWStanie.ContainsKey(kvp.Value.IdRegion!))
+                    kolejnoscWStanie[kvp.Value.IdRegion!] = poz;
+                poz++;
+            }
+
+            Console.WriteLine($"═══════════════════════════════════════════════");
+            Console.WriteLine($"🆔 DopasujIdPoTozsamosci [{rama}]: " +
+                              $"nowe={nowe.Count}, stare={starePasujace.Count}");
+
+            var uzyteStany = new HashSet<string>();
+            int dopasowane = 0, scalone = 0, preMatchLinii = 0;
+
+            // ─────────────────────────────────────────────────
+            // KROK 0: PRE-MATCH regionów-linii po IdMaster
+            // ─────────────────────────────────────────────────
+            foreach (var nowy in nowe.Where(r => r.Wierzcholki?.Count == 2))
+            {
+                var stary = starePasujace
+                    .FirstOrDefault(s => !uzyteStany.Contains(s.IdRegion!)
+                                      && s.IdMaster == nowy.IdMaster
+                                      && s.Wierzcholki?.Count == 2);
+
+                if (stary != null)
+                {
+                    nowy.Id = stary.IdRegion!;
+                    nowy.IdMaster = stary.IdMaster ?? stary.IdRegion;
+                    uzyteStany.Add(stary.IdRegion!);
+                    preMatchLinii++;
+                    dopasowane++;
+                    Console.WriteLine($"   🔗 Linia (pre): IdMaster={nowy.IdMaster?.Substring(0, Math.Min(8, nowy.IdMaster?.Length ?? 0))} " +
+                                      $"→ '{stary.IdRegion}'");
+                }
+            }
+
+            var nieDopasowaneNowe = new List<ShapeRegion>();
+
+            // ─────────────────────────────────────────────────
+            // KROK 1: tożsamościowo (contains + merge)
+            // ─────────────────────────────────────────────────
+            foreach (var nowy in nowe)
+            {
+                if (!string.IsNullOrEmpty(nowy.Id) && uzyteStany.Contains(nowy.Id))
+                    continue; // już dopasowane w pre-match
+
+                var pasujace = starePasujace
+                    .Where(s => !uzyteStany.Contains(s.IdRegion!))
+                    .Where(s => CzySrodekStanuWewnatrzRegionu(s, nowy))
+                    .OrderBy(s => kolejnoscWStanie.TryGetValue(s.IdRegion!, out var k) ? k : int.MaxValue)
+                    .ToList();
+
+                if (pasujace.Count == 0)
+                {
+                    nieDopasowaneNowe.Add(nowy);
+                    continue;
+                }
+
+                var zwyciezca = pasujace[0];
+                nowy.Id = zwyciezca.IdRegion!;
+                nowy.IdMaster = zwyciezca.IdMaster ?? zwyciezca.IdRegion;
+
+                foreach (var s in pasujace)
+                    uzyteStany.Add(s.IdRegion!);
+
+                if (pasujace.Count > 1)
+                {
+                    scalone++;
+                    Console.WriteLine($"   🔀 MERGE: {nowy.TypKsztaltu} ← " +
+                        $"[{string.Join(", ", pasujace.Select(s => s.IdRegion))}] " +
+                        $"→ '{zwyciezca.IdRegion}'");
+                }
+                else
+                {
+                    dopasowane++;
+                    Console.WriteLine($"   ✅ 1:1: {nowy.TypKsztaltu} → '{zwyciezca.IdRegion}'");
+                }
+            }
+
+            // ─────────────────────────────────────────────────
+            // KROK 2: fallback pozycyjny dla nie dopasowanych
+            // ─────────────────────────────────────────────────
+            if (nieDopasowaneNowe.Count > 0)
+            {
+                Console.WriteLine($"   📐 Fallback pozycyjny dla {nieDopasowaneNowe.Count} regionów");
+
+                var stareWolne = starePasujace
+                    .Where(s => !uzyteStany.Contains(s.IdRegion!))
+                    .ToList();
+
+                foreach (var nowy in nieDopasowaneNowe)
+                {
+                    var najblizszy = stareWolne
+                        .OrderBy(s => Distance(
+                            new XPoint((float)SrodekCiezkosciStanu(s).X,
+                                       (float)SrodekCiezkosciStanu(s).Y),
+                            new XPoint((float)SrodekCiezkosci(nowy).X,
+                                       (float)SrodekCiezkosci(nowy).Y)))
+                        .FirstOrDefault();
+
+                    if (najblizszy != null)
+                    {
+                        nowy.Id = najblizszy.IdRegion!;
+                        nowy.IdMaster = najblizszy.IdMaster ?? najblizszy.IdRegion;
+                        uzyteStany.Add(najblizszy.IdRegion!);
+                        stareWolne.Remove(najblizszy);
+                        dopasowane++;
+                        Console.WriteLine($"   📍 Fallback: {nowy.TypKsztaltu} → '{najblizszy.IdRegion}'");
+                    }
+                }
+            }
+
+            Console.WriteLine($"🆔 Wynik [{rama}]: preMatchLinii={preMatchLinii}, 1:1={dopasowane - preMatchLinii}, " +
+                              $"scalone={scalone}, nie dopasowane={nowe.Count - dopasowane - scalone}/{nowe.Count}");
+            Console.WriteLine("═══════════════════════════════════════════════");
+        }
+
+        // ─── Metody pomocnicze ──────────────────────────────────────────────
+
+        /// <summary>Sprawdza, czy środek ciężkości starego stanu leży wewnątrz nowego regionu.</summary>
+        private static bool CzySrodekStanuWewnatrzRegionu(GeneratorState stary, ShapeRegion nowy)
+        {
+            if (stary.Wierzcholki == null || stary.Wierzcholki.Count == 0) return false;
+
+            var srodek = new XPoint(
+                (float)SrodekCiezkosciStanu(stary).X,
+                (float)SrodekCiezkosciStanu(stary).Y);
+
+            // Przypadek specjalny: nowy region to linia (2 punkty) — sprawdź odległość od odcinka
+            if (nowy.Wierzcholki != null && nowy.Wierzcholki.Count == 2)
+                return DistanceDoOdcinka(srodek, nowy.Wierzcholki[0], nowy.Wierzcholki[1]) < 5.0;
+
+            if (nowy.Wierzcholki == null || nowy.Wierzcholki.Count < 3)
+                return CzyPunktWBbox(srodek, nowy.Wierzcholki);
+
+            // Zbuduj listę punktów z segmentów konturu (próbkowanie łuków)
+            if (nowy.Kontur != null && nowy.Kontur.Count >= 3)
+            {
+                var polygon = new List<XPoint>();
+                foreach (var seg in nowy.Kontur)
+                {
+                    polygon.Add(seg.Start);
+                    if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
+                    {
+                        double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
+                        double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
+                        if (seg.CounterClockwise && endAngle < startAngle) endAngle += 2 * Math.PI;
+                        if (!seg.CounterClockwise && endAngle > startAngle) endAngle -= 2 * Math.PI;
+
+                        int samples = 8;
+                        for (int i = 1; i < samples; i++)
+                        {
+                            double t = (double)i / samples;
+                            double angle = startAngle + t * (endAngle - startAngle);
+                            polygon.Add(new XPoint(
+                                seg.Center.Value.X + seg.Radius * Math.Cos(angle),
+                                seg.Center.Value.Y + seg.Radius * Math.Sin(angle)));
+                        }
+                    }
+                }
+                return CzyPunktWewnatrzWielokata(srodek, polygon);
+            }
+
+            return CzyPunktWewnatrzWielokata(srodek, nowy.Wierzcholki);
+        }
+
+        private static double DistanceDoOdcinka(XPoint p, XPoint a, XPoint b)
+        {
+            double dx = b.X - a.X, dy = b.Y - a.Y;
+            double len2 = dx * dx + dy * dy;
+            if (len2 < 1e-9) return Distance(p, a);
+            double t = Math.Max(0, Math.Min(1, ((p.X - a.X) * dx + (p.Y - a.Y) * dy) / len2));
+            return Distance(p, new XPoint((float)(a.X + t * dx), (float)(a.Y + t * dy)));
+        }
+
+        private static bool CzyPunktWewnatrzWielokata(XPoint p, List<XPoint> w)
+        {
+            if (w == null || w.Count < 3) return false;
+            bool inside = false;
+            for (int i = 0, j = w.Count - 1; i < w.Count; j = i++)
+            {
+                if (((w[i].Y > p.Y) != (w[j].Y > p.Y)) &&
+                    (p.X < (w[j].X - w[i].X) * (p.Y - w[i].Y) / (w[j].Y - w[i].Y) + w[i].X))
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        private static bool CzyPunktWBbox(XPoint p, List<XPoint>? w)
+        {
+            if (w == null || w.Count == 0) return false;
+            return p.X >= w.Min(v => v.X) && p.X <= w.Max(v => v.X)
+                && p.Y >= w.Min(v => v.Y) && p.Y <= w.Max(v => v.Y);
         }
 
         /// <summary>
@@ -1540,10 +1767,16 @@ namespace GEORGE.Client.Pages.Utils
 
             foreach (var line in lines)
             {
+                Console.WriteLine($"🔍 Podział linią {line.ID?.Substring(0, 8)}: " +
+                  $"({line.X1:F0},{line.Y1:F0})→({line.X2:F0},{line.Y2:F0}), " +
+                  $"indexLinii={indexLinii}, regionów wejściowych={wynik.Count}");
                 var next = new List<ShapeRegion>();
 
                 foreach (var r in wynik)
                 {
+                    Console.WriteLine($"   region '{r.Id}' " +
+                     $"W={r.Wierzcholki?.Count ?? 0}, " +
+                     $"CzyLiniaDzieli={CzyLiniaDzieliRegion(r, line)}");
                     // ⭐ Sprawdź, czy linia dzieli ten region
                     if (!CzyLiniaDzieliRegion(r, line))
                     {

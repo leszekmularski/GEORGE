@@ -47,6 +47,9 @@ else
                                                                 bool czyPromien = lbl.Trim().StartsWith("promień okna");
                                                                 bool czyKwadrat = lbl.Trim().StartsWith("wymiar okna kwadratowego");
 
+                                                                double staraSzer = Model.Szerokosc;   // ← 1250
+                                                                double staraWys = Model.Wysokosc;    // ← 1000
+
                                                                 jestZmianaGabarytow = Model.UpdateEditableProperty(index, value);
 
                                                                 Console.WriteLine($"[DEBUG] ZmienWymiaryOkna.razor: ValueChanged dla index={index}, Label='{lbl}', Nowa wartość={value}, jestZmianaGabarytow={jestZmianaGabarytow}");
@@ -57,6 +60,14 @@ else
                                                                     bool rozstawPoziome = czyWysokosc || czyPromien || czyKwadrat;
                                                                     bool rozciagnij = czySzerokosc || czyWysokosc || czyPromien || czyKwadrat;
 
+                                                                double nowaSzer = Model.Szerokosc;   // ← 2500
+                                                                double nowaWys  = Model.Wysokosc;    // ← 1000
+
+                                                                // ⭐ Skaluj shapes ze starych wymiarów
+                                                                if (1 > 3)
+                                                                LineUtils.SkalujShapesDoWymiarowRozciagajacZeStarymiWymiarami(
+                                                                    ShapeService.Shapes, staraSzer, staraWys, nowaSzer, nowaWys);
+                                                                  
                                                                     await PodzielLinieSymetrycznieAsync(
                                                                         ustawTylkoLinie: true,
                                                                         pionowe: rozstawPionowe,

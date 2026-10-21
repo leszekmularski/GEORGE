@@ -1,6 +1,5 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Shared.ViewModels;
-using System.Linq;
 
 
 namespace GEORGE.Client.Pages.Okna
@@ -8,7 +7,7 @@ namespace GEORGE.Client.Pages.Okna
     public class KsztaltElementu
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
-        public int NrPozWModelu { get; set; }  = 0;
+        public int NrPozWModelu { get; set; } = 0;
         public string IdRegion { get; set; } = "";
 
         // Typ ksztaltu: prostokat, trojkat, romb, trapez, kolo itd.
@@ -75,42 +74,55 @@ namespace GEORGE.Client.Pages.Okna
         public float OffsetDol { get; set; } = 0.0f;
         // Informacje o offset Dol elementu
         public string? RodzajpolaczenAiB { get; set; }
-
         public BoundingBox? OstatniRegion { get; set; }
-
         public KsztaltElementu Clone()
         {
             return new KsztaltElementu
             {
-                Id = this.Id, 
+                Id = this.Id,
                 IdRegion = this.IdRegion,
                 TypKsztaltu = this.TypKsztaltu,
-                Wierzcholki = this.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList(),
 
-                WierzcholkiZLukami = this.WierzcholkiZLukami.Select(s => {
-                    ContourSegment nowy;
-                    if (s.Center.HasValue)
+                // ⭐ Null-safe: XPoint.Clone() musi być deep copy (new XPoint(x, y)),
+                //    a nie zwracać tej samej referencji.
+                Wierzcholki = this.Wierzcholki?
+                    .Select(p => p.Clone())
+                    .ToList() ?? new List<XPoint>(),
+
+                WierzcholkiZLukami = this.WierzcholkiZLukami?
+                    .Select(s =>
                     {
-                        nowy = new ContourSegment(
-                            s.Start.Clone(),
-                            s.End.Clone(),
-                            s.Center.Value.Clone(),
-                            s.Radius,
-                            s.CounterClockwise
-                        );
-                    }
-                    else
-                    {
-                        nowy = new ContourSegment(
-                            s.Start.Clone(),
-                            s.End.Clone()
-                        );
-                    }
+                        ContourSegment nowy;
 
-                    nowy.Informacja = s.Informacja;
+                        if (s.Center.HasValue)
+                        {
+                            nowy = new ContourSegment(
+                                s.Start.Clone(),
+                                s.End.Clone(),
+                                s.Center.Value.Clone(),
+                                s.Radius,
+                                s.CounterClockwise
+                            );
+                        }
+                        else
+                        {
+                            nowy = new ContourSegment(
+                                s.Start.Clone(),
+                                s.End.Clone()
+                            );
+                        }
 
-                    return nowy;
-                }).ToList(),
+                        // ⭐ KRYTYCZNE: skopiuj wszystkie pola, których konstruktor
+                        //    NIE ustawia automatycznie. W przeciwnym razie łuki mogą
+                        //    stać się liniami (albo odwrotnie) po klonowaniu.
+                        nowy.Type = s.Type;
+                        nowy.IsArcFragment = s.IsArcFragment;
+                        nowy.Informacja = s.Informacja;
+
+                        return nowy;
+                    })
+                    .ToList() ?? new List<ContourSegment>(),
+
                 WypelnienieWewnetrzne = this.WypelnienieWewnetrzne,
                 WypelnienieZewnetrzne = this.WypelnienieZewnetrzne,
                 GruboscObramowania = this.GruboscObramowania,

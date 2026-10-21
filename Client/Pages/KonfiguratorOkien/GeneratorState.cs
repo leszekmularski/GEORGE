@@ -258,6 +258,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 SlupekRuchomyPoLewejStronie = this.SlupekRuchomyPoLewejStronie,
                 SlupekRuchomyPoPrawejStronie = this.SlupekRuchomyPoPrawejStronie,
 
+
                 IdMaster = this.IdMaster,
                 TypKsztaltu = this.TypKsztaltu,
                 Rama = this.Rama,

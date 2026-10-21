@@ -2268,7 +2268,7 @@
     //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     private async Task GenerujObrysPozZmianieWymiarow(
     bool generujRegionyZPodzialu,
-    bool recznaZmiana, bool nieZmienajLinii = true)
+    bool recznaZmiana, bool nieZmienajLinii = true, bool skalujRozciagajac = false)
     {
         if (ShapeService == null || !ShapeService.Shapes.Any())
         {
@@ -2331,21 +2331,35 @@
             // ============================================================
             if (generujRegionyZPodzialu && constWlasciwosciOkna != null)
             {
+
+                double staraSzer = _staraSzerokoscPrzedZmiana;
+                double staraWys  = _staraWysokoscPrzedZmiana;
+
                 double nowaSzer = constWlasciwosciOkna.Szerokosc;
                 double nowaWys = constWlasciwosciOkna.Wysokosc;
+                
+                Console.WriteLine($"📐 GenerujObrys: SKALUJĘ {staraSzer:F1}x{staraWys:F1} → {nowaSzer:F1}x{nowaWys:F1}");
 
                 // ⭐ Aktualny bbox przed skalowaniem (do logu)
                 var bbPrzed = ShapeService.Shapes.Select(s => s.GetBoundingBox()).ToList();
                 double aktSzer = bbPrzed.Max(b => b.Left + b.Width) - bbPrzed.Min(b => b.Left);
                 double aktWys = bbPrzed.Max(b => b.Top + b.Height) - bbPrzed.Min(b => b.Top);
 
-                Console.WriteLine($"📐 GenerujObrys: SKALUJĘ {aktSzer:F1}x{aktWys:F1} → {nowaSzer:F1}x{nowaWys:F1}");
+                Console.WriteLine($"📐 GenerujObrys: SKALUJĘ {aktSzer:F1}x{aktWys:F1} → {nowaSzer:F1}x{nowaWys:F1} recznaZmiana: {recznaZmiana}");
 
                 // ⭐ Skaluj ZAWSZE (nie tylko przy pierwszym przebiegu)
-                LineUtils.SkalujShapesDoWymiarowRozciagajac(
+                if (!skalujRozciagajac)
+                {
+                    LineUtils.SkalujShapesDoWymiarowRozciagajac(
                     ShapeService.Shapes,
                     nowaSzer,
                     nowaWys);
+                }
+                // else
+                // {
+                //     LineUtils.SkalujShapesDoWymiarowRozciagajacZeStarymiWymiarami(
+                //     ShapeService.Shapes, staraSzer, staraWys, nowaSzer, nowaWys);
+                // }
 
                 await Task.Yield();
 
@@ -2408,11 +2422,11 @@
                 _pierwszeSkalowanieZakonczone = true;
 
                 // ============================================================
-                // 6. Generuj regiony z przeskalowanych shapes
+                // 6. Generuj regiony z przeskalowanych shapes — Z FILTREM RÓL
                 // ============================================================
 
                 _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
-                    ShapeService.Shapes, nowaSzer, nowaWys, rama: true, stareStany: _generatorStates);
+                ShapeService.Shapes, nowaSzer, nowaWys, rama: true, stareStany: _generatorStates);
 
                 _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
                     ShapeService.Shapes, nowaSzer, nowaWys, rama: false, stareStany: _generatorStates);
@@ -3546,8 +3560,8 @@
                 * 0.90 = 10% marginesu.
                  */
 
-                                double scaleX =
-                                    CanvasWidth / shapesWidth;
+                                                double scaleX =
+                                                    CanvasWidth / shapesWidth;
 
                 double scaleY =
                     CanvasHeight / shapesHeight;
@@ -4846,9 +4860,7 @@
 
                 await GenerujObrysPozZmianieWymiarow(
                     true,
-                    false, true);
-
-
+                    false, true, skalujRozciagajac: true);
 
 
                 // =========================================================
@@ -4871,52 +4883,51 @@
             // =========================================================
             else
             {
-                Console.WriteLine(
-                    "✏️ TRYB 2: Aktualizacja geometrii");
+                Console.WriteLine("✏️ TRYB 2: Aktualizacja geometrii");
 
                 foreach (var shape in ShapeService.Shapes)
                 {
-                    if (shape == null)
-                        continue;
-
+                    if (shape == null) continue;
                     shape.Szerokosc = nowaSzer;
                     shape.Wysokosc = nowaWys;
                 }
 
                 SynchronizujRegionyZWspolrzednymiShapes();
 
-                // ⭐ KLUCZ: pełna regeneracja regionów z zachowaniem ID
-                //    (obsługuje przesunięcie ORAZ usunięcie linii dzielących
-                //    w regionach wielokątnych — czego AktualizujGeometrieRegionowZLinii nie robi)
+                // ⭐ DIAGNOSTYKA: pokaż stan PRZED regeneracją
+                Console.WriteLine($"🔎 PRZED regeneracją: " +
+                    $"_regionsDualRama={_regionsDualRama?.Count ?? 0}, " +
+                    $"_regionsSkrzydlo={_regionsSkrzydlo?.Count ?? 0}, " +
+                    $"_generatorStates={_generatorStates.Count}, " +
+                    $"linii={ShapeService.Shapes.OfType<XLineShape>().Count()}");
+
+                // ⭐ JEDNA regeneracja — obsługuje przesunięcie ORAZ kasowanie linii
                 await RegenerujRegionyZPodzialuZachowujacId();
 
-                AktualizujGeometrieRegionowZLinii();
+                // ⭐ DIAGNOSTYKA: pokaż stan PO regeneracji
+                Console.WriteLine($"🔎 PO regeneracji: " +
+                    $"_regionsDualRama={_regionsDualRama?.Count ?? 0}, " +
+                    $"_regionsSkrzydlo={_regionsSkrzydlo?.Count ?? 0}, " +
+                    $"_generatorStates={_generatorStates.Count}");
+
+                foreach (var kvp in _generatorStates)
+                {
+                    Console.WriteLine($"   stan: IdRegion='{kvp.Value.IdRegion}', " +
+                                      $"Typ='{kvp.Value.TypKsztaltu}', " +
+                                      $"Wierzcholki={kvp.Value.Wierzcholki?.Count ?? 0}");
+                }
 
                 AktualizujStanyGeneratorowPoEdycjiLinii();
 
-                await PrzeliczElementyRamyDlaStanow(
-                    nowaSzer,
-                    nowaWys);
-
-
-                // =========================================================
-                // AKTUALIZACJA DANYCH
-                // =========================================================
-
-                // UWAGA:
-                // Ta metoda nie może pomijać pracy tylko dlatego,
-                // że _zmienWymiaryWToku == true.
-                // Jeśli ma taki warunek, należy wywołać jej
-                // wewnętrzną metodę roboczą bez tego warunku.
-
+                await PrzeliczElementyRamyDlaStanow(nowaSzer, nowaWys);
 
                 _zmienWymiaryWToku = false;
 
-                await ZmienWymiaryOkna(strukturaZmieniona: true, wymusWysrodkowanie: false, generujPonownieLinie: false);
-
+                await ZmienWymiaryOkna(
+                    strukturaZmieniona: true,
+                    wymusWysrodkowanie: false,
+                    generujPonownieLinie: false);
             }
-
-
         }
         catch (Exception ex)
         {
@@ -5087,9 +5098,13 @@
         Console.WriteLine("✅ SkalujWszystkoWMiejscu zakończone");
     }
 
-    /// <summary>
     /// Przelicza ElementyRamyRysowane dla każdego stanu, używając istniejących regionów
     /// (zachowuje Id, nie generuje nowych regionów).
+    ///
+    /// ⭐ KRYTYCZNE: dla stanów, dla których nie można wygenerować shapes
+    /// (brak regionu, brak generatora, błąd AddElements, puste ElementyRamyRysowane)
+    /// — zachowujemy POPRZEDNIE shapes z `_ksztaltyNaRegion`, żeby nie tracić
+    /// elementów wizualnych przy każdym zapisie modala.
     /// </summary>
     private async Task PrzeliczElementyRamyDlaStanow(double nowaSzer, double nowaWys)
     {
@@ -5121,29 +5136,80 @@
 
         Console.WriteLine($"🔧 PrzeliczElementyRamyDlaStanow: {obrGen.Count} stanów, {wszystkieRegiony.Count} regionów");
 
+        // ⭐ Usuń osierocone stany (bez WybranyModel) — zanim zaczniesz iterację
+        var osierocone = _generatorStates
+            .Where(kvp => kvp.Value.WybranyModel == null)
+            .ToList();
+
+        foreach (var kvp in osierocone)
+        {
+            Console.WriteLine($"🗑️ Usuwam osierocony stan bez WybranyModel: " +
+                              $"IdRegion='{kvp.Value.IdRegion}', Typ='{kvp.Value.TypKsztaltu}'");
+            _generatorStates.Remove(kvp.Key);
+        }
+
+        // odśwież listę po czyszczeniu
+        obrGen = _generatorStates.OrderBy(x => x.Value.ZIndeks).ToList();
+
+        // ─────────────────────────────────────────────────────────────
+        // ⭐ LOKALNA FUNKCJA: zachowaj poprzednie shapes dla stanu
+        //    (używana, gdy nie można wygenerować nowych)
+        // ─────────────────────────────────────────────────────────────
+        void ZachowajStareKsztalty(string cleanId, string powod)
+        {
+            if (_ksztaltyNaRegion.TryGetValue(cleanId, out var stareKsztalty) && stareKsztalty.Any())
+            {
+                noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(stareKsztalty);
+                noweKsztalty.AddRange(stareKsztalty);
+                Console.WriteLine($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}' ({powod})");
+            }
+            else
+            {
+                Console.WriteLine($"   ⚠️ Brak shapes w _ksztaltyNaRegion dla '{cleanId}' ({powod}) — nie ma czego zachować");
+            }
+        }
+
         foreach (var genState in obrGen)
         {
-            Console.WriteLine($"🔄 Iteracja: klucz='{genState.Key}', IdRegion='{genState.Value.IdRegion}'");
-            string cleanId = genState.Value.IdRegion ?? "";
+            string cleanId = genState.Value.IdRegion;
+            string typModelu = genState.Value.WybranyModel?.Typ?.Trim() ?? "(brak)";
+            Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {typModelu}");
 
-            var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
-            if (region == null)
+            if (genState.Value.WybranyModel == null)
             {
-                Console.WriteLine($"   ⏭️ brak regionu dla {cleanId}");
+                Console.WriteLine($"   ⚠️ Stan '{cleanId}' bez WybranyModel — pomijam (shapes zachowane)");
+                ZachowajStareKsztalty(cleanId, "brak WybranyModel");
                 continue;
             }
 
+            // ─────────────────────────────────────────────────────────
+            // 1. Znajdź region
+            // ─────────────────────────────────────────────────────────
+            var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
+            if (region == null)
+            {
+                Console.WriteLine($"   ⚠️ brak regionu dla '{cleanId}' — ZACHOWUJĘ stare shapes");
+                ZachowajStareKsztalty(cleanId, "brak regionu");
+                continue;
+            }
+
+            // ─────────────────────────────────────────────────────────
+            // 2. Sprawdź generator
+            // ─────────────────────────────────────────────────────────
             var generator = genState.Value.Generator;
             if (generator == null)
             {
-                Console.WriteLine($"   ⏭️ brak generatora dla {cleanId}");
+                Console.WriteLine($"   ⚠️ brak generatora dla '{cleanId}' — ZACHOWUJĘ stare shapes");
+                ZachowajStareKsztalty(cleanId, "brak generatora");
                 continue;
             }
 
             generator.ElementyRamyRysowane.Clear();
             generator.constWlasciwosciOkna = constWlasciwosciOkna;
 
-            // Aktualizuj Wierzcholki i Kontur w stanie z regionu
+            // ─────────────────────────────────────────────────────────
+            // 3. Aktualizuj Wierzcholki i Kontur w stanie z regionu
+            // ─────────────────────────────────────────────────────────
             if (region.Wierzcholki != null && region.Wierzcholki.Any())
             {
                 var nowe = region.Wierzcholki.Select(p => new XPoint(p.X, p.Y)).ToList();
@@ -5156,7 +5222,9 @@
                 genState.Value.Kontur = region.Kontur.Select(s => s.Clone()).ToList();
             }
 
-            // Słupki stałe – zachowaj ListaKwadratow, zaktualizuj tylko LiniaStala
+            // ─────────────────────────────────────────────────────────
+            // 4. ListaKwadratow — słupki stałe zachowują, inne przeliczają
+            // ─────────────────────────────────────────────────────────
             bool toSlupekStaly = genState.Value.WybranyModel?.Typ?.Trim() == "Słupek stały";
 
             if (!toSlupekStaly)
@@ -5172,37 +5240,62 @@
             var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
             var regionsList = generator.CzyElementJestRama ? _regionsDualRama : _regionsSkrzydlo;
 
-            // ⭐ Znajdź WŁAŚCIWY region nadrzędny dla tego słupka
+            // ─────────────────────────────────────────────────────────
+            // 5. Znajdź region nadrzędny
+            // ─────────────────────────────────────────────────────────
             var regionNadrzedny = ZnajdzRegionNadrzednyDlaStanu(region, wszystkieRegiony);
-
             Console.WriteLine($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
 
-            var ok = await generator.AddElements(
-                new List<ShapeRegion> { region },
-                cleanId,
-                _generatorStates,
-                regionsList,
-                daneKwadratow,
-                regionNadrzedny?.Wierzcholki,   // ← ✅ NOWE
-                _lastMouseClick,
-                boolNieCzyscKonsole);
-
-            if (ok != "")
+            // ─────────────────────────────────────────────────────────
+            // 6. AddElements
+            // ─────────────────────────────────────────────────────────
+            string ok;
+            try
             {
-                Console.WriteLine($"   ⚠️ AddElements dla {cleanId}: {ok}");
+                ok = await generator.AddElements(
+                    new List<ShapeRegion> { region },
+                    cleanId,
+                    _generatorStates,
+                    regionsList,
+                    daneKwadratow,
+                    regionNadrzedny?.Wierzcholki,
+                    _lastMouseClick,
+                    boolNieCzyscKonsole);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"   🔥 Wyjątek w AddElements dla '{cleanId}': {ex.Message}");
+                ZachowajStareKsztalty(cleanId, "wyjątek AddElements");
+                continue;
             }
 
-
-            // -----------------------------------------------------
-            // Zapisz wygenerowane kształty do tymczasowej kolekcji
-            // -----------------------------------------------------
-            if (generator.ElementyRamyRysowane.Any())
+            if (!string.IsNullOrEmpty(ok))
             {
-                noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
-                noweKsztalty.AddRange(generator.ElementyRamyRysowane);
+                Console.WriteLine($"   ⚠️ AddElements dla '{cleanId}': {ok} — ZACHOWUJĘ stare shapes");
+                ZachowajStareKsztalty(cleanId, "błąd AddElements");
+                continue;
             }
 
-            // ⭐ DODAJ: aktualizacja WSZYSTKICH konturów i wierzchołków z generatora
+            // ─────────────────────────────────────────────────────────
+            // 7. Sprawdź czy wygenerowały się shapes
+            //    (jeśli nie — zachowaj stare, żeby nie tracić wizualizacji)
+            // ─────────────────────────────────────────────────────────
+            if (!generator.ElementyRamyRysowane.Any())
+            {
+                Console.WriteLine($"   ⚠️ AddElements nie wygenerowało shapes dla '{cleanId}' — ZACHOWUJĘ stare");
+                ZachowajStareKsztalty(cleanId, "puste ElementyRamyRysowane");
+                continue;
+            }
+
+            // ─────────────────────────────────────────────────────────
+            // 8. Zapisz nowe shapes
+            // ─────────────────────────────────────────────────────────
+            noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(generator.ElementyRamyRysowane);
+            noweKsztalty.AddRange(generator.ElementyRamyRysowane);
+
+            // ─────────────────────────────────────────────────────────
+            // 9. Zaktualizuj dodatkowe kontury z generatora
+            // ─────────────────────────────────────────────────────────
             if (generator.wewnetrznyKonturZLukami != null && generator.wewnetrznyKonturZLukami.Any())
             {
                 genState.Value.KonturInner = generator.wewnetrznyKonturZLukami
@@ -5238,11 +5331,11 @@
                 genState.Value.KonturOkucia = generator.liniaOkuciaKonturZLukami
                     .Select(s => s.Clone()).ToList();
             }
-
-            // Aktualizacja stanu
-            //AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 10. Atomowa zamiana shapes
+        // ─────────────────────────────────────────────────────────────
         lock (_ksztaltyNaRegion)
         {
             _ksztaltyNaRegion.Clear();
@@ -5253,7 +5346,8 @@
             ksztalty.AddRange(noweKsztalty);
         }
 
-        Console.WriteLine($"✅ PrzeliczElementyRamyDlaStanow: {noweKsztalty.Count} elementów");
+        Console.WriteLine($"✅ PrzeliczElementyRamyDlaStanow: {noweKsztalty.Count} elementów, " +
+                          $"{noweKsztaltyNaRegion.Count} regionów z shapes");
     }
 
     /// <summary>
@@ -5532,7 +5626,7 @@
             {
                 string cleanId = genState.Value.IdRegion;
 
-                Console.Clear();
+                //Console.Clear();
                 Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {genState.Value.WybranyModel.Typ?.Trim()}");
                 Console.WriteLine($"🔍 ZmienWymiary: cleanId={cleanId} " +
                       $"Typ={genState.Value.WybranyModel?.Typ} " +
@@ -5551,11 +5645,21 @@
 
                 if (region == null)
                 {
-                    await _message.Error($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
-                    Console.WriteLine($"❌ Nie znaleziono regionu dla {cleanId}. Sprawdź konfigurację regionów.");
+                    Console.WriteLine($"⚠️ Brak regionu dla '{cleanId}' — ZACHOWUJĘ stare shapes");
+
+                    if (_ksztaltyNaRegion.TryGetValue(cleanId, out var stareKsztalty) && stareKsztalty.Any())
+                    {
+                        noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(stareKsztalty);
+                        noweKsztalty.AddRange(stareKsztalty);
+                        Console.WriteLine($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"   ⚠️ Brak shapes w _ksztaltyNaRegion dla '{cleanId}' — nie ma czego zachować");
+                    }
+
                     continue;
                 }
-
                 // -----------------------------------------------------
                 // Aktualizuj wierzchołki w stanie generatora
                 // -----------------------------------------------------
@@ -5800,6 +5904,14 @@
                 // Aktualizacja stanu
                 AddOrUpdateGeneratorState(cleanId, genState.Value, generator);
             }
+
+            Console.WriteLine($"═══ DIAGNOSTYKA przed sekcją 8 ═══");
+            Console.WriteLine($"   ShapeService.Shapes.Count = {ShapeService.Shapes.Count}");
+            Console.WriteLine($"   _ksztaltyNaRegion.Count = {_ksztaltyNaRegion.Count}");
+            Console.WriteLine($"   ksztalty.Count = {ksztalty.Count}");
+            Console.WriteLine($"   noweKsztalty.Count = {noweKsztalty.Count}");
+            foreach (var kvp in _ksztaltyNaRegion)
+                Console.WriteLine($"     _ksztaltyNaRegion['{kvp.Key}'] = {kvp.Value.Count} szt.");
 
             // =========================================================
             // 8. SYNCHRONIZACJA: Zamień stare kształty na nowe (ATOMOWO)
@@ -10009,7 +10121,6 @@
     /// dodanie), gdy trzeba odbudować kontury regionów wielokątnych.
     /// </summary>
     /// 
-
     private async Task RegenerujRegionyZPodzialuZachowujacId()
     {
         if (ShapeService?.Shapes == null || constWlasciwosciOkna == null)
@@ -10018,36 +10129,72 @@
         double szer = constWlasciwosciOkna.Szerokosc;
         double wys = constWlasciwosciOkna.Wysokosc;
 
-        Console.WriteLine("═══════════════════════════════════════════════");
-        Console.WriteLine($"🔄 RegenerujRegionyZPodzialuZachowujacId: {szer:F1}x{wys:F1}");
+        Console.WriteLine($"🔄 Regeneracja: {szer:F1}x{wys:F1}, shapes={ShapeService.Shapes.Count}");
 
-        var noweRama = await GeometryUtils.GenerujRegionyZPodzialu(
+        _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
             ShapeService.Shapes, szer, wys, rama: true, stareStany: _generatorStates);
-        var noweSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
+
+        _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
             ShapeService.Shapes, szer, wys, rama: false, stareStany: _generatorStates);
 
-        Console.WriteLine($"   → DualRama: {_regionsDualRama?.Count ?? 0} → {noweRama.Count}");
-        Console.WriteLine($"   → Skrzydło: {_regionsSkrzydlo?.Count ?? 0} → {noweSkrzydlo.Count}");
+        Console.WriteLine($"   → DualRama={_regionsDualRama.Count}, Skrzydlo={_regionsSkrzydlo.Count}");
 
-        _regionsDualRama = noweRama;
-        _regionsSkrzydlo = noweSkrzydlo;
-
-        // ⭐ KLUCZ: usuń osierocone stany po merge
-        WyczyscOsieroconeStany();
-
-        Console.WriteLine("═══════════════════════════════════════════════");
+        // ⭐ NIE usuwaj osieroconych — zamiast tego dodaj stany dla nowych regionów
+        DodajBrakujaceStany();
     }
+
+    /// <summary>
+    /// Dla każdego regionu bez pary w _generatorStates — twórz nowy stan.
+    /// Zapobiega "znikaniu" skrzydeł, gdy DopasujIdPoTozsamosci nie znajdzie pary
+    /// (np. po dużym przesunięciu linii, gdzie centroid starego stanu nie wpada w nowy region).
+    /// </summary>
+    private void DodajBrakujaceStany()
+    {
+        var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
+
+        foreach (var region in wszystkieRegiony)
+        {
+            if (string.IsNullOrEmpty(region.Id)) continue;
+            if (_generatorStates.ContainsKey(region.Id)) continue;
+
+            Console.WriteLine($"➕ Brakujący stan dla regionu '{region.Id}' " +
+                              $"({region.TypKsztaltu}, Rama={region.Rama})");
+
+            _generatorStates[region.Id] = new GeneratorState
+            {
+                IdRegion = region.Id,
+                IdMaster = region.IdMaster,
+                TypKsztaltu = region.TypKsztaltu,
+                Rama = region.Rama,
+                CzyElementJestRama = region.Rama,
+
+                Wierzcholki = region.Wierzcholki?
+                    .Select(p => new XPoint(p.X, p.Y)).ToList(),
+
+                Kontur = region.Kontur?
+                    .Select(s => s.Type == SegmentType.Line
+                        ? new ContourSegment(
+                            new XPoint(s.Start.X, s.Start.Y),
+                            new XPoint(s.End.X, s.End.Y))
+                        { Informacja = s.Informacja }
+                        : new ContourSegment(
+                            new XPoint(s.Start.X, s.Start.Y),
+                            new XPoint(s.End.X, s.End.Y),
+                            s.Center.HasValue ? new XPoint(s.Center.Value.X, s.Center.Value.Y) : null,
+                            s.Radius,
+                            s.CounterClockwise)
+                        { Informacja = s.Informacja })
+                    .ToList(),
+
+                ListaKwadratow = new List<DaneKwadratu>(),
+            };
+        }
+    }
+
 
     /// <summary>
     /// Usuwa z _generatorStates stany, których IdRegion nie odpowiada
     /// żadnemu regionowi w _regionsDualRama / _regionsSkrzydlo.
-    ///
-    /// Taka sytuacja występuje po MERGE (usunięcie linii dzielącej):
-    /// dwa stare stany "sklejają się" w jeden nowy region, który dziedziczy
-    /// ID jednego z nich (pierwszego w _generatorStates). Drugi stan
-    /// staje się osierocony — jego model (WybranyModel, ListaKwadratow)
-    /// jest przenoszony do zwycięzcy (jeśli to możliwe), a następnie stan
-    /// jest usuwany.
     /// </summary>
     private void WyczyscOsieroconeStany()
     {
@@ -10061,116 +10208,50 @@
                        && !istniejaceId.Contains(kvp.Value.IdRegion!))
             .ToList();
 
-        if (doUsuniecia.Count == 0)
-            return;
+        if (doUsuniecia.Count == 0) return;
 
         Console.WriteLine($"🧹 WyczyscOsieroconeStany: {doUsuniecia.Count} stanów do usunięcia");
 
         foreach (var kvp in doUsuniecia)
         {
-            var osierocony = kvp.Value;
-
-            // Znajdź nowy region, który "pochłonął" ten stan
+            // Transfer ListaKwadratow do zwycięzcy (tego, który "pochłonął" przegranego)
             var nowyRegion = _regionsDualRama.Concat(_regionsSkrzydlo)
-                .FirstOrDefault(r => CzyStanPochlonientyPrzezRegion(osierocony, r));
+                .FirstOrDefault(r => r.Wierzcholki != null && r.Wierzcholki.Count >= 3
+                    && CzyPunktWewnatrzWielokata(
+                        new XPoint(
+                            (float)kvp.Value.Wierzcholki!.Average(p => p.X),
+                            (float)kvp.Value.Wierzcholki!.Average(p => p.Y)),
+                        r.Wierzcholki));
 
             if (nowyRegion != null)
             {
-                // ⭐ Transfer danych modelu do zwycięzcy
                 var zwyciezca = _generatorStates.Values
                     .FirstOrDefault(s => s.IdRegion == nowyRegion.Id);
-
-                if (zwyciezca != null)
+                if (zwyciezca != null && kvp.Value.ListaKwadratow != null)
                 {
-                    // ListaKwadratow — dopisz brakujące (po współrzędnych)
-                    if (osierocony.ListaKwadratow != null && osierocony.ListaKwadratow.Count > 0)
-                    {
-                        zwyciezca.ListaKwadratow ??= new List<DaneKwadratu>();
-                        int dodane = 0;
-                        foreach (var kw in osierocony.ListaKwadratow)
-                        {
-                            if (!zwyciezca.ListaKwadratow.Any(z => z.Equals(kw)))
-                            {
-                                zwyciezca.ListaKwadratow.Add(kw);
-                                dodane++;
-                            }
-                        }
-                        if (dodane > 0)
-                            Console.WriteLine($"      ↪ Przeniesiono {dodane} kwadratów " +
-                                              $"'{osierocony.IdRegion}' → '{zwyciezca.IdRegion}'");
-                    }
-
-                    // Jeśli zwycięzca nie ma modelu, a osierocony ma — przejmij
-                    if (zwyciezca.WybranyModel == null && osierocony.WybranyModel != null)
-                    {
-                        zwyciezca.WybranyModel = osierocony.WybranyModel;
-                        zwyciezca.RowIdModelu = osierocony.RowIdModelu;
-                        Console.WriteLine($"      ↪ Przejęto WybranyModel " +
-                                          $"'{osierocony.IdRegion}' → '{zwyciezca.IdRegion}'");
-                    }
-
-                    Console.WriteLine($"   🗑️ Osierocony '{osierocony.IdRegion}' " +
-                                      $"pochłonięty przez '{nowyRegion.Id}' → usuwam");
-                }
-                else
-                {
-                    Console.WriteLine($"   🗑️ Osierocony '{osierocony.IdRegion}' " +
-                                      $"pochłonięty przez '{nowyRegion.Id}' (brak zwycięzcy) → usuwam");
+                    zwyciezca.ListaKwadratow ??= new List<DaneKwadratu>();
+                    foreach (var kw in kvp.Value.ListaKwadratow)
+                        if (!zwyciezca.ListaKwadratow.Contains(kw))
+                            zwyciezca.ListaKwadratow.Add(kw);
                 }
             }
-            else
-            {
-                Console.WriteLine($"   🗑️ Osierocony '{osierocony.IdRegion}' " +
-                                  $"— brak regionu zawierającego centroid → usuwam");
-            }
-
+          
+            Console.WriteLine($"   🗑️ Usuwam '{kvp.Value.IdRegion}'");
             _generatorStates.Remove(kvp.Key);
         }
     }
 
-    private static bool CzyStanPochlonientyPrzezRegion(GeneratorState stan, ShapeRegion region)
+    private static bool CzyPunktWewnatrzWielokata(XPoint p, List<XPoint> w)
     {
-        if (stan.Wierzcholki == null || stan.Wierzcholki.Count == 0) return false;
-        if (region.Wierzcholki == null || region.Wierzcholki.Count < 3) return false;
-
-        // Centroid stanu
-        double cx = stan.Wierzcholki.Average(p => p.X);
-        double cy = stan.Wierzcholki.Average(p => p.Y);
-
-        // Ray casting (wielokąt)
         bool inside = false;
-        var w = region.Wierzcholki;
         for (int i = 0, j = w.Count - 1; i < w.Count; j = i++)
         {
-            if (((w[i].Y > cy) != (w[j].Y > cy)) &&
-                (cx < (w[j].X - w[i].X) * (cy - w[i].Y) / (w[j].Y - w[i].Y) + w[i].X))
+            if (((w[i].Y > p.Y) != (w[j].Y > p.Y)) &&
+                (p.X < (w[j].X - w[i].X) * (p.Y - w[i].Y) / (w[j].Y - w[i].Y) + w[i].X))
                 inside = !inside;
         }
         return inside;
     }
-
-    private bool CzyPunktLezyNaKrawedzi(XPoint punkt, List<XPoint> wielokat)
-    {
-        const double eps = 0.001; // tolerancja błędu
-        for (int i = 0; i < wielokat.Count; i++)
-        {
-            var a = wielokat[i];
-            var b = wielokat[(i + 1) % wielokat.Count];
-
-            double cross = (punkt.Y - a.Y) * (b.X - a.X) - (punkt.X - a.X) * (b.Y - a.Y);
-            if (Math.Abs(cross) > eps) continue;
-
-            double dot = (punkt.X - a.X) * (b.X - a.X) + (punkt.Y - a.Y) * (b.Y - a.Y);
-            if (dot < 0) continue;
-
-            double squaredLen = (b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y);
-            if (dot > squaredLen) continue;
-
-            return true;
-        }
-        return false;
-    }
-
     private double Odleglosc(XPoint a, XPoint b)
     {
         return Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2));
@@ -10193,31 +10274,6 @@
         return inside;
     }
 
-    private bool CzyLiniaPrzecinaRegion(List<XPoint> linia, List<XPoint> wielokat)
-    {
-        var a = linia[0];
-        var b = linia[1];
-
-        // 1. klasyczne przecięcie
-        for (int i = 0; i < wielokat.Count; i++)
-        {
-            var c = wielokat[i];
-            var d = wielokat[(i + 1) % wielokat.Count];
-
-            if (CzyPrzecinajaSie(a, b, c, d, 0.02))
-                return true;
-        }
-
-        // 2. jeden koniec linii wewnątrz regionu
-        if (CzyPunktWNWielokacie(a, wielokat) || CzyPunktWNWielokacie(b, wielokat))
-            return true;
-
-        // 3. jeden koniec linii na krawędzi regionu
-        if (CzyPunktLezyNaKrawedzi(a, wielokat) || CzyPunktLezyNaKrawedzi(b, wielokat))
-            return true;
-
-        return false;
-    }
 
     private bool PunktNaOdcinku(XPoint p, XPoint a, XPoint b)
     {

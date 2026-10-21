@@ -1635,5 +1635,85 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             await Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Skaluje WSZYSTKIE shapes do nowych wymiarów, używając STARYCH wymiarów
+        /// jako bazy proporcji (a nie aktualnego bboxa).
+        ///
+        /// Różnica względem SkalujShapesDoWymiarowRozciagajac:
+        ///   • tamta bierze GetBoundingBox() z aktualnego stanu shapes
+        ///     → jeśli rama ma już Szerokosc=2500, to bbox=2500 i scaleX=1 → nic nie skaluje
+        ///   • ta bierze jawne stare wymiary (1250) i skaluje proporcjonalnie
+        ///     → linia X=500 * (2500/1250) = X=1000, niezależnie od Szerokosc ramy
+        ///
+        /// Explicit obsługuje XLineShape (skaluje X1/X2/Y1/Y2), bo Transform
+        /// dla XLineShape może nie aktualizować tych pól (tylko Points).
+        /// </summary>
+        public static void SkalujShapesDoWymiarowRozciagajacZeStarymiWymiarami(
+            List<IShapeDC> shapes,
+            double staraSzerokosc,
+            double staraWysokosc,
+            double nowaSzerokosc,
+            double nowaWysokosc)
+        {
+            if (shapes == null || !shapes.Any())
+            {
+                Console.WriteLine("⚠️ SkalujShapesZeStarymiWymiarami: brak shapes");
+                return;
+            }
+
+            if (staraSzerokosc <= 0.01 || staraWysokosc <= 0.01)
+            {
+                Console.WriteLine($"⚠️ SkalujShapesZeStarymiWymiarami: nieprawidłowe stare wymiary " +
+                                  $"({staraSzerokosc}x{staraWysokosc}) — fallback na aktualne");
+                SkalujShapesDoWymiarowRozciagajac(shapes, nowaSzerokosc, nowaWysokosc);
+                return;
+            }
+
+            double scaleX = nowaSzerokosc / staraSzerokosc;
+            double scaleY = nowaWysokosc / staraWysokosc;
+
+            Console.WriteLine($"📐 SkalujShapesZeStarymiWymiarami: " +
+                              $"{staraSzerokosc:F1}x{staraWysokosc:F1} → {nowaSzerokosc:F1}x{nowaWysokosc:F1} " +
+                              $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
+
+            int zmienioneLinie = 0;
+            int zmienioneInne = 0;
+
+            foreach (var shape in shapes)
+            {
+                if (shape == null) continue;
+
+                if (shape is XLineShape line)
+                {
+                    // ⭐ Explicit: skaluj X1/Y1/X2/Y2 proporcjonalnie od (0,0)
+                    Console.WriteLine($"   🔵 PRZED LINE {line.ID?.Substring(0, Math.Min(8, line.ID?.Length ?? 0))}: " +
+                                      $"({line.X1:F2};{line.Y1:F2}) → ({line.X2:F2};{line.Y2:F2})");
+
+                    line.X1 *= scaleX;
+                    line.Y1 *= scaleY;
+                    line.X2 *= scaleX;
+                    line.Y2 *= scaleY;
+
+                    Console.WriteLine($"   🔴 PO LINE {line.ID?.Substring(0, Math.Min(8, line.ID?.Length ?? 0))}: " +
+                                      $"({line.X1:F2};{line.Y1:F2}) → ({line.X2:F2};{line.Y2:F2})");
+
+                    line.Szerokosc = nowaSzerokosc;
+                    line.Wysokosc = nowaWysokosc;
+                    zmienioneLinie++;
+                }
+                else
+                {
+                    // ⭐ Inne shapes: Transform + explicit Szerokosc/Wysokosc
+                    shape.Transform(scaleX, scaleY, 0, 0);
+                    shape.Szerokosc = nowaSzerokosc;
+                    shape.Wysokosc = nowaWysokosc;
+                    zmienioneInne++;
+                }
+            }
+
+            Console.WriteLine($"✅ SkalujShapesZeStarymiWymiarami: " +
+                              $"linii={zmienioneLinie}, innych={zmienioneInne}");
+        }
+
     }
 }
