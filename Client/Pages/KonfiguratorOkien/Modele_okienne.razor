@@ -3225,6 +3225,11 @@
         {
             _czekajNaZaladowanie = false;
             _czekajNaZmianeRozmiaru = false;
+
+            // Zmiana wymiarów aktualizuje dane, lecz OnlyRestrykcje nie rysuje
+            // canvasa. Odświeżamy dopiero po zwolnieniu flagi, bo RenderFrame
+            // celowo nic nie robi, gdy _czekajNaZmianeRozmiaru == true.
+            await ApplyZoom();
         }
     }
 
@@ -4850,32 +4855,15 @@
                     nowaSzer,
                     nowaWys);
 
-                Console.WriteLine($"🔍 Stany przed generowaniem regionów:");
-                foreach (var kvp in _generatorStates)
-                {
-                    Console.WriteLine($"   Klucz: {kvp.Key}");
-                    Console.WriteLine($"     IdRegion: {kvp.Value.IdRegion}");
-                    Console.WriteLine($"     Typ: {kvp.Value.WybranyModel?.Typ}");
-                }
+                OgraniczLinieDoGabarytuOkna(nowaSzer, nowaWys);
+                OgraniczRegionyDoGabarytuOkna(_regionsDualRama, nowaSzer, nowaWys);
+                OgraniczRegionyDoGabarytuOkna(_regionsSkrzydlo, nowaSzer, nowaWys);
 
-                await GenerujObrysPozZmianieWymiarow(
-                    true,
-                    false, true, skalujRozciagajac: true);
-
-
-                // =========================================================
-                // AKTUALIZACJA DANYCH
-                // =========================================================
-
-                // UWAGA:
-                // Ta metoda nie może pomijać pracy tylko dlatego,
-                // że _zmienWymiaryWToku == true.
-                // Jeśli ma taki warunek, należy wywołać jej
-                // wewnętrzną metodę roboczą bez tego warunku.
-
-                _zmienWymiaryWToku = false;
-
-                await ZmienWymiaryOkna(wymusWysrodkowanie: true);
+                // SkalujWszystkoWMiejscu już zaktualizowało shapes, regiony oraz
+                // stany generatorów. Nie regenerujemy tu obrysu: regeneracja
+                // uruchamia automatyczne rozstawianie/rozciąganie linii, przez co
+                // odcinki styczne do poziomego podziału stawały się pełną pionową.
+                Console.WriteLine("✅ Zmiana gabarytu: zachowano przeskalowaną geometrię regionów bez ponownego rozstawiania linii.");
 
             }
             // =========================================================
@@ -4940,6 +4928,7 @@
         }
         finally
         {
+            _zmienWymiaryWToku = false;
             Console.WriteLine("✅ ZmienWymiaryOknaRecznie zakończone");
             _zmienWymiarySemaphore.Release();
         }
@@ -4959,6 +4948,58 @@
             if (region.Kontur != null)
                 region.Kontur = region.Kontur
                     .Select(s => SkalujSegment(s, scaleX, scaleY)).ToList();
+        }
+    }
+
+    /// <summary>
+    /// Końcowe zabezpieczenie po zmianie gabarytu. Linia podziału nie może
+    /// wystawać poza ramę nawet wtedy, gdy wcześniejszy przebieg pozostawił
+    /// w pamięci błędny koniec (np. X=1429 dla ramy szerokości 1250).
+    /// </summary>
+    private void OgraniczLinieDoGabarytuOkna(double szerokosc, double wysokosc)
+    {
+        foreach (var line in ShapeService.Shapes.OfType<XLineShape>())
+        {
+            double x1 = Math.Clamp(line.X1, 0, szerokosc);
+            double y1 = Math.Clamp(line.Y1, 0, wysokosc);
+            double x2 = Math.Clamp(line.X2, 0, szerokosc);
+            double y2 = Math.Clamp(line.Y2, 0, wysokosc);
+
+            if (Math.Abs(x1 - line.X1) > 0.001 || Math.Abs(y1 - line.Y1) > 0.001 ||
+                Math.Abs(x2 - line.X2) > 0.001 || Math.Abs(y2 - line.Y2) > 0.001)
+            {
+                Console.WriteLine($"⚠️ Przycięto linię {line.ID}: " +
+                    $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1}) do gabarytu {szerokosc:F1}x{wysokosc:F1}");
+                line.UpdatePoints(new List<XPoint> { new(x1, y1), new(x2, y2) });
+            }
+        }
+    }
+
+    private static void OgraniczRegionyDoGabarytuOkna(
+        IEnumerable<ShapeRegion> regiony, double szerokosc, double wysokosc)
+    {
+        foreach (var region in regiony)
+        {
+            if (region.Wierzcholki != null)
+                region.Wierzcholki = region.Wierzcholki
+                    .Select(p => new XPoint(
+                        Math.Clamp(p.X, 0, szerokosc),
+                        Math.Clamp(p.Y, 0, wysokosc)))
+                    .ToList();
+
+            if (region.Kontur != null)
+                region.Kontur = region.Kontur
+                    .Select(s =>
+                    {
+                        var start = new XPoint(Math.Clamp(s.Start.X, 0, szerokosc), Math.Clamp(s.Start.Y, 0, wysokosc));
+                        var end = new XPoint(Math.Clamp(s.End.X, 0, szerokosc), Math.Clamp(s.End.Y, 0, wysokosc));
+                        return s.Type == SegmentType.Arc && s.Center.HasValue
+                            ? new ContourSegment(start, end,
+                                new XPoint(Math.Clamp(s.Center.Value.X, 0, szerokosc), Math.Clamp(s.Center.Value.Y, 0, wysokosc)),
+                                s.Radius, s.CounterClockwise) { Informacja = s.Informacja }
+                            : new ContourSegment(start, end) { Informacja = s.Informacja };
+                    })
+                    .ToList();
         }
     }
 
@@ -5072,8 +5113,18 @@
         Console.WriteLine($"📐 SkalujWszystkoWMiejscu: {staraSzer:F1}x{staraWys:F1} → {nowaSzer:F1}x{nowaWys:F1} " +
                           $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
 
-        // 1. Skaluj shapes (kształty + linie)
-        LineUtils.SkalujShapesDoWymiarowRozciagajac(ShapeService.Shapes, nowaSzer, nowaWys);
+        // 1. Model po UpdateEditableProperty ma już przeskalowaną ramę. Nie wolno
+        // transformować całej listy Shapes, bo wtedy szerokość ramy jest liczona
+        // drugi raz (np. 1250 → 2500 → 5000). Końce linii podziału nie są jednak
+        // aktualizowane przez zmianę gabarytu, więc skalujemy tylko ich geometrię.
+        foreach (var line in ShapeService.Shapes.OfType<XLineShape>())
+        {
+            line.UpdatePoints(new List<XPoint>
+            {
+                new(line.X1 * scaleX, line.Y1 * scaleY),
+                new(line.X2 * scaleX, line.Y2 * scaleY)
+            });
+        }
         await Task.Yield();
 
         // 2. Skaluj regiony w miejscu (Id zachowane)
@@ -5092,8 +5143,10 @@
         _staraSzerokoscPrzedZmiana = nowaSzer;
         _staraWysokoscPrzedZmiana = nowaWys;
 
-        // 6. Odtwórz ElementyRamyRysowane dla każdego stanu (na tych samych regionach)
-        await PrzeliczElementyRamyDlaStanow(nowaSzer, nowaWys);
+        // 6. ElementyRamyRysowane zostały przeskalowane w SkalujStanyWMiejscu.
+        // Nie wywołujemy tutaj AddElements ponownie: dla odcinków linii generator
+        // potrafi użyć konturu nadrzędnego i narysować słupek na pełną wysokość,
+        // mimo że region jest tylko górnym albo dolnym odcinkiem.
 
         Console.WriteLine("✅ SkalujWszystkoWMiejscu zakończone");
     }

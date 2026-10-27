@@ -979,6 +979,16 @@ else
         if (Model?.EditableProperties == null || Model.EditableProperties.Count == 0)
             return;
 
+        // Rozstawianie ma zmieniać wyłącznie położenie na osi. Zapamiętujemy
+        // rzeczywiste zakresy pionowych odcinków po ID, ponieważ SplitGroupId
+        // może obejmować więcej niż jeden odcinek i późniejsza synchronizacja
+        // grupy potrafiła zastąpić ich Y1/Y2 zakresem całej ramy.
+        var zakresyPionowePrzedRozstawieniem = !rozciagnijLinie
+            ? ShapeService.Shapes.OfType<XLineShape>()
+                .Where(l => Math.Abs(l.X1 - l.X2) < 0.001)
+                .ToDictionary(l => l.ID, l => (l.Y1, l.Y2))
+            : new Dictionary<string, (double Y1, double Y2)>();
+
         Console.WriteLine($"📐 PodzielLinie: START, Szerokosc={Model.Szerokosc}, Wysokosc={Model.Wysokosc}");
 
         // ─────────────────────────────────────────────────────────────
@@ -1128,11 +1138,16 @@ else
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 5. ⭐ PROPAGACJA STYCZNOŚCI — pionowe końce dopasowują się do poziomych
+        // 5. Styczność zmieniamy tylko w trybie jawnego rozciągania.
+        // Zwykłe „Rozstaw pionowe/poziome” ma zmienić wyłącznie pozycję
+        // na osi, bez zamiany krótkich odcinków w linie na całą wysokość.
         // ─────────────────────────────────────────────────────────────
-        PropagujStycznoscPionowychDoPoziomych(
-            grupyPionowe,
-            grupyPoziome);
+        if (rozciagnijLinie)
+        {
+            PropagujStycznoscPionowychDoPoziomych(
+                grupyPionowe,
+                grupyPoziome);
+        }
 
         // ─────────────────────────────────────────────────────────────
         // 6. Napraw zdegenerowane linie (punkty → odcinki)
@@ -1145,6 +1160,35 @@ else
 
             await LineUtils.ExtendOrShortenLinesWithTangencyAsync(ShapeService.Shapes, 0.5);
             await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
+        }
+
+        if (!rozciagnijLinie)
+        {
+            foreach (var line in ShapeService.Shapes.OfType<XLineShape>())
+            {
+                if (!zakresyPionowePrzedRozstawieniem.TryGetValue(line.ID, out var zakres))
+                    continue;
+
+                // Najpierw przywróć wartości modelu, aby zapis do rodzica nie
+                // odtworzył błędnego zakresu z całej ramy.
+                foreach (var (index, prop) in Model.EditableProperties.Select((p, i) => (i, p))
+                    .Where(x => x.p.ShapeId == line.ID && x.p.IsPionowa))
+                {
+                    var label = prop.Label?.ToLowerInvariant() ?? string.Empty;
+                    if (label.StartsWith("y1") || label.Contains("w osi y1"))
+                        Model.UpdateEditableProperty(index, zakres.Y1);
+                    else if (label.StartsWith("y2") || label.Contains("w osi y2"))
+                        Model.UpdateEditableProperty(index, zakres.Y2);
+                }
+
+                // Setter właściwości może zmodyfikować line w trakcie pętli;
+                // końcowe UpdatePoints jest źródłem prawdy dla canvasa.
+                line.UpdatePoints(new List<XPoint>
+                {
+                    new(line.X1, zakres.Y1),
+                    new(line.X2, zakres.Y2)
+                });
+            }
         }
 
         if (!ustawTylkoLinie)
