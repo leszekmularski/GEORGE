@@ -471,6 +471,16 @@
                                             Pobierz
                                         </Button>
 
+                                        <Button Type="@ButtonType.Primary"
+                                                Block
+                                                Icon="@IconType.Outline.AccountBook"
+                                                Loading="_whereUsedVisible"
+                                                Style="background-color: brown; color: white;"
+                                                Disabled="@(drzwi.RowIdPliku == Guid.Empty)"
+                                                OnClick="() => WhereWasItUsed(drzwi.RowIdPliku.ToString())">
+                                            W którym projekcie wykorzystano
+                                        </Button>
+
                                         @if (boolZmiana || boolAdmin)
                                         {
                                             <Tooltip Title="Edytuj">
@@ -745,6 +755,15 @@
                         <div class="mt-3">
                             <Tag Color="blue">RowId: @edytowaneDrzwi.RowIdPliku</Tag>
                         </div>
+                        <Button Type="@ButtonType.Primary"
+                                Block
+                                Icon="@IconType.Outline.AccountBook"
+                                Loading="_whereUsedVisible"
+                                Style="background-color: brown; color: white;"
+                                Disabled="@(edytowaneDrzwi.RowIdPliku == Guid.Empty)"
+                                OnClick="() => WhereWasItUsed(edytowaneDrzwi.RowIdPliku.ToString())">
+                            W którym projekcie wykorzystano wybrany plik
+                        </Button>
                     }
                 </Card>
 
@@ -803,11 +822,53 @@
 </Modal>
 
 
+<Modal Title="Gdzie wykorzystano plik"
+       Visible="@_whereUsedVisible"
+       OnOk="@HandleWhereUsedOk"
+       OnCancel="@HandleWhereUsedCancel"
+       Width="@("60%")"
+       Centered="true"
+       Maximizable="true">
+
+    @if (_whereUsedList.Count == 0)
+    {
+        <p>Nie znaleziono powiązanych zamówień.</p>
+    }
+    else
+    {
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Numer zamówienia</th>
+                    <th>Klient</th>
+                    <th>Data zapisu</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var z in _whereUsedList)
+                {
+                    <tr>
+                        <td>@z.NumerZamowienia</td>
+                        <td>@z.Klient</td>
+                        <td>@z.DataZapisu.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</Modal>
+
+
+
 @code {
 
     [Inject] private AppState AppState { get; set; } = default!;
 
     string activeKey { get; set; } = "101";
+
+    private bool _whereUsedVisible = false;
+
+    List<ZleceniaProdukcyjneWew> _whereUsedList = new List<ZleceniaProdukcyjneWew>();
 
     private BECanvasComponent? canvasReference;
     private Canvas2DContext? context;
@@ -915,6 +976,52 @@
 
         }
     }
+
+    private void HandleWhereUsedOk() => _whereUsedVisible = false;
+    private void HandleWhereUsedCancel() => _whereUsedVisible = false;
+
+    private async Task WhereWasItUsed(string rowIdPliku)
+    {
+
+        if (_whereUsedVisible) return;
+
+        if (string.IsNullOrEmpty(rowIdPliku) || pliki == null)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Uwaga!!!!",
+                Description = "Zamówienie nie posiada załączonego pliku!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var rowIdZlec = pliki.FirstOrDefault(p => p.RowId == rowIdPliku)?.RowIdZleceniaProdukcyjne;
+
+        if (string.IsNullOrEmpty(rowIdZlec))
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Uwaga!!!!",
+                Description = "Nie wyszukano zlecenia!!!",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+
+        var zleceniaProdukcyjneWew = await Http
+            .GetFromJsonAsync<List<ZleceniaProdukcyjneWew>>($"api/ZleceniaProdukcyjneWew/find-rowid/{rowIdZlec}");
+
+        _whereUsedList = zleceniaProdukcyjneWew?
+            .Where(z => z.RowId == rowIdZlec)
+            .ToList() ?? new List<ZleceniaProdukcyjneWew>();
+
+        _whereUsedVisible = true;
+
+        StateHasChanged();
+
+    }
+
 
     private async Task DrawShapes()
     {

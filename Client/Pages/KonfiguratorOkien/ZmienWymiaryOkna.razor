@@ -67,7 +67,9 @@ else
                                                                     // ⭐ Skaluj shapes ze starych wymiarów
                                                                     if (1 > 3)
                                                                         LineUtils.SkalujShapesDoWymiarowRozciagajacZeStarymiWymiarami(
-                                                            ShapeService.Shapes, staraSzer, staraWys, nowaSzer, nowaWys);
+                                                                        ShapeService.Shapes, staraSzer, staraWys, nowaSzer, nowaWys);
+
+                                                             
 
                                                                     await PodzielLinieSymetrycznieAsync(
                                                                         ustawTylkoLinie: true,
@@ -181,9 +183,9 @@ else
                                               Icon="pic-center"
                                               Size="small"
                                               OnClick="@(() => PodzielLinieSymetrycznieAsync(
-                                                                                                                                              false,
-                                                                                                                                              pionowe: true,
-                                                                                                                                              poziome: false))">
+                                                false,
+                                                pionowe: true,
+                                                poziome: false))">
                     Rozstaw pionowe
                 </AntDesign.Button>
             </div>
@@ -237,7 +239,7 @@ else
 
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                                                        ValueChanged="@(async (double value) =>
-                                                                                                                                               await HandleLiniaPionowaChange(index, value))"
+                                                  await HandleLiniaPionowaChange(index, value))"
                                                    Style="flex: 1; min-width: 90px; height: 32px;" />
                         </div>
                                                 }
@@ -360,7 +362,7 @@ else
 
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                                                        ValueChanged="@(async (double value) =>
-                                                                                                                                                                                                      await HandleLiniaPoziomaChange(index, value))"
+                                                     await HandleLiniaPoziomaChange(index, value))"
                                                    Style="flex: 1; min-width: 90px; height: 32px;" />
                         </div>
                                                 }
@@ -469,7 +471,7 @@ else
 
                                                 <AntDesign.InputNumber Value="@Model.GetPropertyValue(index)"
                                                                        ValueChanged="@(async (double value) =>
-                                                                                                                                                                                                      await HandleLiniaSkosnaChange(index, value))"
+                                                        await HandleLiniaSkosnaChange(index, value))"
                                                    Style="flex: 1; min-width: 90px; height: 32px;" />
                         </div>
                                                 }

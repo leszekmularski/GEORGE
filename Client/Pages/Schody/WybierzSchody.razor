@@ -658,6 +658,15 @@
                         <div class="mt-3">
                             <Tag Color="blue">RowId: @edytowaneSchody.RowIdPliku, @(przefiltrowanePliki.FirstOrDefault(x => x.RowId == edytowaneSchody.RowIdPliku.ToString())?.OryginalnaNazwaPliku)</Tag>
                         </div>
+                        <Button Type="@ButtonType.Primary"
+                                Block
+                                Icon="@IconType.Outline.AccountBook"
+                                Loading="_whereUsedVisible"
+                                Style="background-color: brown; color: white;"
+                                Disabled="@(edytowaneSchody.RowIdPliku == Guid.Empty)"
+                                OnClick="() => WhereWasItUsed(edytowaneSchody.RowIdPliku.ToString())">
+                            W którym projekcie wykorzystano wybrany plik
+                        </Button>
                     }
                 </Card>
 
