@@ -17,6 +17,7 @@
 @inject NavigationManager Navigation
 @inject NavigationManager NavigationManager
 @inject ShapeTransferService ShapeService
+@inject ILogger<Modele_okienne> _logger
 
 @using System.IO;
 @using SixLabors.ImageSharp;
@@ -1189,10 +1190,10 @@
                     <Tabs>
                         <TabPane Tab="Ramy połączone">
                             <div>
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format) - ramy
                                 </button>
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format) - ramy
                                 </button>
                             </div>
@@ -1315,10 +1316,10 @@
                         </TabPane>
                         <TabPane Tab="Podział skrzydeł">
                             <div>
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, false))">
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, false))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format) - skrzydła
                                 </button>
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, true))">
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, true))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format) - skrzydła
                                 </button>
                             </div>
@@ -1488,10 +1489,10 @@
                     <Tabs>
                         <TabPane Tab="Ramy połączone">
                             <div>               
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">                   
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, false))">                   
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format) - ramy               
                                 </button>               
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">                   
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsDualRama, true))">                   
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format) - ramy               
                                 </button>           
                             </div>
@@ -1615,10 +1616,10 @@
                         </TabPane>
                         <TabPane Tab="Podział skrzydeł">
                             <div>
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, false))">
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, false))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu (prosty format) - skrzydła
                                 </button>
-                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.8rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, true))">
+                                <button class="btn btn-sm btn-secondary mb-3 ms-2" style="font-size: 0.6rem;" @onclick="@(() => KopiujDaneRegionowRamyLubSkrzydla(_regionsSkrzydlo, true))">
                                     <i class="bi bi-clipboard me-1"></i> Kopiuj dane regionu tylko kształty (prosty format) - skrzydła
                                 </button>
                             </div>
@@ -1932,7 +1933,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Console.WriteLine($"🔥🔥🔥🔥🔥🔥🔥 Modele-okienne OnInitializedAsync 🔥🔥🔥🔥🔥🔥🔥🔥");
+        _logger.LogDebug($"🔥🔥🔥🔥🔥🔥🔥 Modele-okienne OnInitializedAsync 🔥🔥🔥🔥🔥🔥🔥🔥");
 
         try
         {
@@ -1956,8 +1957,8 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd podczas inicjalizacji: {ex.Message}");
-            Console.WriteLine($"🔥 Stack trace: {ex.StackTrace}");
+            _logger.LogDebug($"🔥 Błąd podczas inicjalizacji: {ex.Message}");
+            _logger.LogDebug($"🔥 Stack trace: {ex.StackTrace}");
         }
     }
 
@@ -1969,7 +1970,7 @@
         {
             try
             {
-                Console.WriteLine("🔄 Inicjalizacja canvasu...");
+                _logger.LogDebug("🔄 Inicjalizacja canvasu...");
 
                 await Task.Delay(50);
 
@@ -2030,7 +2031,7 @@
                 }
                 else
                 {
-                    Console.WriteLine("⚠️ Brak kształtów do wyświetlenia na canvasie.");
+                    _logger.LogDebug("⚠️ Brak kształtów do wyświetlenia na canvasie.");
                     constWlasciwosciOkna.EditableProperties = new List<EditableProperty>();
                 }
 
@@ -2038,12 +2039,12 @@
 
                 _isInitialized = true;
 
-                Console.WriteLine("✅ Canvas zainicjalizowany!");
+                _logger.LogDebug("✅ Canvas zainicjalizowany!");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"🔥 Błąd inicjalizacji canvasu: {ex.Message}");
-                Console.WriteLine($"🔥 Stack trace: {ex.StackTrace}");
+                _logger.LogDebug($"🔥 Błąd inicjalizacji canvasu: {ex.Message}");
+                _logger.LogDebug($"🔥 Stack trace: {ex.StackTrace}");
                 hasCanvasError = true;
                 StateHasChanged();
             }
@@ -2057,7 +2058,7 @@
         {
             //
 
-            Console.WriteLine($"🔄 Ładuję modele dla systemu: {SelectedSystemId}");
+            _logger.LogDebug($"🔄 Ładuję modele dla systemu: {SelectedSystemId}");
 
             // Najpierw załaduj konfigurację systemu
             if (KonfiguracjeSystemu == null || !KonfiguracjeSystemu.Any())
@@ -2069,7 +2070,7 @@
             if (ListaModeli == null || !ListaModeli.Any())
             {
                 ListaModeli = await Http.GetFromJsonAsync<List<KonfModele>>($"api/konfmodele/FIND_ONLY_TRUE/{SelectedSystemId}");
-                //Console.WriteLine($"✅ Załadowano {ListaModeli?.Count ?? 0} modeli");
+                //_logger.LogDebug($"✅ Załadowano {ListaModeli?.Count ?? 0} modeli");
             }
         }
 
@@ -2080,7 +2081,7 @@
 
     private async Task OnRadioValueChanged()
     {
-        Console.WriteLine($"Ręcznie wybrano: {radioValueSelect}");
+        _logger.LogDebug($"Ręcznie wybrano: {radioValueSelect}");
 
         StateHasChanged();
 
@@ -2103,7 +2104,7 @@
             radioValueSelect = "Rama";
         }
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"Liczba ram: {liczbaRam}, wybrano: {radioValueSelect}");
     }
 
@@ -2128,7 +2129,7 @@
     {
         try
         {
-            Console.WriteLine("⚠️ UpdateCanvasSizeFromDisplayWindow - START");
+            _logger.LogDebug("⚠️ UpdateCanvasSizeFromDisplayWindow - START");
 
             var displayWindowSize = await JS.InvokeAsync<double[]>("getDisplayWindowSize");
             if (displayWindowSize != null && displayWindowSize.Length == 2)
@@ -2142,7 +2143,7 @@
                     CanvasWidth = newWidth;
                     CanvasHeight = newHeight;
 
-                    // Console.WriteLine($"📐 Rozmiar .display-window: {CanvasWidth}x{CanvasHeight}");
+                    // _logger.LogDebug($"📐 Rozmiar .display-window: {CanvasWidth}x{CanvasHeight}");
 
                     // // Aktualizuj środek zoomu
                     // _zoomCenterX = CanvasWidth / 2.0;
@@ -2153,19 +2154,19 @@
             }
             else
             {
-                Console.WriteLine("⚠️ Nie udało się pobrać rozmiaru .display-window");
+                _logger.LogDebug("⚠️ Nie udało się pobrać rozmiaru .display-window");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Błąd pobierania rozmiaru: {ex.Message}");
+            _logger.LogDebug($"⚠️ Błąd pobierania rozmiaru: {ex.Message}");
         }
     }
 
     // Rozpocznij obserwację zmiany rozmiaru
     private async Task StartResizeObserver()
     {
-        Console.WriteLine("⚠️ StartResizeObserver - START");
+        _logger.LogDebug("⚠️ StartResizeObserver - START");
 
         try
         {
@@ -2173,11 +2174,11 @@
                 "observeDisplayWindowResize",
                 DotNetObjectReference.Create(this)
             );
-            Console.WriteLine("👀 Rozpoczęto obserwację zmiany rozmiaru");
+            _logger.LogDebug("👀 Rozpoczęto obserwację zmiany rozmiaru");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Nie udało się uruchomić obserwacji rozmiaru: {ex.Message}");
+            _logger.LogDebug($"⚠️ Nie udało się uruchomić obserwacji rozmiaru: {ex.Message}");
         }
     }
 
@@ -2204,7 +2205,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Błąd obsługi zmiany rozmiaru: {ex.Message}");
+            _logger.LogDebug($"⚠️ Błąd obsługi zmiany rozmiaru: {ex.Message}");
         }
         finally
         {
@@ -2215,7 +2216,7 @@
     private async Task FitShapesToDisplayWindow()
     {
 
-        Console.WriteLine("⚠️ FitShapesToDisplayWindow - START");
+        _logger.LogDebug("⚠️ FitShapesToDisplayWindow - START");
 
         if (ShapeService == null || !ShapeService.Shapes.Any())
             return;
@@ -2223,13 +2224,13 @@
         try
         {
 
-            Console.WriteLine($"📏 Dostosowywanie kształtów do okna: {CanvasWidth}x{CanvasHeight}");
+            _logger.LogDebug($"📏 Dostosowywanie kształtów do okna: {CanvasWidth}x{CanvasHeight}");
 
             // 6. Przesuń kształty (zapisz offset dla późniejszych obliczeń)
             _offsetX = 0; //ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
             _offsetY = 0;//ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
 
-            Console.WriteLine($"🎯 Offset: X={_offsetX:F0}, Y={_offsetY:F0}");
+            _logger.LogDebug($"🎯 Offset: X={_offsetX:F0}, Y={_offsetY:F0}");
 
             // 7. Zapisz region i odśwież
             // await ZapiszRegion();
@@ -2238,11 +2239,11 @@
 
             // StateHasChanged();
 
-            Console.WriteLine($"✅ Kształty dopasowane. Skala: {_aktywnaSkala:F3}");
+            _logger.LogDebug($"✅ Kształty dopasowane. Skala: {_aktywnaSkala:F3}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Błąd skalowania kształtów: {ex.Message}");
+            _logger.LogDebug($"⚠️ Błąd skalowania kształtów: {ex.Message}");
         }
 
     }
@@ -2257,7 +2258,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Błąd zatrzymania obserwacji: {ex.Message}");
+                _logger.LogDebug($"⚠️ Błąd zatrzymania obserwacji: {ex.Message}");
             }
         }
 
@@ -2274,17 +2275,17 @@
 {
     if (ShapeService == null || !ShapeService.Shapes.Any())
     {
-        Console.WriteLine("⚠ GenerujObrysPozZmianieWymiarow: Brak kształtów");
+        _logger.LogDebug("⚠ GenerujObrysPozZmianieWymiarow: Brak kształtów");
         return;
     }
 
-    Console.WriteLine("═══════════════════════════════════════════════");
-    Console.WriteLine("🔎 LINIE NA WEJŚCIU DO GenerujObrysPozZmianieWymiarow");
-    Console.WriteLine($"Shapes count = {ShapeService.Shapes.Count}");
+    _logger.LogDebug("═══════════════════════════════════════════════");
+    _logger.LogDebug("🔎 LINIE NA WEJŚCIU DO GenerujObrysPozZmianieWymiarow");
+    _logger.LogDebug($"Shapes count = {ShapeService.Shapes.Count}");
 
     foreach (var l in ShapeService.Shapes.OfType<XLineShape>())
     {
-        Console.WriteLine(
+        _logger.LogDebug(
             $"Line ID={l.ID.Substring(0, Math.Min(8, l.ID.Length))} " +
             $"({l.X1:F2},{l.Y1:F2}) → ({l.X2:F2},{l.Y2:F2}) " +
             $"Ruchomy={l.RuchomySlupek} " +
@@ -2293,7 +2294,7 @@
             $"SplitGroupId={l.SplitGroupId}");
     }
 
-    Console.WriteLine("═══════════════════════════════════════════════");
+    _logger.LogDebug("═══════════════════════════════════════════════");
 
     try
     {
@@ -2311,7 +2312,7 @@
             double nowaSzer = constWlasciwosciOkna.Szerokosc;
             double nowaWys = constWlasciwosciOkna.Wysokosc;
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"📐 GenerujObrys: SKALUJĘ {staraSzer:F1}x{staraWys:F1} → " +
                 $"{nowaSzer:F1}x{nowaWys:F1} (recznaZmiana={recznaZmiana})");
 
@@ -2340,11 +2341,11 @@
                     ShapeService.Shapes,
                     recznaZmiana: false,
                     wymusWysrodkowanie: true);
-                Console.WriteLine("📏 DistributeLines linie wymusWysrodkowanie: true");
+                _logger.LogDebug("📏 DistributeLines linie wymusWysrodkowanie: true");
             }
             else
             {
-                Console.WriteLine("⏭️ Pomijam wyśrodkowanie (recznaZmiana = true)");
+                _logger.LogDebug("⏭️ Pomijam wyśrodkowanie (recznaZmiana = true)");
             }
 
             await Task.Yield();
@@ -2358,14 +2359,14 @@
                 await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
             }
 
-            Console.WriteLine("══════════ LINIE PO EXTEND / SHORTEN ══════════");
+            _logger.LogDebug("══════════ LINIE PO EXTEND / SHORTEN ══════════");
             foreach (var l in ShapeService.Shapes.OfType<XLineShape>())
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"Line ID={l.ID.Substring(0, Math.Min(8, l.ID.Length))} " +
                     $"({l.X1:F2};{l.Y1:F2}) → ({l.X2:F2};{l.Y2:F2})");
             }
-            Console.WriteLine("══════════════════════════════════════════════");
+            _logger.LogDebug("══════════════════════════════════════════════");
 
             await Task.Yield();
 
@@ -2390,15 +2391,15 @@
             foreach (var r in _regionsDualRama)
             {
                 if (r.Wierzcholki == null || r.Wierzcholki.Count < 2)
-                    Console.WriteLine($"⚠️ Region RAMA {r.Id} ({r.TypKsztaltu}): Wierzcholki={r.Wierzcholki?.Count ?? 0}");
+                    _logger.LogDebug($"⚠️ Region RAMA {r.Id} ({r.TypKsztaltu}): Wierzcholki={r.Wierzcholki?.Count ?? 0}");
                 if (r.Kontur == null || r.Kontur.Count < 1)
-                    Console.WriteLine($"⚠️ Region RAMA {r.Id} ({r.TypKsztaltu}): Kontur={r.Kontur?.Count ?? 0}");
+                    _logger.LogDebug($"⚠️ Region RAMA {r.Id} ({r.TypKsztaltu}): Kontur={r.Kontur?.Count ?? 0}");
             }
 
             foreach (var r in _regionsSkrzydlo)
             {
                 if (r.Wierzcholki == null || r.Wierzcholki.Count < 2)
-                    Console.WriteLine($"⚠️ Region SKRZYDŁO {r.Id} ({r.TypKsztaltu}): Wierzcholki={r.Wierzcholki?.Count ?? 0}");
+                    _logger.LogDebug($"⚠️ Region SKRZYDŁO {r.Id} ({r.TypKsztaltu}): Wierzcholki={r.Wierzcholki?.Count ?? 0}");
             }
         }
         else
@@ -2410,7 +2411,7 @@
                     ShapeService.Shapes,
                     recznaZmiana: false,
                     wymusWysrodkowanie: false);
-                Console.WriteLine("📏 DistributeLines linie wymusWysrodkowanie: false");
+                _logger.LogDebug("📏 DistributeLines linie wymusWysrodkowanie: false");
             }
 
             if (!nieZmienajLinii)
@@ -2419,21 +2420,21 @@
                 await LineUtils.ShortenLinesInsideShapes(ShapeService.Shapes, 1);
             }
 
-            Console.WriteLine("══════════ LINIE PO EXTEND / SHORTEN ══════════");
+            _logger.LogDebug("══════════ LINIE PO EXTEND / SHORTEN ══════════");
             foreach (var l in ShapeService.Shapes.OfType<XLineShape>())
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"Line ID={l.ID.Substring(0, Math.Min(8, l.ID.Length))} " +
                     $"({l.X1:F2},{l.Y1:F2}) → ({l.X2:F2},{l.Y2:F2})");
             }
-            Console.WriteLine("══════════════════════════════════════════════");
+            _logger.LogDebug("══════════════════════════════════════════════");
         }
 
-        Console.WriteLine("✅ Generowanie obrysu zakończone");
+        _logger.LogDebug("✅ Generowanie obrysu zakończone");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"🔥 Błąd generowania obrysu: {ex.Message}\n{ex.StackTrace}");
+        _logger.LogDebug($"🔥 Błąd generowania obrysu: {ex.Message}\n{ex.StackTrace}");
     }
 }
 
@@ -2516,7 +2517,7 @@
         var punkt = ksztalt.Wierzcholki[index];
         punkt.X = newX;
         ksztalt.Wierzcholki[index] = punkt;
-        Console.WriteLine($"✅ ZmienX: indeks {index}, nowa wartość X: {newX}");
+        _logger.LogDebug($"✅ ZmienX: indeks {index}, nowa wartość X: {newX}");
     }
 
 
@@ -2525,7 +2526,7 @@
         var punkt = ksztalt.Wierzcholki[index];
         punkt.Y = newY;
         ksztalt.Wierzcholki[index] = punkt;
-        Console.WriteLine($"✅ ZmienX: indeks {index}, nowa wartość X: {newY}");
+        _logger.LogDebug($"✅ ZmienX: indeks {index}, nowa wartość X: {newY}");
     }
 
     private async Task EdytujKsztalt(string id)
@@ -2541,10 +2542,10 @@
         // Tworzymy nową i ustawiamy ją w JS
         _dotNetHelper = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-        Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+        _logger.LogDebug($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
 
         edytowanyId = id;
-        Console.WriteLine($"edytowanyId: {edytowanyId}");
+        _logger.LogDebug($"edytowanyId: {edytowanyId}");
     }
     private async Task UsunKsztalt(string id)
     {
@@ -2559,7 +2560,7 @@
         // Tworzymy nową i ustawiamy ją w JS
         _dotNetHelper = DotNetObjectReference.Create(this);
         await JS.InvokeVoidAsync("setDotNetHelper", _dotNetHelper);
-        Console.WriteLine($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
+        _logger.LogDebug($"🆕 DotNetObjectReference.Create(this) dla obiektu {this.GetHashCode()}");
 
         ksztalty.RemoveAll(k => k.Id == id);
 
@@ -2569,7 +2570,7 @@
         //  await FitToScreen();
         await FitShapesToDisplayWindow();
 
-        Console.WriteLine($"Usunołem dla id: {id}");
+        _logger.LogDebug($"Usunołem dla id: {id}");
 
         await OnlyRestrykcje();
     }
@@ -3092,7 +3093,7 @@
         _staraSzerokoscPrzedZmiana = ShapeService.Szerokosc;
         _staraWysokoscPrzedZmiana = ShapeService.Wysokosc;
 
-        Console.WriteLine($"📌 PokazWlasciwosciOkna: stare wymiary {_staraSzerokoscPrzedZmiana}x{_staraWysokoscPrzedZmiana}");
+        _logger.LogDebug($"📌 PokazWlasciwosciOkna: stare wymiary {_staraSzerokoscPrzedZmiana}x{_staraWysokoscPrzedZmiana}");
 
         if (ShapeService != null && constWlasciwosciOkna != null)
         {
@@ -3134,10 +3135,10 @@
     {
         if (zmienWymiaryOknaRef == null) return;
 
-        Console.WriteLine("🔵 HandleZapis: START");
+        _logger.LogDebug("🔵 HandleZapis: START");
         if (zmienWymiaryOknaRef == null)
         {
-            Console.WriteLine("⚠️ HandleZapis: zmienWymiaryOknaRef == null");
+            _logger.LogDebug("⚠️ HandleZapis: zmienWymiaryOknaRef == null");
             return;
         }
 
@@ -3148,20 +3149,20 @@
             _czekajNaZmianeRozmiaru = true;
             _czekajNaZaladowanie = true;
 
-            Console.WriteLine("🔵 HandleZapis: ZapiszDoRodzica");
+            _logger.LogDebug("🔵 HandleZapis: ZapiszDoRodzica");
             await zmienWymiaryOknaRef.ZapiszDoRodzica();
 
-            Console.WriteLine("🔵 HandleZapis: ZmienWymiaryOknaRecznie");
+            _logger.LogDebug("🔵 HandleZapis: ZmienWymiaryOknaRecznie");
             await ZmienWymiaryOknaRecznie(strukturaZmieniona: false);
 
-            Console.WriteLine("🔵 HandleZapis: OnlyRestrykcje");
+            _logger.LogDebug("🔵 HandleZapis: OnlyRestrykcje");
             await OnlyRestrykcje();
 
-            Console.WriteLine("✅ HandleZapis: KONIEC");
+            _logger.LogDebug("✅ HandleZapis: KONIEC");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 HandleZapis: {ex.Message}");
+            _logger.LogDebug($"🔥 HandleZapis: {ex.Message}");
         }
         finally
         {
@@ -3185,7 +3186,7 @@
         // foreach (var p in constWlasciwosciOkna.EditableProperties.Where(x =>
         //     !string.IsNullOrEmpty(x.NazwaObiektu) && x.NazwaObiektu.ToLower().Contains("linia")))
         // {
-        //     Console.WriteLine($"🔍 PRZED Refresh: Label='{p.Label}', Value={p.Value}");
+        //     _logger.LogDebug($"🔍 PRZED Refresh: Label='{p.Label}', Value={p.Value}");
         // }
 
         foreach (var shape in ShapeService.Shapes)
@@ -3198,7 +3199,7 @@
         // foreach (var p in constWlasciwosciOkna.EditableProperties.Where(x =>
         //     !string.IsNullOrEmpty(x.NazwaObiektu) && x.NazwaObiektu.ToLower().Contains("linia")))
         // {
-        //     Console.WriteLine($"🔍 PO Refresh: Label='{p.Label}', Value={p.Value}");
+        //     _logger.LogDebug($"🔍 PO Refresh: Label='{p.Label}', Value={p.Value}");
         // }
 
         PrzesunKsztaltyDoDodatniejCwiartki(ShapeService.Shapes);
@@ -3207,12 +3208,12 @@
         // foreach (var p in constWlasciwosciOkna.EditableProperties.Where(x =>
         //     !string.IsNullOrEmpty(x.NazwaObiektu) && x.NazwaObiektu.ToLower().Contains("linia")))
         // {
-        //     Console.WriteLine($"🔍 PO Przesun: Label='{p.Label}', Value={p.Value}");
+        //     _logger.LogDebug($"🔍 PO Przesun: Label='{p.Label}', Value={p.Value}");
         // }
 
         await Task.CompletedTask;
 
-        Console.WriteLine($"Zmieniono właściwości: {zmieniony.EditableProperties?.Count ?? 0}");
+        _logger.LogDebug($"Zmieniono właściwości: {zmieniony.EditableProperties?.Count ?? 0}");
     }
 
     private void PrzesunKsztaltyDoDodatniejCwiartki(List<IShapeDC> shapes)
@@ -3232,7 +3233,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Błąd GetBoundingBox dla kształtu: {ex.Message}");
+                _logger.LogDebug($"Błąd GetBoundingBox dla kształtu: {ex.Message}");
             }
         }
 
@@ -3248,7 +3249,7 @@
                 shape.Move(offsetX, offsetY);
             }
 
-            Console.WriteLine($"[Przesun] offset=({offsetX:F2}, {offsetY:F2})");
+            _logger.LogDebug($"[Przesun] offset=({offsetX:F2}, {offsetY:F2})");
         }
     }
 
@@ -3265,7 +3266,7 @@
 
         if (ListaModeli == null || !ListaModeli.Any())
         {
-            Console.WriteLine("RenderFrame -> Brak modeli do narysowania.");
+            _logger.LogDebug("RenderFrame -> Brak modeli do narysowania.");
             return;
         }
 
@@ -3291,11 +3292,11 @@
             await RenderFrame();
 
 
-            // Console.WriteLine($"🎨 Narysowano {ShapeService.Shapes.Count} kształtów");
+            // _logger.LogDebug($"🎨 Narysowano {ShapeService.Shapes.Count} kształtów");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Błąd rysowania: {ex.Message}");
+            _logger.LogDebug($"⚠️ Błąd rysowania: {ex.Message}");
         }
     }
 
@@ -3306,7 +3307,7 @@
             if (_context == null)
                 return;
 
-            // Console.WriteLine($"🧹 Czyszczenie canvasu: {CanvasWidth}x{CanvasHeight}");
+            // _logger.LogDebug($"🧹 Czyszczenie canvasu: {CanvasWidth}x{CanvasHeight}");
 
             // 1. Zresetuj transformacje
             await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
@@ -3325,11 +3326,11 @@
 
             await Task.Yield();
 
-            // Console.WriteLine("✅ Canvas wyczyszczony");
+            // _logger.LogDebug("✅ Canvas wyczyszczony");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Błąd czyszczenia canvasu: {ex.Message}");
+            _logger.LogDebug($"⚠️ Błąd czyszczenia canvasu: {ex.Message}");
         }
     }
 
@@ -3419,7 +3420,7 @@
         // Ogranicz maksymalny zoom (np. 10x)
         if (newScale > 10.0)
         {
-            Console.WriteLine("⛔ Osiągnięto maksymalny zoom (10x)");
+            _logger.LogDebug("⛔ Osiągnięto maksymalny zoom (10x)");
             return;
         }
 
@@ -3473,7 +3474,7 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(
+                    _logger.LogDebug(
                         $"⚠️ Błąd GetBoundingBox: {ex.Message}");
                 }
             }
@@ -3489,7 +3490,7 @@
 
             if (shapesWidth <= 0 || shapesHeight <= 0)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"⚠️ Nieprawidłowy BBox: {shapesWidth}x{shapesHeight}");
 
                 return;
@@ -3567,17 +3568,17 @@
                 viewportCenterY -
                 shapesCenterY * _aktywnaSkala;
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"📐 BBox: X={minX:F2}..{maxX:F2}, " +
                 $"Y={minY:F2}..{maxY:F2}");
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"📏 Model: {shapesWidth:F2} x {shapesHeight:F2}");
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🔍 Skala: {_aktywnaSkala:F4}");
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🎯 Offset: X={_offsetX:F2}, Y={_offsetY:F2}");
 
             // ============================================================
@@ -3611,7 +3612,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🔥 Błąd podczas zoomowania: {ex.Message}");
         }
     }
@@ -3619,7 +3620,7 @@
     // {
     //     if (CanvasWidth == 0 || CanvasHeight == 0 || CanvasRef == null)
     //     {
-    //         Console.WriteLine("⚠️ Canvas nie jest gotowy do zoomu");
+    //         _logger.LogDebug("⚠️ Canvas nie jest gotowy do zoomu");
     //         return;
     //     }
 
@@ -3637,8 +3638,8 @@
     //             double shapesWidth = maxX - minX;
     //             double shapesHeight = maxY - minY;
 
-    //             // Console.WriteLine($"📐 Kształty: szerokość={shapesWidth:F0}, wysokość={shapesHeight:F0}");
-    //             //  Console.WriteLine($"📐 Bounding box: X[{minX:F0}-{maxX:F0}], Y[{minY:F0}-{maxY:F0}]");
+    //             // _logger.LogDebug($"📐 Kształty: szerokość={shapesWidth:F0}, wysokość={shapesHeight:F0}");
+    //             //  _logger.LogDebug($"📐 Bounding box: X[{minX:F0}-{maxX:F0}], Y[{minY:F0}-{maxY:F0}]");
 
     //             // 2. Oblicz skalę z marginesem 5% (zmniejszono z 10% dla lepszego dopasowania)
     //             double scaleX = CanvasWidth / shapesWidth;
@@ -3652,12 +3653,12 @@
     //             _aktywnaSkala = newScale;
     //         }
 
-    //         // Console.WriteLine($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_aktywnaSkala:F2}");
+    //         // _logger.LogDebug($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_aktywnaSkala:F2}");
 
 
     //         if (_context == null)
     //         {
-    //             //   Console.WriteLine("♻️ Odtwarzam kontekst Canvas...");
+    //             //   _logger.LogDebug("♻️ Odtwarzam kontekst Canvas...");
     //             _context = await CanvasRef.CreateCanvas2DAsync();
     //         }
 
@@ -3676,7 +3677,7 @@
     //     }
     //     catch (Exception ex)
     //     {
-    //         Console.WriteLine($"🔥 Błąd podczas zoomowania: {ex.Message}");
+    //         _logger.LogDebug($"🔥 Błąd podczas zoomowania: {ex.Message}");
     //     }
 
     // }
@@ -3685,7 +3686,7 @@
         List<XPoint> _wierzcholkiST, double klikX, double klikY)
     {
 
-        Console.WriteLine($"🔍 FitToCanvas --> Dopasowano do shape: scale={_aktywnaSkala:F2}");
+        _logger.LogDebug($"🔍 FitToCanvas --> Dopasowano do shape: scale={_aktywnaSkala:F2}");
 
         if (WybranyModel == null)
         {
@@ -3703,7 +3704,7 @@
         {
             var match = await ObliczWierzcholkiSlupkaStalego(Wierzcholki, klikX, klikY);
 
-            Console.WriteLine($"🔍 FitToCanvas --> Słupek stały: znaleziono {match.Wierzcholki.Count} wierzchołków, {match.RegionIds.Count} regionów, kąt={match.KatLiniSlupka:F2}");
+            _logger.LogDebug($"🔍 FitToCanvas --> Słupek stały: znaleziono {match.Wierzcholki.Count} wierzchołków, {match.RegionIds.Count} regionów, kąt={match.KatLiniSlupka:F2}");
 
             var WierzcholkiST = match.Wierzcholki;
             var RegionIds = match.RegionIds;
@@ -3777,7 +3778,7 @@
             .Where(r => r.Wierzcholki != null && r.Wierzcholki.Count == 2 && r.TypLiniiDzielacej == "Słupek stały")
             .ToList();
 
-        Console.WriteLine($"🔍 ObliczWierzcholkiSlupkaStalego - liczba regionów: {wszystkieRegiony.Count}");
+        _logger.LogDebug($"🔍 ObliczWierzcholkiSlupkaStalego - liczba regionów: {wszystkieRegiony.Count}");
 
         var _powiazanyModel = await Http.GetFromJsonAsync<MVCKonfModele>($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{WybranyModel.RowId}");
 
@@ -3809,7 +3810,7 @@
             var pkt = reg.Wierzcholki.Select(p => new XPoint(Math.Round(p.X, 3), Math.Round(p.Y, 3))).ToList();
             double dist = DistancePointToSegment(klik, pkt[0], pkt[1]);
 
-            Console.WriteLine($"🔍 Region {reg.Id} - odległość od kliknięcia: {dist}");
+            _logger.LogDebug($"🔍 Region {reg.Id} - odległość od kliknięcia: {dist}");
 
             if (dist < bestDist)
             {
@@ -3820,7 +3821,7 @@
 
                 best.KatLiniSlupka = ObliczKatLinii(pkt);
 
-                Console.WriteLine($"🔍 Nowy najlepszy: Region ID {reg.Id}, dist={dist}");
+                _logger.LogDebug($"🔍 Nowy najlepszy: Region ID {reg.Id}, dist={dist}");
 
             }
         }
@@ -3828,15 +3829,15 @@
         // Jeśli znaleziono linię, stwórz prostokąt 4 punktowy
         if (best.Wierzcholki.Count == 2)
         {
-            Console.WriteLine($"🔍 Znaleziono linię słupka - tworzę prostokąt dla regionu: {best.RegionIds[0]}");
+            _logger.LogDebug($"🔍 Znaleziono linię słupka - tworzę prostokąt dla regionu: {best.RegionIds[0]}");
             best.Wierzcholki = UtworzProstokatWokolLinii(best.Wierzcholki, szer_slupka, os_symetrii_slupka); // 82 = grubość słupka
         }
 
-        Console.WriteLine($"🔍 Wynik końcowy: znaleziono best: {best.KatLiniSlupka} {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
+        _logger.LogDebug($"🔍 Wynik końcowy: znaleziono best: {best.KatLiniSlupka} {best.Wierzcholki.Count} punktów, {best.RegionIds.Count} regionów");
 
         // foreach (var p in best.Wierzcholki)
         // {
-        //     Console.WriteLine($"🔍 Wynik końcowy: Punkt: X:({p.X:F2}, Y:{p.Y:F2})");
+        //     _logger.LogDebug($"🔍 Wynik końcowy: Punkt: X:({p.X:F2}, Y:{p.Y:F2})");
         // }
 
         return best;
@@ -3909,20 +3910,20 @@
         }
         else
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 "⚠️ Linia słupka jest skośna - nie tworzę prostokąta");
 
             return linia;
         }
 
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"🔍 Utworzono prostokąt słupka: " +
             $"grubość={grubosc:F2}, oś={os_symetrii_slupka:F2}");
 
         for (int i = 0; i < prostokat.Count; i++)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"   P X:{i}=({prostokat[i].X:F2}; Y:{prostokat[i].Y:F2})");
         }
 
@@ -4010,7 +4011,7 @@
 
         if (CanvasRef == null)
         {
-            Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            _logger.LogDebug("⚠️ Brak referencji do canvasu!");
             return;
         }
 
@@ -4054,8 +4055,8 @@
         _lastMouseClick.X = modelX;
         _lastMouseClick.Y = modelY;
 
-        Console.WriteLine($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_aktywnaSkala}");
-        Console.WriteLine($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
+        _logger.LogDebug($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_aktywnaSkala}");
+        _logger.LogDebug($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
 
         mousePosition = $"Wybrałeś: X: {modelX:F0} mm, Y: {modelY:F0} mm (skala: {_aktywnaSkala:F2}) {constWlasciwosciOkna.Szerokosc}x{constWlasciwosciOkna.Wysokosc}";
 
@@ -4085,18 +4086,18 @@
         if (shape == null)
         {
             // Debug: wypisz wszystkie kształty
-            Console.WriteLine($"📋 Lista kształtów ({ShapeService.Shapes.Count}):");
+            _logger.LogDebug($"📋 Lista kształtów ({ShapeService.Shapes.Count}):");
 
             foreach (var s in ShapeService.Shapes)
             {
                 if (s is XLineShape line)
                 {
-                    Console.WriteLine($"📋 Lista   Linia {line.ID}: ({line.X1},{line.Y1})-({line.X2},{line.Y2})");
+                    _logger.LogDebug($"📋 Lista   Linia {line.ID}: ({line.X1},{line.Y1})-({line.X2},{line.Y2})");
                 }
                 else
                 {
                     var bbox = s.GetBoundingBox();
-                    Console.WriteLine($"📋 Lista   {s.GetType().Name} {s.ID}: bbox={bbox}");
+                    _logger.LogDebug($"📋 Lista   {s.GetType().Name} {s.ID}: bbox={bbox}");
                 }
             }
 
@@ -4105,7 +4106,7 @@
             return;
         }
 
-        Console.WriteLine($"✅ Znaleziono kształt w regionie {region.Id}: {shape.GetType().Name} ID: {shape.ID} shape.Points.Count: {shape.Points.Count()}");
+        _logger.LogDebug($"✅ Znaleziono kształt w regionie {region.Id}: {shape.GetType().Name} ID: {shape.ID} shape.Points.Count: {shape.Points.Count()}");
 
         if (SelectedModelType == "Słupek stały")
         {
@@ -4119,7 +4120,7 @@
                 if (regionOnlyline != null && regionOnlyline.CzyLinia)
                 {
                     double kat = regionOnlyline.KatLinii;
-                    Console.WriteLine($"Kąt linii: {kat:F2}°");
+                    _logger.LogDebug($"Kąt linii: {kat:F2}°");
 
                     // Sprawdzenie zakresu kąta
                     if (kat < WybranyModel.KatWystapieniaZakresOdMin || kat > WybranyModel.KatWystapieniaZakresOdMax)
@@ -4153,14 +4154,14 @@
 
         _czekajNaZaladowanie = false;
 
-        Console.WriteLine($"✅ Zakończono dopasowanie modelu do regionu {region.Id}");
+        _logger.LogDebug($"✅ Zakończono dopasowanie modelu do regionu {region.Id}");
 
 
     }
 
     private IShapeDC FindShapeInRegion(ShapeRegion region)
     {
-        Console.WriteLine($"🔍 Szukam kształtu dla regionu: {region.Id}, IdMaster: {region.IdMaster}");
+        _logger.LogDebug($"🔍 Szukam kształtu dla regionu: {region.Id}, IdMaster: {region.IdMaster}");
 
         // 1. Spróbuj po IdMaster
         if (!string.IsNullOrEmpty(region.IdMaster))
@@ -4168,7 +4169,7 @@
             var shapeById = ShapeService.Shapes.FirstOrDefault(s => s.ID == region.IdMaster);
             if (shapeById != null)
             {
-                Console.WriteLine($"✅ Znaleziono kształt po IdMaster: {shapeById.GetType().Name} ID: {shapeById.ID}");
+                _logger.LogDebug($"✅ Znaleziono kształt po IdMaster: {shapeById.GetType().Name} ID: {shapeById.ID}");
                 return shapeById;
             }
         }
@@ -4178,7 +4179,7 @@
         var shapeByIdFromRegion = ShapeService.Shapes.FirstOrDefault(s => s.ID == shapeIdFromRegion);
         if (shapeByIdFromRegion != null)
         {
-            Console.WriteLine($"✅ Znaleziono kształt po ID z region: {shapeByIdFromRegion.GetType().Name} ID: {shapeByIdFromRegion.ID}");
+            _logger.LogDebug($"✅ Znaleziono kształt po ID z region: {shapeByIdFromRegion.GetType().Name} ID: {shapeByIdFromRegion.ID}");
             return shapeByIdFromRegion;
         }
 
@@ -4192,7 +4193,7 @@
                 if (IsPointInPolygon(region.Wierzcholki, lineShape.X1, lineShape.Y1) ||
                     IsPointInPolygon(region.Wierzcholki, lineShape.X2, lineShape.Y2))
                 {
-                    Console.WriteLine($"✅ Znaleziono linię w regionie: {lineShape.ID}");
+                    _logger.LogDebug($"✅ Znaleziono linię w regionie: {lineShape.ID}");
                     return lineShape;
                 }
             }
@@ -4205,7 +4206,7 @@
 
                 if (IsPointInPolygon(region.Wierzcholki, centerX, centerY))
                 {
-                    Console.WriteLine($"✅ Znaleziono kształt po środku: {s.GetType().Name} ID: {s.ID}");
+                    _logger.LogDebug($"✅ Znaleziono kształt po środku: {s.GetType().Name} ID: {s.ID}");
                     return s;
                 }
 
@@ -4217,7 +4218,7 @@
                     {
                         if (IsPointInPolygon(region.Wierzcholki, point.X, point.Y))
                         {
-                            Console.WriteLine($"✅ Znaleziono kształt po wierzchołku: {s.GetType().Name} ID: {s.ID}");
+                            _logger.LogDebug($"✅ Znaleziono kształt po wierzchołku: {s.GetType().Name} ID: {s.ID}");
                             return s;
                         }
                     }
@@ -4225,7 +4226,7 @@
             }
         }
 
-        Console.WriteLine($"❌ Nie znaleziono kształtu dla regionu {region.Id}");
+        _logger.LogDebug($"❌ Nie znaleziono kształtu dla regionu {region.Id}");
 
         return null;
     }
@@ -4241,7 +4242,7 @@
         if (_regionsDualRama == null || !_regionsDualRama.Any() ||
             _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
         {
-            Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+            _logger.LogDebug("❌ Brak regionów do sprawdzenia!");
             return null;
         }
 
@@ -4249,10 +4250,10 @@
             ? _regionsDualRama
             : _regionsSkrzydlo;
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"🔍 FindLineRegionAtPosition: {regionsToCheck.Count} regionów");
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"🔍 Kliknięcie: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
 
         double tolerance = 26.0 / (_aktywnaSkala / 2);
@@ -4276,7 +4277,7 @@
                 p1.X, p1.Y,
                 p2.X, p2.Y);
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🔴 {region.Id}: " +
                 $"({p1.X:F2};{p1.Y:F2}) -> ({p2.X:F2};{p2.Y:F2}) " +
                 $"odległość={distance:F4}, tolerance={tolerance:F4}");
@@ -4291,13 +4292,13 @@
 
         if (najblizszyRegion != null)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"✅ NAJBLIŻSZY REGION: {najblizszyRegion.Id}, " +
                 $"odległość={najmniejszaOdleglosc:F4}");
         }
         else
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"❌ Nie znaleziono linii w tolerancji {tolerance:F4}");
         }
 
@@ -4312,13 +4313,13 @@
         if (_regionsDualRama == null || !_regionsDualRama.Any() ||
             _regionsSkrzydlo == null || !_regionsSkrzydlo.Any())
         {
-            Console.WriteLine("❌ Brak regionów do sprawdzenia!");
+            _logger.LogDebug("❌ Brak regionów do sprawdzenia!");
             return null;
         }
 
         var regionsToCheck = tylkoRama ? _regionsDualRama : _regionsSkrzydlo;
-        Console.WriteLine($"🔍 FindPolygonRegionAtPosition: Sprawdzam {regionsToCheck.Count} regionów");
-        Console.WriteLine($"🔍 Punkt: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
+        _logger.LogDebug($"🔍 FindPolygonRegionAtPosition: Sprawdzam {regionsToCheck.Count} regionów");
+        _logger.LogDebug($"🔍 Punkt: X={x:F2}, Y={y:F2}, tylkoRama={tylkoRama}");
 
         foreach (var region in regionsToCheck)
         {
@@ -4328,7 +4329,7 @@
                 continue;
             }
 
-            Console.WriteLine($"🟢 Test wielokąta {region.Id}: Typ={region.TypKsztaltu}, Wierzchołki={region.Wierzcholki.Count}");
+            _logger.LogDebug($"🟢 Test wielokąta {region.Id}: Typ={region.TypKsztaltu}, Wierzchołki={region.Wierzcholki.Count}");
 
             // Bounding box (optymalizacja)
             double minX = region.Wierzcholki.Min(p => p.X);
@@ -4336,26 +4337,26 @@
             double minY = region.Wierzcholki.Min(p => p.Y);
             double maxY = region.Wierzcholki.Max(p => p.Y);
 
-            Console.WriteLine($"   BoundingBox: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
+            _logger.LogDebug($"   BoundingBox: X[{minX:F2}–{maxX:F2}], Y[{minY:F2}–{maxY:F2}]");
 
             bool inBoundingBox = (x >= minX && x <= maxX && y >= minY && y <= maxY);
-            Console.WriteLine($"   Punkt w bounding box? {inBoundingBox}");
+            _logger.LogDebug($"   Punkt w bounding box? {inBoundingBox}");
 
             if (!inBoundingBox)
             {
-                Console.WriteLine($"   ⏭️ Pomijam - punkt poza bounding box");
+                _logger.LogDebug($"   ⏭️ Pomijam - punkt poza bounding box");
                 continue;
             }
 
             // 1️⃣ Test: punkt w wielokącie
             if (IsPointInPolygon(region.Wierzcholki, x, y))
             {
-                Console.WriteLine($"✅ Znaleziono region (wnętrze): {region.Id}");
+                _logger.LogDebug($"✅ Znaleziono region (wnętrze): {region.Id}");
                 return region;
             }
 
             // 2️⃣ Test: punkt blisko krawędzi
-            Console.WriteLine($"   Testuję krawędzie...");
+            _logger.LogDebug($"   Testuję krawędzie...");
             for (int i = 0; i < region.Wierzcholki.Count; i++)
             {
                 var a = region.Wierzcholki[i];
@@ -4369,15 +4370,15 @@
                     b.X, b.Y,
                     tolerance))
                 {
-                    Console.WriteLine($"✅ Znaleziono region (krawędź): {region.Id}");
+                    _logger.LogDebug($"✅ Znaleziono region (krawędź): {region.Id}");
                     return region;
                 }
             }
 
-            Console.WriteLine($"   ❌ Punkt nie jest wewnątrz ani na krawędzi");
+            _logger.LogDebug($"   ❌ Punkt nie jest wewnątrz ani na krawędzi");
         }
 
-        Console.WriteLine("❌ Nie znaleziono regionu-wielokąta");
+        _logger.LogDebug("❌ Nie znaleziono regionu-wielokąta");
         return null;
     }
 
@@ -4472,7 +4473,7 @@
     {
         if (polygon == null || polygon.Count < 3)
         {
-            Console.WriteLine($"⚠️ IsPointInPolygon: Nieprawidłowy polygon (punkty: {polygon?.Count ?? 0})");
+            _logger.LogDebug($"⚠️ IsPointInPolygon: Nieprawidłowy polygon (punkty: {polygon?.Count ?? 0})");
             return false;
         }
 
@@ -4480,12 +4481,12 @@
         int n = polygon.Count;
 
         // DEBUG: wypisz pierwsze 3 i ostatnie 3 punkty
-        Console.WriteLine($"🔍 IsPointInPolygon: sprawdzam punkt ({x:F2}, {y:F2})");
-        Console.WriteLine($"   Polygon ma {n} punktów");
+        _logger.LogDebug($"🔍 IsPointInPolygon: sprawdzam punkt ({x:F2}, {y:F2})");
+        _logger.LogDebug($"   Polygon ma {n} punktów");
         if (n > 0)
         {
-            Console.WriteLine($"   Pierwszy punkt: ({polygon[0].X:F2}, {polygon[0].Y:F2})");
-            Console.WriteLine($"   Ostatni punkt: ({polygon[n - 1].X:F2}, {polygon[n - 1].Y:F2})");
+            _logger.LogDebug($"   Pierwszy punkt: ({polygon[0].X:F2}, {polygon[0].Y:F2})");
+            _logger.LogDebug($"   Ostatni punkt: ({polygon[n - 1].X:F2}, {polygon[n - 1].Y:F2})");
         }
 
         for (int i = 0, j = n - 1; i < n; j = i++)
@@ -4498,7 +4499,7 @@
             // Sprawdź czy punkt leży dokładnie na wierzchołku
             if (Math.Abs(xi - x) < 0.001 && Math.Abs(yi - y) < 0.001)
             {
-                Console.WriteLine($"   Punkt leży DOKŁADNIE na wierzchołku {i} ({xi:F2}, {yi:F2})");
+                _logger.LogDebug($"   Punkt leży DOKŁADNIE na wierzchołku {i} ({xi:F2}, {yi:F2})");
                 return true;
             }
 
@@ -4514,7 +4515,7 @@
                     // Linia pozioma - sprawdź czy punkt jest na linii
                     if (Math.Abs(yi - y) < 0.001 && x >= Math.Min(xi, xj) && x <= Math.Max(xi, xj))
                     {
-                        Console.WriteLine($"   Punkt leży na poziomej krawędzi {j}-{i}");
+                        _logger.LogDebug($"   Punkt leży na poziomej krawędzi {j}-{i}");
                         return true;
                     }
                     continue;
@@ -4525,7 +4526,7 @@
                 // Sprawdź czy punkt leży na krawędzi (z tolerancją)
                 if (Math.Abs(x - intersectX) < 0.001)
                 {
-                    Console.WriteLine($"   Punkt leży NA krawędzi {j}-{i} (różnica: {Math.Abs(x - intersectX):E6})");
+                    _logger.LogDebug($"   Punkt leży NA krawędzi {j}-{i} (różnica: {Math.Abs(x - intersectX):E6})");
                     return true;
                 }
 
@@ -4536,7 +4537,7 @@
             }
         }
 
-        Console.WriteLine($"   Wynik: punkt jest {(inside ? "WEWNĄTRZ" : "NA ZEWNĄTRZ")} polygonu");
+        _logger.LogDebug($"   Wynik: punkt jest {(inside ? "WEWNĄTRZ" : "NA ZEWNĄTRZ")} polygonu");
         return inside;
     }
 
@@ -4548,7 +4549,7 @@
 
             if (ListaModeli != null)
             {
-                Console.WriteLine($"OnlyRestrykcje - Typ --> SelectedModelType: {SelectedModelType}");
+                _logger.LogDebug($"OnlyRestrykcje - Typ --> SelectedModelType: {SelectedModelType}");
 
                 var _ListaModeliResrykcje = ListaModeli.FirstOrDefault(x => x.Typ == SelectedModelType);
 
@@ -4620,7 +4621,7 @@
     {
         SelectedSystemId = e.Value.ToString();
 
-        //Console.WriteLine($"Wybrano system o ID: {SelectedSystemId}");
+        //_logger.LogDebug($"Wybrano system o ID: {SelectedSystemId}");
 
         if (string.IsNullOrEmpty(SelectedSystemId))
         {
@@ -4646,7 +4647,7 @@
         {
             // if (CanvasRef == null)
             // {
-            //     Console.WriteLine("⚠️ Brak referencji do canvasu!");
+            //     _logger.LogDebug("⚠️ Brak referencji do canvasu!");
             //     return;
             // }
 
@@ -4657,7 +4658,7 @@
 
                 await OnlyRestrykcje();
 
-                //  Console.WriteLine("DrawStructureAndRestrykcje.");
+                //  _logger.LogDebug("DrawStructureAndRestrykcje.");
 
             }
 
@@ -4665,7 +4666,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd podczas rysowania: {ex.Message}");
+            _logger.LogDebug($"🔥 Błąd podczas rysowania: {ex.Message}");
         }
     }
 
@@ -4679,7 +4680,7 @@
         }
         catch (JSException ex)
         {
-            Console.WriteLine($"Błąd pobierania informacji o modelu: {ex.Message}");
+            _logger.LogDebug($"Błąd pobierania informacji o modelu: {ex.Message}");
             return null;
         }
     }
@@ -4704,11 +4705,11 @@
             _dotNetHelper?.Dispose();
             // Nie ustawiaj JS na null, bo może być potrzebny do innych operacji?
             // JS = null;
-            Console.WriteLine($"🧹 Dispose wywołany. Obiekt: {this.GetHashCode()}");
+            _logger.LogDebug($"🧹 Dispose wywołany. Obiekt: {this.GetHashCode()}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd Dispose: {ex.Message}");
+            _logger.LogDebug($"🔥 Błąd Dispose: {ex.Message}");
         }
     }
 
@@ -4718,12 +4719,12 @@
         try
         {
             isTextureLoaded = true;
-            // Console.WriteLine("✅ Tekstura załadowana!");
+            // _logger.LogDebug("✅ Tekstura załadowana!");
             await Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd podczas ładowania tekstury: {ex.Message}");
+            _logger.LogDebug($"🔥 Błąd podczas ładowania tekstury: {ex.Message}");
         }
     }
 
@@ -4738,13 +4739,13 @@
     {
         if (!await _zmienWymiarySemaphore.WaitAsync(0))
         {
-            Console.WriteLine("⏭️ ZmienWymiaryOknaRecznie: poprzednia operacja trwa, pomijam");
+            _logger.LogDebug("⏭️ ZmienWymiaryOknaRecznie: poprzednia operacja trwa, pomijam");
             return;
         }
 
         if (_zmienWymiaryWToku)
         {
-            Console.WriteLine("⚠️ ZmienWymiaryOknaRecznie już trwa — pomijam");
+            _logger.LogDebug("⚠️ ZmienWymiaryOknaRecznie już trwa — pomijam");
             _zmienWymiarySemaphore.Release();
             return;
         }
@@ -4771,7 +4772,7 @@
                 Math.Abs(nowaSzer - staraSzer) > 0.01 ||
                 Math.Abs(nowaWys - staraWys) > 0.01;
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"📏 ZmienWymiaryOknaRecznie: {nowaSzer}x{nowaWys}, " +
                 $"stare: {staraSzer}x{staraWys}, " +
                 $"zmianaWymiarow={zmianaWymiarow}, " +
@@ -4782,7 +4783,7 @@
                 // ═══════════════════════════════════════════════════════════
                 // TRYB 1: zmiana wymiarów okna
                 // ═══════════════════════════════════════════════════════════
-                Console.WriteLine("📐 TRYB 1: Skalowanie geometrii");
+                _logger.LogDebug("📐 TRYB 1: Skalowanie geometrii");
 
                 // 1. Skaluj shapes + regiony + stany
                 await SkalujWszystkoWMiejscu(nowaSzer, nowaWys);
@@ -4797,7 +4798,7 @@
                 _staraSzerokoscPrzedZmiana = nowaSzer;
                 _staraWysokoscPrzedZmiana = nowaWys;
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"✅ TRYB 1 zakończony: cache zaktualizowany do " +
                     $"{_staraSzerokoscPrzedZmiana}x{_staraWysokoscPrzedZmiana}");
             }
@@ -4806,7 +4807,7 @@
                 // ═══════════════════════════════════════════════════════════
                 // TRYB 2: zmiana struktury lub przesunięcie linii
                 // ═══════════════════════════════════════════════════════════
-                Console.WriteLine("✏️ TRYB 2: Aktualizacja geometrii");
+                _logger.LogDebug("✏️ TRYB 2: Aktualizacja geometrii");
 
                 // 1. Ustaw wymiary na shapes
                 foreach (var shape in ShapeService.Shapes)
@@ -4819,7 +4820,7 @@
                 // 2. Synchronizuj istniejące regiony
                 SynchronizujRegionyZWspolrzednymiShapes();
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"🔎 PRZED regeneracją: DualRama={_regionsDualRama?.Count ?? 0}, " +
                     $"Skrzydlo={_regionsSkrzydlo?.Count ?? 0}, " +
                     $"Stany={_generatorStates.Count}, " +
@@ -4828,7 +4829,7 @@
                 // 3. Regeneruj regiony (obsługuje przesunięcie + kasowanie linii)
                 await RegenerujRegionyZPodzialuZachowujacId();
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"🔎 PO regeneracji: DualRama={_regionsDualRama?.Count ?? 0}, " +
                     $"Skrzydlo={_regionsSkrzydlo?.Count ?? 0}, " +
                     $"Stany={_generatorStates.Count}");
@@ -4843,6 +4844,14 @@
             // ═══════════════════════════════════════════════════════════════
             _zmienWymiaryWToku = false;
 
+            _logger.LogDebug("══════ SKRZYDŁA PRZED ZmienWymiaryOkna ══════");
+            foreach (var r in _regionsSkrzydlo.Where(r => r.Id?.Contains("L2|C0") == true))
+            {
+                _logger.LogDebug($"   {r.Id}:");
+                foreach (var seg in r.Kontur)
+                    _logger.LogDebug($"      ({seg.Start.X:F2},{seg.Start.Y:F2}) → ({seg.End.X:F2},{seg.End.Y:F2})");
+            }
+
             await ZmienWymiaryOkna(
                 strukturaZmieniona: !zmianaWymiarow,
                 wymusWysrodkowanie: false,
@@ -4850,7 +4859,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🔥 Błąd w ZmienWymiaryOknaRecznie: " +
                 $"{ex.Message}\n{ex.StackTrace}");
 
@@ -4859,7 +4868,7 @@
         finally
         {
             _zmienWymiaryWToku = false;
-            Console.WriteLine("✅ ZmienWymiaryOknaRecznie zakończone");
+            _logger.LogDebug("✅ ZmienWymiaryOknaRecznie zakończone");
             _zmienWymiarySemaphore.Release();
         }
     }
@@ -4898,7 +4907,7 @@
             if (Math.Abs(x1 - line.X1) > 0.001 || Math.Abs(y1 - line.Y1) > 0.001 ||
                 Math.Abs(x2 - line.X2) > 0.001 || Math.Abs(y2 - line.Y2) > 0.001)
             {
-                Console.WriteLine($"⚠️ Przycięto linię {line.ID}: " +
+                _logger.LogDebug($"⚠️ Przycięto linię {line.ID}: " +
                     $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1}) do gabarytu {szerokosc:F1}x{wysokosc:F1}");
                 line.UpdatePoints(new List<XPoint> { new(x1, y1), new(x2, y2) });
             }
@@ -5033,14 +5042,14 @@
 
         if (staraSzer < 0.001 || staraWys < 0.001)
         {
-            Console.WriteLine("⚠️ SkalujWszystkoWMiejscu: zerowe stare wymiary – pomijam");
+            _logger.LogDebug("⚠️ SkalujWszystkoWMiejscu: zerowe stare wymiary – pomijam");
             return;
         }
 
         double scaleX = nowaSzer / staraSzer;
         double scaleY = nowaWys / staraWys;
 
-        Console.WriteLine($"📐 SkalujWszystkoWMiejscu: {staraSzer:F1}x{staraWys:F1} → {nowaSzer:F1}x{nowaWys:F1} " +
+        _logger.LogDebug($"📐 SkalujWszystkoWMiejscu: {staraSzer:F1}x{staraWys:F1} → {nowaSzer:F1}x{nowaWys:F1} " +
                           $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
 
         // 1. Model po UpdateEditableProperty ma już przeskalowaną ramę. Nie wolno
@@ -5061,6 +5070,14 @@
         SkalujRegionyWMiejscu(_regionsDualRama, scaleX, scaleY);
         SkalujRegionyWMiejscu(_regionsSkrzydlo, scaleX, scaleY);
 
+        _logger.LogDebug("══════ SKRZYDŁA PO SkalujRegionyWMiejscu ══════");
+        foreach (var r in _regionsSkrzydlo.Where(r => r.Id?.Contains("L2|C0") == true))
+        {
+            _logger.LogDebug($"   {r.Id}:");
+            foreach (var seg in r.Kontur)
+                _logger.LogDebug($"      ({seg.Start.X:F2},{seg.Start.Y:F2}) → ({seg.End.X:F2},{seg.End.Y:F2})");
+        }
+
         // 3. Skaluj stany generatorów (Wierzcholki, Kontur, ElementyRamyRysowane)
         SkalujStanyWMiejscu(_generatorStates, scaleX, scaleY);
         await Task.Yield();
@@ -5078,7 +5095,7 @@
         // potrafi użyć konturu nadrzędnego i narysować słupek na pełną wysokość,
         // mimo że region jest tylko górnym albo dolnym odcinkiem.
 
-        Console.WriteLine("✅ SkalujWszystkoWMiejscu zakończone");
+        _logger.LogDebug("✅ SkalujWszystkoWMiejscu zakończone");
     }
 
     /// Przelicza ElementyRamyRysowane dla każdego stanu, używając istniejących regionów
@@ -5096,17 +5113,17 @@
         var noweKsztalty = new List<KsztaltElementu>();
         var noweKsztaltyNaRegion = new Dictionary<string, List<KsztaltElementu>>();
 
-        Console.WriteLine($"🔍 _generatorStates ma {_generatorStates.Count} wpisów:");
+        _logger.LogDebug($"🔍 _generatorStates ma {_generatorStates.Count} wpisów:");
         foreach (var kvp in _generatorStates)
         {
-            Console.WriteLine($"   Klucz: '{kvp.Key}'");
-            Console.WriteLine($"     Value == null: {kvp.Value == null}");
+            _logger.LogDebug($"   Klucz: '{kvp.Key}'");
+            _logger.LogDebug($"     Value == null: {kvp.Value == null}");
             if (kvp.Value != null)
             {
-                Console.WriteLine($"     IdRegion: '{kvp.Value.IdRegion}'");
-                Console.WriteLine($"     ZIndeks: {kvp.Value.ZIndeks}");
-                Console.WriteLine($"     WybranyModel.Typ: '{kvp.Value.WybranyModel?.Typ}'");
-                Console.WriteLine($"     Generator == null: {kvp.Value.Generator == null}");
+                _logger.LogDebug($"     IdRegion: '{kvp.Value.IdRegion}'");
+                _logger.LogDebug($"     ZIndeks: {kvp.Value.ZIndeks}");
+                _logger.LogDebug($"     WybranyModel.Typ: '{kvp.Value.WybranyModel?.Typ}'");
+                _logger.LogDebug($"     Generator == null: {kvp.Value.Generator == null}");
             }
         }
 
@@ -5115,9 +5132,9 @@
             .OrderBy(kvp => kvp.Value.ZIndeks)
             .ToList();
 
-        Console.WriteLine($"🔍 obrGen ma {obrGen.Count} wpisów po filtrowaniu");
+        _logger.LogDebug($"🔍 obrGen ma {obrGen.Count} wpisów po filtrowaniu");
 
-        Console.WriteLine($"🔧 PrzeliczElementyRamyDlaStanow: {obrGen.Count} stanów, {wszystkieRegiony.Count} regionów");
+        _logger.LogDebug($"🔧 PrzeliczElementyRamyDlaStanow: {obrGen.Count} stanów, {wszystkieRegiony.Count} regionów");
 
         // ⭐ Usuń osierocone stany (bez WybranyModel) — zanim zaczniesz iterację
         var osierocone = _generatorStates
@@ -5126,7 +5143,7 @@
 
         foreach (var kvp in osierocone)
         {
-            Console.WriteLine($"🗑️ Usuwam osierocony stan bez WybranyModel: " +
+            _logger.LogDebug($"🗑️ Usuwam osierocony stan bez WybranyModel: " +
                               $"IdRegion='{kvp.Value.IdRegion}', Typ='{kvp.Value.TypKsztaltu}'");
             _generatorStates.Remove(kvp.Key);
         }
@@ -5144,11 +5161,11 @@
             {
                 noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(stareKsztalty);
                 noweKsztalty.AddRange(stareKsztalty);
-                Console.WriteLine($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}' ({powod})");
+                _logger.LogDebug($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}' ({powod})");
             }
             else
             {
-                Console.WriteLine($"   ⚠️ Brak shapes w _ksztaltyNaRegion dla '{cleanId}' ({powod}) — nie ma czego zachować");
+                _logger.LogDebug($"   ⚠️ Brak shapes w _ksztaltyNaRegion dla '{cleanId}' ({powod}) — nie ma czego zachować");
             }
         }
 
@@ -5156,11 +5173,11 @@
         {
             string cleanId = genState.Value.IdRegion;
             string typModelu = genState.Value.WybranyModel?.Typ?.Trim() ?? "(brak)";
-            Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {typModelu}");
+            _logger.LogDebug($"🔄 Przetwarzam region cleanId:{cleanId} typ: {typModelu}");
 
             if (genState.Value.WybranyModel == null)
             {
-                Console.WriteLine($"   ⚠️ Stan '{cleanId}' bez WybranyModel — pomijam (shapes zachowane)");
+                _logger.LogDebug($"   ⚠️ Stan '{cleanId}' bez WybranyModel — pomijam (shapes zachowane)");
                 ZachowajStareKsztalty(cleanId, "brak WybranyModel");
                 continue;
             }
@@ -5171,7 +5188,7 @@
             var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
             if (region == null)
             {
-                Console.WriteLine($"   ⚠️ brak regionu dla '{cleanId}' — ZACHOWUJĘ stare shapes");
+                _logger.LogDebug($"   ⚠️ brak regionu dla '{cleanId}' — ZACHOWUJĘ stare shapes");
                 ZachowajStareKsztalty(cleanId, "brak regionu");
                 continue;
             }
@@ -5182,7 +5199,7 @@
             var generator = genState.Value.Generator;
             if (generator == null)
             {
-                Console.WriteLine($"   ⚠️ brak generatora dla '{cleanId}' — ZACHOWUJĘ stare shapes");
+                _logger.LogDebug($"   ⚠️ brak generatora dla '{cleanId}' — ZACHOWUJĘ stare shapes");
                 ZachowajStareKsztalty(cleanId, "brak generatora");
                 continue;
             }
@@ -5227,7 +5244,7 @@
             // 5. Znajdź region nadrzędny
             // ─────────────────────────────────────────────────────────
             var regionNadrzedny = ZnajdzRegionNadrzednyDlaStanu(region, wszystkieRegiony);
-            Console.WriteLine($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
+            _logger.LogDebug($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
 
             // ─────────────────────────────────────────────────────────
             // 6. AddElements
@@ -5247,14 +5264,14 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"   🔥 Wyjątek w AddElements dla '{cleanId}': {ex.Message}");
+                _logger.LogDebug($"   🔥 Wyjątek w AddElements dla '{cleanId}': {ex.Message}");
                 ZachowajStareKsztalty(cleanId, "wyjątek AddElements");
                 continue;
             }
 
             if (!string.IsNullOrEmpty(ok))
             {
-                Console.WriteLine($"   ⚠️ AddElements dla '{cleanId}': {ok} — ZACHOWUJĘ stare shapes");
+                _logger.LogDebug($"   ⚠️ AddElements dla '{cleanId}': {ok} — ZACHOWUJĘ stare shapes");
                 ZachowajStareKsztalty(cleanId, "błąd AddElements");
                 continue;
             }
@@ -5265,7 +5282,7 @@
             // ─────────────────────────────────────────────────────────
             if (!generator.ElementyRamyRysowane.Any())
             {
-                Console.WriteLine($"   ⚠️ AddElements nie wygenerowało shapes dla '{cleanId}' — ZACHOWUJĘ stare");
+                _logger.LogDebug($"   ⚠️ AddElements nie wygenerowało shapes dla '{cleanId}' — ZACHOWUJĘ stare");
                 ZachowajStareKsztalty(cleanId, "puste ElementyRamyRysowane");
                 continue;
             }
@@ -5329,7 +5346,7 @@
             ksztalty.AddRange(noweKsztalty);
         }
 
-        Console.WriteLine($"✅ PrzeliczElementyRamyDlaStanow: {noweKsztalty.Count} elementów, " +
+        _logger.LogDebug($"✅ PrzeliczElementyRamyDlaStanow: {noweKsztalty.Count} elementów, " +
                           $"{noweKsztaltyNaRegion.Count} regionów z shapes");
     }
 
@@ -5342,12 +5359,12 @@
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
         var linie = ShapeService.Shapes.OfType<XLineShape>().ToList();
 
-        Console.WriteLine("═══════════════════════════════════════════════");
-        Console.WriteLine($"🔧 AktualizujGeometrieRegionowZLinii: {linie.Count} linii, {wszystkieRegiony.Count} regionów");
+        _logger.LogDebug("═══════════════════════════════════════════════");
+        _logger.LogDebug($"🔧 AktualizujGeometrieRegionowZLinii: {linie.Count} linii, {wszystkieRegiony.Count} regionów");
 
         foreach (var line in linie)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"   Line {line.ID}: " +
                 $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1}) " +
                 $"Staly={line.StalySlupek} Ruchomy={line.RuchomySlupek}");
@@ -5362,11 +5379,11 @@
 
             if (regionyLinii.Count == 0)
             {
-                Console.WriteLine($"      ⏭️ brak regionów-linii dla tej linii");
+                _logger.LogDebug($"      ⏭️ brak regionów-linii dla tej linii");
                 continue;
             }
 
-            Console.WriteLine($"      Znaleziono {regionyLinii.Count} regionów-linii");
+            _logger.LogDebug($"      Znaleziono {regionyLinii.Count} regionów-linii");
 
             // ⭐ Sortuj regiony wzdłuż osi linii (od początku do końca)
             var posortowane = regionyLinii
@@ -5419,13 +5436,13 @@
 
                 ZaktualizujRegionLinii(region, newA.X, newA.Y, newB.X, newB.Y);
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"      ✅ Region {region.Id}: " +
                     $"({newA.X:F1},{newA.Y:F1}) → ({newB.X:F1},{newB.Y:F1})");
             }
         }
 
-        Console.WriteLine("═══════════════════════════════════════════════");
+        _logger.LogDebug("═══════════════════════════════════════════════");
     }
 
     /// <summary>
@@ -5435,7 +5452,7 @@
     {
         if (region.Wierzcholki == null || region.Wierzcholki.Count != 2)
         {
-            Console.WriteLine($"⚠️ ZaktualizujRegionLinii: region {region.Id} nie jest linią (Wierzcholki={region.Wierzcholki?.Count ?? 0}) – pomijam");
+            _logger.LogDebug($"⚠️ ZaktualizujRegionLinii: region {region.Id} nie jest linią (Wierzcholki={region.Wierzcholki?.Count ?? 0}) – pomijam");
             return;
         }
 
@@ -5459,7 +5476,7 @@
     {
         var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
 
-        Console.WriteLine($"🔧 AktualizujStanyGeneratorowPoEdycjiLinii: {_generatorStates.Count} stanów");
+        _logger.LogDebug($"🔧 AktualizujStanyGeneratorowPoEdycjiLinii: {_generatorStates.Count} stanów");
 
         foreach (var genState in _generatorStates.Values)
         {
@@ -5469,7 +5486,7 @@
             var region = wszystkieRegiony.FirstOrDefault(r => r.Id == genState.IdRegion);
             if (region == null)
             {
-                Console.WriteLine($"   ⏭️ brak regionu dla {genState.IdRegion?.Substring(0, Math.Min(8, genState.IdRegion.Length))}");
+                _logger.LogDebug($"   ⏭️ brak regionu dla {genState.IdRegion?.Substring(0, Math.Min(8, genState.IdRegion.Length))}");
                 continue;
             }
 
@@ -5486,7 +5503,7 @@
                 genState.Kontur = region.Kontur.Select(s => s.Clone()).ToList();
             }
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"   ✅ Stan {genState.IdRegion?.Substring(0, Math.Min(8, genState.IdRegion.Length))} " +
                 $"zaktualizowany (Wierzcholki={region.Wierzcholki?.Count ?? 0}, Kontur={region.Kontur?.Count ?? 0})");
         }
@@ -5501,7 +5518,7 @@
     {
         if (_zmienWymiaryWToku)
         {
-            Console.WriteLine("⚠️ ZmienWymiaryOkna już trwa — pomijam");
+            _logger.LogDebug("⚠️ ZmienWymiaryOkna już trwa — pomijam");
             return;
         }
 
@@ -5524,7 +5541,7 @@
             _generator.Szerokosc = newWidth;
             _generator.Wysokosc = newHeight;
 
-            Console.WriteLine($"📏 ZmienWymiaryOkna: → {newWidth}x{newHeight}");
+            _logger.LogDebug($"📏 ZmienWymiaryOkna: → {newWidth}x{newHeight}");
 
             // ═══════════════════════════════════════════════════════════════
             // 1. Opcjonalna regeneracja linii (jeśli wołane z TRYB 1)
@@ -5532,7 +5549,7 @@
             if (generujPonownieLinie)
                 await GenerujObrysPozZmianieWymiarow(false, false, wymusWysrodkowanie);
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🗺️ Regiony: dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count}");
 
             await Task.Yield();
@@ -5553,7 +5570,7 @@
             await Task.Yield();
 
             var wszystkieRegiony = _regionsDualRama.Concat(_regionsSkrzydlo).ToList();
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"🗺️ Regiony: dual={_regionsDualRama.Count}, skrzydło={_regionsSkrzydlo.Count}");
 
             // ═══════════════════════════════════════════════════════════════
@@ -5566,7 +5583,7 @@
 
             foreach (var kvp in osierocone)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"🗑️ Usuwam osierocony stan: " +
                     $"IdRegion='{kvp.Value?.IdRegion}', " +
                     $"Typ='{kvp.Value?.TypKsztaltu}'");
@@ -5588,11 +5605,11 @@
             {
                 string cleanId = genState.Value.IdRegion;
                 string typModelu = genState.Value.WybranyModel?.Typ?.Trim() ?? "(brak)";
-                Console.WriteLine($"🔄 Przetwarzam region cleanId:{cleanId} typ: {typModelu}");
+                _logger.LogDebug($"🔄 Przetwarzam region cleanId:{cleanId} typ: {typModelu}");
 
                 var region = wszystkieRegiony.FirstOrDefault(r => r.Id == cleanId);
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"   region: {(region == null ? "NULL" : region.Id)} " +
                     $"Typ={region?.TypKsztaltu} " +
                     $"Wierzcholki={region?.Wierzcholki?.Count ?? 0}");
@@ -5600,17 +5617,17 @@
                 // ─── Region nie znaleziony → zachowaj stare shapes ───
                 if (region == null)
                 {
-                    Console.WriteLine($"⚠️ Brak regionu dla '{cleanId}' — ZACHOWUJĘ stare shapes");
+                    _logger.LogDebug($"⚠️ Brak regionu dla '{cleanId}' — ZACHOWUJĘ stare shapes");
 
                     if (_ksztaltyNaRegion.TryGetValue(cleanId, out var stareKsztalty) && stareKsztalty.Any())
                     {
                         noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(stareKsztalty);
                         noweKsztalty.AddRange(stareKsztalty);
-                        Console.WriteLine($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
+                        _logger.LogDebug($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
                     }
                     else
                     {
-                        Console.WriteLine($"   ⚠️ Brak shapes w _ksztaltyNaRegion dla '{cleanId}'");
+                        _logger.LogDebug($"   ⚠️ Brak shapes w _ksztaltyNaRegion dla '{cleanId}'");
                     }
                     continue;
                 }
@@ -5632,13 +5649,13 @@
                 var generator = genState.Value.Generator;
                 if (generator == null)
                 {
-                    Console.WriteLine($"⚠ Brak generatora dla cleanId: {cleanId} — ZACHOWUJĘ stare shapes");
+                    _logger.LogDebug($"⚠ Brak generatora dla cleanId: {cleanId} — ZACHOWUJĘ stare shapes");
 
                     if (_ksztaltyNaRegion.TryGetValue(cleanId, out var stareKsztalty) && stareKsztalty.Any())
                     {
                         noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(stareKsztalty);
                         noweKsztalty.AddRange(stareKsztalty);
-                        Console.WriteLine($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
+                        _logger.LogDebug($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
                     }
                     continue;
                 }
@@ -5656,7 +5673,7 @@
                 }
                 else
                 {
-                    Console.WriteLine(
+                    _logger.LogDebug(
                         $"⏭️ Słupek stały {cleanId}: zachowuję istniejące ListaKwadratow " +
                         $"({genState.Value.ListaKwadratow?.Count ?? 0} wpisów)");
                     generator.ElementLiniowy = true;
@@ -5717,7 +5734,7 @@
                 // ─── AddElements ───
                 var daneKwadratow = genState.Value.ListaKwadratow ?? new List<DaneKwadratu>();
                 var regionNadrzedny = ZnajdzRegionNadrzednyDlaStanu(region, wszystkieRegiony);
-                Console.WriteLine($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
+                _logger.LogDebug($"   🎯 Region nadrzędny: {regionNadrzedny?.Id ?? "NULL"}");
 
                 var regionsList = generator.CzyElementJestRama ? _regionsDualRama : _regionsSkrzydlo;
 
@@ -5736,19 +5753,19 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"   🔥 Wyjątek w AddElements dla '{cleanId}': {ex.Message}");
+                    _logger.LogDebug($"   🔥 Wyjątek w AddElements dla '{cleanId}': {ex.Message}");
                     ok = ex.Message;
                 }
 
                 if (!string.IsNullOrEmpty(ok))
                 {
-                    Console.WriteLine($"   ⚠️ AddElements dla '{cleanId}': {ok} — ZACHOWUJĘ stare shapes");
+                    _logger.LogDebug($"   ⚠️ AddElements dla '{cleanId}': {ok} — ZACHOWUJĘ stare shapes");
 
                     if (_ksztaltyNaRegion.TryGetValue(cleanId, out var stareKsztalty) && stareKsztalty.Any())
                     {
                         noweKsztaltyNaRegion[cleanId] = new List<KsztaltElementu>(stareKsztalty);
                         noweKsztalty.AddRange(stareKsztalty);
-                        Console.WriteLine($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
+                        _logger.LogDebug($"   ⭐ Zachowano {stareKsztalty.Count} kształtów dla '{cleanId}'");
                     }
                     continue;
                 }
@@ -5761,7 +5778,7 @@
                 }
                 else
                 {
-                    Console.WriteLine($"   ⚠️ AddElements nie wygenerowało shapes dla '{cleanId}' — ZACHOWUJĘ stare");
+                    _logger.LogDebug($"   ⚠️ AddElements nie wygenerowało shapes dla '{cleanId}' — ZACHOWUJĘ stare");
 
                     if (_ksztaltyNaRegion.TryGetValue(cleanId, out var stareKsztalty) && stareKsztalty.Any())
                     {
@@ -5795,12 +5812,12 @@
             // ═══════════════════════════════════════════════════════════════
             // 6. ATOMOWA zamiana ksztalty
             // ═══════════════════════════════════════════════════════════════
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"═══ PRZED atomową zamianą ═══");
-            Console.WriteLine($"   ShapeService.Shapes.Count = {ShapeService.Shapes.Count}");
-            Console.WriteLine($"   _ksztaltyNaRegion.Count = {_ksztaltyNaRegion.Count}");
-            Console.WriteLine($"   ksztalty.Count = {ksztalty.Count}");
-            Console.WriteLine($"   noweKsztalty.Count = {noweKsztalty.Count}");
+            _logger.LogDebug($"   ShapeService.Shapes.Count = {ShapeService.Shapes.Count}");
+            _logger.LogDebug($"   _ksztaltyNaRegion.Count = {_ksztaltyNaRegion.Count}");
+            _logger.LogDebug($"   ksztalty.Count = {ksztalty.Count}");
+            _logger.LogDebug($"   noweKsztalty.Count = {noweKsztalty.Count}");
 
             lock (_ksztaltyNaRegion)
             {
@@ -5812,11 +5829,11 @@
                 ksztalty.AddRange(noweKsztalty);
             }
 
-            Console.WriteLine("✅ ZmienWymiaryOkna zakończono pomyślnie");
+            _logger.LogDebug("✅ ZmienWymiaryOkna zakończono pomyślnie");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 Błąd w ZmienWymiaryOkna: {ex.Message}\n{ex.StackTrace}");
+            _logger.LogDebug($"🔥 Błąd w ZmienWymiaryOkna: {ex.Message}\n{ex.StackTrace}");
             await _message.Error($"Błąd zmiany wymiarów: {ex.Message}", 5);
         }
         finally
@@ -5853,11 +5870,11 @@
 
         if (Math.Abs(dx) < 0.5 && Math.Abs(dy) < 0.5)
         {
-            Console.WriteLine("✅ SynchronizujRegiony: już spójne");
+            _logger.LogDebug("✅ SynchronizujRegiony: już spójne");
             return;
         }
 
-        Console.WriteLine($"🔧 SynchronizujRegiony: przesuwam regiony o ({dx:F1},{dy:F1})");
+        _logger.LogDebug($"🔧 SynchronizujRegiony: przesuwam regiony o ({dx:F1},{dy:F1})");
 
         PrzesunRegiony(_regionsDualRama, dx, dy);
         PrzesunRegiony(_regionsSkrzydlo, dx, dy);
@@ -5914,7 +5931,7 @@
 
         if (existingState?.ListaKwadratow != null && existingState.ListaKwadratow.Count > 0)
         {
-            Console.WriteLine($"ℹ WyliczKwadratyPoZmianie existingState dla regionu {region.Id} kwadratów -> {region.Wierzcholki.Max(x => x.X)} x {region.Wierzcholki.Max(x => x.Y)}");
+            _logger.LogDebug($"ℹ WyliczKwadratyPoZmianie existingState dla regionu {region.Id} kwadratów -> {region.Wierzcholki.Max(x => x.X)} x {region.Wierzcholki.Max(x => x.Y)}");
             // Zwróć klony, żeby nie mutować oryginału
             return existingState.ListaKwadratow.Select(k => k.Clone()).ToList();
         }
@@ -5951,7 +5968,7 @@
             });
         }
 
-        // Console.WriteLine($"ℹ WyliczKwadratyPoZmianie dla regionu {region.Id} - wygenerowano {wynik.Count} kwadratów -> {region.Wierzcholki.Max(x => x.X)} x {region.Wierzcholki.Max(x => x.Y)}");
+        // _logger.LogDebug($"ℹ WyliczKwadratyPoZmianie dla regionu {region.Id} - wygenerowano {wynik.Count} kwadratów -> {region.Wierzcholki.Max(x => x.X)} x {region.Wierzcholki.Max(x => x.Y)}");
 
         await Task.CompletedTask; // Symulacja asynchroniczności
 
@@ -5977,7 +5994,7 @@
         if (walidacja != "")
             return walidacja;
 
-        Console.WriteLine($"📦 DodajWybranyKwadratOkna: idRegion={idRegion}, SelectedRowIdType={SelectedRowIdType}");
+        _logger.LogDebug($"📦 DodajWybranyKwadratOkna: idRegion={idRegion}, SelectedRowIdType={SelectedRowIdType}");
 
         // 2. Przygotuj generator
         var generator = await PrzygotujGenerator();
@@ -6023,32 +6040,32 @@
                 try
                 {
 
-                    Console.WriteLine("═══════════════════════════════════════════════");
-                    Console.WriteLine("🔎 PRZED generator.AddElements()");
+                    _logger.LogDebug("═══════════════════════════════════════════════");
+                    _logger.LogDebug("🔎 PRZED generator.AddElements()");
 
-                    Console.WriteLine($"state.WierzcholkiWartosciNominalne:");
+                    _logger.LogDebug($"state.WierzcholkiWartosciNominalne:");
                     if (state.WierzcholkiWartosciNominalne != null)
                     {
                         foreach (var p in state.WierzcholkiWartosciNominalne)
                         {
-                            Console.WriteLine($"   ({p.X:F2},{p.Y:F2})");
+                            _logger.LogDebug($"   ({p.X:F2},{p.Y:F2})");
                         }
                     }
 
-                    Console.WriteLine($"wierzcholkiMaster:");
+                    _logger.LogDebug($"wierzcholkiMaster:");
                     if (wierzcholkiMaster != null)
                     {
                         foreach (var p in wierzcholkiMaster)
                         {
-                            Console.WriteLine($"   ({p.X:F2},{p.Y:F2})");
+                            _logger.LogDebug($"   ({p.X:F2},{p.Y:F2})");
                         }
                     }
 
-                    Console.WriteLine("🔎 SHAPES PRZED AddElements:");
+                    _logger.LogDebug("🔎 SHAPES PRZED AddElements:");
 
                     foreach (var line in ShapeService.Shapes.OfType<XLineShape>())
                     {
-                        Console.WriteLine(
+                        _logger.LogDebug(
                             $"   ID={line.ID} " +
                             $"({line.X1:F2},{line.Y1:F2}) → ({line.X2:F2},{line.Y2:F2}) " +
                             $"Ruchomy={line.RuchomySlupek} " +
@@ -6056,7 +6073,7 @@
                             $"Split={line.SplitGroupId}");
                     }
 
-                    Console.WriteLine("═══════════════════════════════════════════════");
+                    _logger.LogDebug("═══════════════════════════════════════════════");
 
                     var wynikSlupka = await ObsluzSlupekStaly(
                     state, generator, styczneLinie, wszystkieRegiony,
@@ -6067,10 +6084,10 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"🔥🔥🔥 WYJĄTEK w ObsluzSlupekStaly:");
-                    Console.WriteLine($"   Typ: {ex.GetType().Name}");
-                    Console.WriteLine($"   Message: {ex.Message}");
-                    Console.WriteLine($"   StackTrace:\n{ex.StackTrace}");
+                    _logger.LogDebug($"🔥🔥🔥 WYJĄTEK w ObsluzSlupekStaly:");
+                    _logger.LogDebug($"   Typ: {ex.GetType().Name}");
+                    _logger.LogDebug($"   Message: {ex.Message}");
+                    _logger.LogDebug($"   StackTrace:\n{ex.StackTrace}");
 
                     generator.BledySystemowe.Add(
                         $"🔥 ObsluzSlupekStaly: {ex.GetType().Name}: {ex.Message}");
@@ -6101,7 +6118,7 @@
         await ZapiszStanKoncowy(state, generator, idRegion, slupekStaly, idSlupka, wierzcholki, klikX, klikY);
 
         await Task.CompletedTask;
-        Console.WriteLine($"✅ DodajWybranyKwadratOkna zakończone");
+        _logger.LogDebug($"✅ DodajWybranyKwadratOkna zakończone");
         return "";
     }
 
@@ -6109,7 +6126,7 @@
     {
         if (string.IsNullOrEmpty(SelectedModelType))
         {
-            Console.WriteLine("❌ SelectedModelType jest puste.");
+            _logger.LogDebug("❌ SelectedModelType jest puste.");
             return "❌ SelectedModelType jest puste, nie można kontynuować.";
         }
 
@@ -6125,7 +6142,7 @@
 
         if (KonfiguracjeSystemu == null && string.IsNullOrEmpty(SelectedSystemId))
         {
-            Console.WriteLine("❌ KonfiguracjeSystemu jest puste.");
+            _logger.LogDebug("❌ KonfiguracjeSystemu jest puste.");
             return "❌ KonfiguracjeSystemu jest puste, nie można kontynuować.";
         }
 
@@ -6152,7 +6169,7 @@
 
             if (!Guid.TryParse(SelectedRowIdType, out var rowIdModeluSzukaj))
             {
-                Console.WriteLine($"⚠️ Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}");
+                _logger.LogDebug($"⚠️ Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}");
                 await _message.Error($"⚠️ Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}");
                 throw new InvalidOperationException($"Nieprawidłowy SelectedRowIdType: {SelectedRowIdType}");
             }
@@ -6164,7 +6181,7 @@
 
             if (powiazanyModel == null)
             {
-                Console.WriteLine($"⚠️ Nie znaleziono powiązanego modelu dla: {SelectedRowIdType}");
+                _logger.LogDebug($"⚠️ Nie znaleziono powiązanego modelu dla: {SelectedRowIdType}");
                 await _message.Error($"⚠️ Nie znaleziono powiązanego modelu dla: {SelectedRowIdType}");
                 throw new InvalidOperationException($"Nie znaleziono powiązanego modelu dla: {SelectedRowIdType}");
             }
@@ -6173,7 +6190,7 @@
 
             if (powiazanyModel.KonfModele?.Any() == true)
             {
-                Console.WriteLine($"! Powiązany model: {powiazanyModel.KonfModele[0].NazwaKonfiguracji} ile: {powiazanyModel.KonfModele.Count}");
+                _logger.LogDebug($"! Powiązany model: {powiazanyModel.KonfModele[0].NazwaKonfiguracji} ile: {powiazanyModel.KonfModele.Count}");
             }
         }
         else
@@ -6194,7 +6211,7 @@
 
         if (region?.Wierzcholki == null)
         {
-            Console.WriteLine($"❌ Brak regionu referencyjnego dla idRegion={idRegion}");
+            _logger.LogDebug($"❌ Brak regionu referencyjnego dla idRegion={idRegion}");
             return null;
         }
 
@@ -6219,7 +6236,7 @@
         if (regionStanu?.Wierzcholki == null || regionStanu.Wierzcholki.Count < 2)
         {
             var fallback = wszystkieRegiony.FirstOrDefault(r => r.Rama);
-            Console.WriteLine($"   ⚠️ ZnajdzRegionNadrzedny: brak wierzchołków stanu — fallback: {fallback?.Id}");
+            _logger.LogDebug($"   ⚠️ ZnajdzRegionNadrzedny: brak wierzchołków stanu — fallback: {fallback?.Id}");
             return fallback;
         }
 
@@ -6228,14 +6245,14 @@
             (regionStanu.Wierzcholki[0].X + regionStanu.Wierzcholki[^1].X) / 2.0,
             (regionStanu.Wierzcholki[0].Y + regionStanu.Wierzcholki[^1].Y) / 2.0);
 
-        Console.WriteLine($"🔍 ZnajdzRegionNadrzedny: szukam dla os=({osPunkt.X:F1}, {osPunkt.Y:F1})");
+        _logger.LogDebug($"🔍 ZnajdzRegionNadrzedny: szukam dla os=({osPunkt.X:F1}, {osPunkt.Y:F1})");
 
         // ⭐ Wszystkie regiony z Rama=true
         var kandydaci = wszystkieRegiony
             .Where(r => r.Rama && r.Wierzcholki != null && r.Wierzcholki.Count >= 3 && r.Id != regionStanu.Id)
             .ToList();
 
-        Console.WriteLine($"   Kandydatów (Rama=true): {kandydaci.Count}");
+        _logger.LogDebug($"   Kandydatów (Rama=true): {kandydaci.Count}");
 
         foreach (var k in kandydaci)
         {
@@ -6246,19 +6263,19 @@
 
             bool zawiera = IsPointInPolygon(k.Wierzcholki!, osPunkt.X, osPunkt.Y);
 
-            Console.WriteLine($"   test {k.Id?.Substring(0, Math.Min(8, k.Id.Length))}: " +
+            _logger.LogDebug($"   test {k.Id?.Substring(0, Math.Min(8, k.Id.Length))}: " +
                               $"X=[{minX:F0}..{maxX:F0}], Y=[{minY:F0}..{maxY:F0}] " +
                               $"zawiera={zawiera}");
 
             if (zawiera)
             {
-                Console.WriteLine($"   ✅ Wybrano region nadrzędny: {k.Id}");
+                _logger.LogDebug($"   ✅ Wybrano region nadrzędny: {k.Id}");
                 return k;
             }
         }
 
         var fallbackRama = wszystkieRegiony.FirstOrDefault(r => r.Rama);
-        Console.WriteLine($"   ⚠️ Żaden region nie zawiera osi — fallback: {fallbackRama?.Id}");
+        _logger.LogDebug($"   ⚠️ Żaden region nie zawiera osi — fallback: {fallbackRama?.Id}");
         return fallbackRama;
     }
 
@@ -6352,7 +6369,7 @@
 
         if (!styczneLinie.Any())
         {
-            Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera linii stycznych.");
+            _logger.LogDebug($"⚠️ Region {idRegion} NIE zawiera linii stycznych.");
             return (false, false, false);
         }
 
@@ -6372,7 +6389,7 @@
 
         if (!czySlupekRuchomy)
         {
-            Console.WriteLine($"⚠️ Region {idRegion} NIE zawiera słupka ruchomego.");
+            _logger.LogDebug($"⚠️ Region {idRegion} NIE zawiera słupka ruchomego.");
             return (false, false, false);
         }
 
@@ -6393,12 +6410,12 @@
             if (klikX > srodekX)
             {
                 stronaLewa = true;
-                Console.WriteLine("⬅️ Klik po prawej → słupek po lewej.");
+                _logger.LogDebug("⬅️ Klik po prawej → słupek po lewej.");
             }
             else
             {
                 stronaPrawa = true;
-                Console.WriteLine("➡️ Klik po lewej → słupek po prawej.");
+                _logger.LogDebug("➡️ Klik po lewej → słupek po prawej.");
             }
         }
         else if (liczbaLinii >= 2)
@@ -6643,17 +6660,17 @@
     double katSlupkaStalego,
     List<XPoint> wierzcholkiST)
     {
-        // Console.WriteLine("════════ PRZETWORZ LINIE STANU ════════");
-        // Console.WriteLine($"klikX={klikX:F2}, klikY={klikY:F2}");
-        // Console.WriteLine($"wierzcholki.Count={wierzcholki?.Count ?? 0}");
+        // _logger.LogDebug("════════ PRZETWORZ LINIE STANU ════════");
+        // _logger.LogDebug($"klikX={klikX:F2}, klikY={klikY:F2}");
+        // _logger.LogDebug($"wierzcholki.Count={wierzcholki?.Count ?? 0}");
 
         // if (wierzcholki != null)
         // {
         //     foreach (var p in wierzcholki)
-        //         Console.WriteLine($"   WEJŚCIE: ({p.X:F2},{p.Y:F2})");
+        //         _logger.LogDebug($"   WEJŚCIE: ({p.X:F2},{p.Y:F2})");
         // }
 
-        // Console.WriteLine("═══════════════════════════════════════");
+        // _logger.LogDebug("═══════════════════════════════════════");
 
         var linie = ExtractLinesFromSquare(wierzcholki);
 
@@ -6678,11 +6695,11 @@
                 WybranyModel.Typ == "Słupek stały",
                 katSlupkaStalego, wierzcholkiST, generator.ElementyRamyRysowane, 0.1f);
 
-                Console.WriteLine($"🔍 ZnajdzSasiada zwróciło {sasiedzi?.Count ?? 0} sąsiadów");
+                _logger.LogDebug($"🔍 ZnajdzSasiada zwróciło {sasiedzi?.Count ?? 0} sąsiadów");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ WYJĄTEK w ZnajdzSasiada: {ex.Message}\n{ex.StackTrace}");
+                _logger.LogDebug($"❌ WYJĄTEK w ZnajdzSasiada: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
 
@@ -6754,7 +6771,7 @@
 
         if (najlepszy != null)
         {
-            Console.WriteLine($"✅ WYBRANO: {najlepszy.WybranyTyp}, " +
+            _logger.LogDebug($"✅ WYBRANO: {najlepszy.WybranyTyp}, " +
                 $"Region: {najlepszy.IdRegionu}, Kąt: {najlepszy.KatSasiada}°, " +
                 $"RowIdElementu: {najlepszy.RowIdElementu}");
         }
@@ -6775,7 +6792,7 @@
     {
         if (!styczneLinie.Any())
         {
-            Console.WriteLine($"✅ Region {idRegion} nie zawiera słupka stałego.");
+            _logger.LogDebug($"✅ Region {idRegion} nie zawiera słupka stałego.");
             return "✅ Region nie zawiera słupka stałego.";
         }
 
@@ -6840,24 +6857,24 @@
         {
             //najlepszySasiadA = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
             najlepszySasiadA = WybierzNajblizszegoSasiadaZKsztaltow(ksztalty, wszystkieKwadraty, stronaA, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA}) Kąt Sąsiada:{najlepszySasiadA?.KatLinii}");
+            _logger.LogDebug($"🔹 Najlepszy A: {najlepszySasiadA?.RowIdElementu} (strona={najlepszySasiadA?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadA?.SasiadSlupekStronaA}) Kąt Sąsiada:{najlepszySasiadA?.KatLinii}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 WYJĄTEK A: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"🔥 StackTrace A:\n{ex.StackTrace}");
+            _logger.LogDebug($"🔥 WYJĄTEK A: {ex.GetType().Name}: {ex.Message}");
+            _logger.LogDebug($"🔥 StackTrace A:\n{ex.StackTrace}");
         }
 
         try
         {
             //najlepszySasiadB = WybierzNajblizszegoSasiada(wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
             najlepszySasiadB = WybierzNajblizszegoSasiadaZKsztaltow(ksztalty, wszystkieKwadraty, stronaB, klikX, klikY, liniaStalaWierzcholki);
-            Console.WriteLine($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA})  Kąt Sąsiada:{najlepszySasiadB?.KatLinii}");
+            _logger.LogDebug($"🔹 Najlepszy B: {najlepszySasiadB?.RowIdElementu} (strona={najlepszySasiadB?.Strona}) (SasiadSlupekStronaA: {najlepszySasiadB?.SasiadSlupekStronaA})  Kąt Sąsiada:{najlepszySasiadB?.KatLinii}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"🔥 WYJĄTEK B: {ex.GetType().Name}: {ex.Message}");
-            Console.WriteLine($"🔥 StackTrace B:\n{ex.StackTrace}");
+            _logger.LogDebug($"🔥 WYJĄTEK B: {ex.GetType().Name}: {ex.Message}");
+            _logger.LogDebug($"🔥 StackTrace B:\n{ex.StackTrace}");
         }
 
         Guid _najlepszySasiadA = najlepszySasiadA?.RowIdElementu ?? Guid.Empty;
@@ -6865,8 +6882,8 @@
         Guid _najlepszySasiadB = najlepszySasiadB?.RowIdElementu ?? Guid.Empty;
 
 
-        Console.WriteLine($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} {najlepszySasiadA?.TypKsztaltu} (strona={najlepszySasiadA?.Strona}) {najlepszySasiadA?.SasiadSlupekStronaA}");
-        Console.WriteLine($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} {najlepszySasiadB?.TypKsztaltu} (strona={najlepszySasiadB?.Strona}) {najlepszySasiadB?.SasiadSlupekStronaA}");
+        _logger.LogDebug($"🔹🔹🔹 Najlepszy A: {_najlepszySasiadA} {najlepszySasiadA?.TypKsztaltu} (strona={najlepszySasiadA?.Strona}) {najlepszySasiadA?.SasiadSlupekStronaA}");
+        _logger.LogDebug($"🔹🔹🔹 Najlepszy B: {_najlepszySasiadB} {najlepszySasiadB?.TypKsztaltu} (strona={najlepszySasiadB?.Strona}) {najlepszySasiadB?.SasiadSlupekStronaA}");
 
         // Pobierz połączenia
         var polaczenieWartosciA =
@@ -6921,7 +6938,7 @@
             LiniaStala = liniaStalaWierzcholki
         });
 
-        Console.WriteLine($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaB}");
+        _logger.LogDebug($"🔹 Najlepszy A i B zapisane do state.ListaKwadratow: A:{state.ListaKwadratow[^1].RowIdSasiadaStronaA} B: {state.ListaKwadratow[^1].RowIdSasiadaStronaB}");
 
         // Aktualizacja stanu
         state.ZIndeks = generator.Zindeks;
@@ -6964,7 +6981,7 @@
             }
         }
 
-        Console.WriteLine($"📐 Słupek stały zakończony: wierzcholkiMaster={wierzcholkiMaster.Count}");
+        _logger.LogDebug($"📐 Słupek stały zakończony: wierzcholkiMaster={wierzcholkiMaster.Count}");
         return "";
     }
 
@@ -6979,18 +6996,18 @@
             return null;
 
 
-        Console.WriteLine($"🔍 WybierzNajblizszegoSasiada(strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
-        Console.WriteLine($"   wszyscy przecinający kierunek (bez linii stałej) ALL: {wszystkieKwadraty.Count}");
+        _logger.LogDebug($"🔍 WybierzNajblizszegoSasiada(strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
+        _logger.LogDebug($"   wszyscy przecinający kierunek (bez linii stałej) ALL: {wszystkieKwadraty.Count}");
         for (int i = 0; i < Math.Min(wszystkieKwadraty.Count, 10); i++)
         {
             var x = wszystkieKwadraty[i];
-            Console.WriteLine($"   [{i}] {x.RowIdElementu} - {x.KatLinii} - RowIdRegionu:{x.RowIdRegionu}");
+            _logger.LogDebug($"   [{i}] {x.RowIdElementu} - {x.KatLinii} - RowIdRegionu:{x.RowIdRegionu}");
 
             var czyElementJestDodany = ksztalty.Where(r => r?.RowIdElementu == x.RowIdElementu && r?.Kat == x.KatLinii)
             .ToList();
             if (czyElementJestDodany != null && czyElementJestDodany.Count > 0)
             {
-                Console.WriteLine($"   [{i}] {x.RowIdElementu} - {x.KatLinii} - RowIdRegionu:{x.RowIdRegionu} - Element już dodany do listy ksztalty");
+                _logger.LogDebug($"   [{i}] {x.RowIdElementu} - {x.KatLinii} - RowIdRegionu:{x.RowIdRegionu} - Element już dodany do listy ksztalty");
             }
         }
 
@@ -7024,12 +7041,12 @@
             .ToList();
 
         // 3. Log
-        Console.WriteLine($"🔍 WybierzNajblizszegoSasiada(strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
-        Console.WriteLine($"   wszyscy przecinający kierunek (bez linii stałej): {wszyscy.Count}, po deduplikacji: {unikalni.Count}");
+        _logger.LogDebug($"🔍 WybierzNajblizszegoSasiada(strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
+        _logger.LogDebug($"   wszyscy przecinający kierunek (bez linii stałej): {wszyscy.Count}, po deduplikacji: {unikalni.Count}");
         for (int i = 0; i < Math.Min(unikalni.Count, 10); i++)
         {
             var x = unikalni[i];
-            Console.WriteLine($"   [{i}] {x.K.RowIdElementu} " +
+            _logger.LogDebug($"   [{i}] {x.K.RowIdElementu} " +
                               $"(Strona='{x.K.Strona}', Środek=({x.Cx:F1},{x.Cy:F1}), " +
                               $"Odl={x.Odl:F2}, Przecięcie=({x.PunktPrzeciecia.X:F1},{x.PunktPrzeciecia.Y:F1}))");
         }
@@ -7037,7 +7054,7 @@
         // 4. Fallback — gdy nikt nie przecina, użyj starej logiki po kierunku środka
         if (unikalni.Count == 0)
         {
-            Console.WriteLine($"   ⚠️ Brak przecięć w kierunku '{strona}' — fallback na środek");
+            _logger.LogDebug($"   ⚠️ Brak przecięć w kierunku '{strona}' — fallback na środek");
 
             var fallback = wszystkieKwadraty
                 .Where(k => k?.Wierzcholki != null && k.Wierzcholki.Count >= 2)
@@ -7054,7 +7071,7 @@
                 .ToList();
 
             var wybrany = fallback.FirstOrDefault()?.K;
-            Console.WriteLine($"   Fallback → {wybrany?.RowIdElementu}");
+            _logger.LogDebug($"   Fallback → {wybrany?.RowIdElementu}");
             return wybrany;
         }
 
@@ -7087,7 +7104,7 @@
             najlepszy.SasiadSlupekStronaA = element.Typ?.Trim().Equals("słupek stały", StringComparison.OrdinalIgnoreCase) ?? false;
         }
 
-        Console.WriteLine($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}') SasiadSlupekStronaA:{najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB:{najlepszy.SasiadSlupekStronaB}");
+        _logger.LogDebug($"✅ Zwrócono: {najlepszy.RowIdElementu} (Strona='{najlepszy.Strona}') SasiadSlupekStronaA:{najlepszy.SasiadSlupekStronaA} SasiadSlupekStronaB:{najlepszy.SasiadSlupekStronaB}");
 
         return najlepszy;
     }
@@ -7106,7 +7123,7 @@
 
         const double tolerancja = 0.001;
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"🔍 WybierzNajblizszegoSasiadaZKsztaltow(" +
             $"strona='{strona}', klik=({klikX:F1},{klikY:F1}))");
 
@@ -7148,13 +7165,13 @@
             .OrderBy(x => x.Odleglosc)
             .ToList();
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"   Kształty przecinające kierunek: {kandydaci.Count}, " +
             $"po deduplikacji: {unikalni.Count}");
 
         foreach (var x in unikalni.Take(10))
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"   RowId={x.Ksztalt.RowIdElementu}, " +
                 $"Kat={x.Ksztalt.Kat}, Region={x.Ksztalt.IdRegion}, " +
                 $"Środek=({x.Cx:F1},{x.Cy:F1}), " +
@@ -7167,7 +7184,7 @@
 
         if (najlepszyKsztalt == null)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"⚠️ Nie znaleziono kształtu przecinającego kierunek '{strona}'.");
 
             return null;
@@ -7184,7 +7201,7 @@
 
         if (najlepszy == null)
         {
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"⚠️ Kształt {najlepszyKsztalt.RowIdElementu} " +
                 $"nie ma odpowiadającego obiektu DaneKwadratu.");
 
@@ -7217,7 +7234,7 @@
                     StringComparison.OrdinalIgnoreCase);
         }
 
-        Console.WriteLine(
+        _logger.LogDebug(
             $"✅ Zwrócono: {najlepszy.RowIdElementu}, " +
             $"Strona='{najlepszy.Strona}', " +
             $"SasiadSlupekStronaA={najlepszy.SasiadSlupekStronaA}");
@@ -7486,7 +7503,7 @@
 
         if (wybranyRegionSkrzydlo?.Wierzcholki == null || wybranyRegionSkrzydlo.Wierzcholki.Count < 3)
         {
-            Console.WriteLine($"❌ Wybrany region skrzydła nie zawiera wystarczającej liczby punktów!");
+            _logger.LogDebug($"❌ Wybrany region skrzydła nie zawiera wystarczającej liczby punktów!");
             return "❌ Wybrany region nie zawiera wystarczającej liczby punktów!";
         }
 
@@ -7607,7 +7624,7 @@
         double klikX,
         double klikY)
     {
-        Console.WriteLine($"🔹 klikX={klikX}, klikY={klikY}");
+        _logger.LogDebug($"🔹 klikX={klikX}, klikY={klikY}");
 
         foreach (var gs in stany)
         {
@@ -7615,7 +7632,7 @@
 
             foreach (var test in gs.ListaKwadratow)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"🔹 RegionId: {gs.IdRegion}, " +
                     $"RowIdElementu: {test.RowIdElementu}, " +
                     $"RowIdSasiada: {test.RowIdSasiada}, " +
@@ -7626,7 +7643,7 @@
                 if (test.Wierzcholki != null)
                 {
                     foreach (var w in test.Wierzcholki)
-                        Console.WriteLine($"🔹   Wierzcholek: X={w.X}, Y={w.Y}");
+                        _logger.LogDebug($"🔹   Wierzcholek: X={w.X}, Y={w.Y}");
                 }
             }
         }
@@ -7707,7 +7724,7 @@
                 if (isNearHorizontal)
                 {
                     strona = "Góra";
-                    Console.WriteLine($"📐 KOREKTA: Zmieniono na GÓRA (element w górnej części, kąt: {kat}°)");
+                    _logger.LogDebug($"📐 KOREKTA: Zmieniono na GÓRA (element w górnej części, kąt: {kat}°)");
                 }
             }
         }
@@ -7718,7 +7735,7 @@
         oczekujeLewa = (strona == "Lewa");
         oczekujePrawa = (strona == "Prawa");
 
-        Console.WriteLine($"📐 Określono stronę: {strona} (kąt: {kat}°)");
+        _logger.LogDebug($"📐 Określono stronę: {strona} (kąt: {kat}°)");
 
         return strona;
     }
@@ -7945,16 +7962,16 @@
         Generator generator,
         ShapeRegion regionSlupka)
     {
-        Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> Przesunięcia: Lewo: {przesLewo}, Prawo: {przesPrawo}, Góra: {przesGora}, Dół: {przesDol}");
+        _logger.LogDebug($"📐 WyliczObszarSlupkaStalego -> Przesunięcia: Lewo: {przesLewo}, Prawo: {przesPrawo}, Góra: {przesGora}, Dół: {przesDol}");
 
         if (regionSlupka == null || regionSlupka.Wierzcholki == null || regionSlupka.Wierzcholki.Count < 2)
             return null;
 
-        // Console.WriteLine($"📐 WyliczObszarSlupkaStalego -> ANALIZA DANYCH");
+        // _logger.LogDebug($"📐 WyliczObszarSlupkaStalego -> ANALIZA DANYCH");
 
         // foreach(var p in regionSlupka.Wierzcholki)
         // {
-        //     Console.WriteLine($"   Wierzcholek: X={p.X}, Y={p.Y}");
+        //     _logger.LogDebug($"   Wierzcholek: X={p.X}, Y={p.Y}");
         // }
 
         var punkty = regionSlupka.Wierzcholki;
@@ -8072,7 +8089,7 @@
 
         var nowaStala = new List<XPoint> { new(a.X, a.Y), new(b.X, b.Y) };
 
-        Console.WriteLine($"🔧 AktualizujDaneKwadratuSlupka {cleanId}: " +
+        _logger.LogDebug($"🔧 AktualizujDaneKwadratuSlupka {cleanId}: " +
                           $"LiniaStala ({a.X:F1},{a.Y:F1}) → ({b.X:F1},{b.Y:F1})");
 
         foreach (var dk in listaKwadratow)
@@ -8092,7 +8109,7 @@
     {
         if (_regionsSkrzydlo == null)
         {
-            // Console.WriteLine("❌ WyliczObszarSkrzydla -> Nie znaleziono regionu o podanym ID.");
+            // _logger.LogDebug("❌ WyliczObszarSkrzydla -> Nie znaleziono regionu o podanym ID.");
             state.Generator.BledySystemowe.Add("❌ WyliczObszarSkrzydla -> Nie znaleziono regionu o podanym ID.");
             return new WynikObliczen
             {
@@ -8105,7 +8122,7 @@
 
         if (regionPointsSkrzydlo == null || regionPointsSkrzydlo.Count < 3)
         {
-            // Console.WriteLine("❌ WyliczObszarSkrzydla -> Region ma za mało punktów.");
+            // _logger.LogDebug("❌ WyliczObszarSkrzydla -> Region ma za mało punktów.");
             state.Generator.BledySystemowe.Add("❌ WyliczObszarSkrzydla -> Region ma za mało punktów.");
             return new WynikObliczen
             {
@@ -8114,10 +8131,10 @@
             };
         }
 
-        // Console.WriteLine($"🔍 WyliczObszarSkrzydla START:");
-        // Console.WriteLine($"WyliczObszarSkrzydla   Początkowe przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
-        // Console.WriteLine($"WyliczObszarSkrzydla   Strona lewa: {stronaLewa}, Strona prawa: {stronaPrawa}");
-        // Console.WriteLine($"WyliczObszarSkrzydla   Liczba boków w state.ListaKwadratow: {state.ListaKwadratow.Count()}");
+        // _logger.LogDebug($"🔍 WyliczObszarSkrzydla START:");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   Początkowe przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   Strona lewa: {stronaLewa}, Strona prawa: {stronaPrawa}");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   Liczba boków w state.ListaKwadratow: {state.ListaKwadratow.Count()}");
 
         // 🔹 Oblicz bounding box
         double minX = regionPointsSkrzydlo.Min(p => p.X);
@@ -8144,14 +8161,14 @@
             }
             else
             {
-                //Console.WriteLine("⚠️ Deserializacja zwróciła null dla polaczenieWartosciAllSystem");
+                //_logger.LogDebug("⚠️ Deserializacja zwróciła null dla polaczenieWartosciAllSystem");
                 generator.BledySystemowe.Add("⚠️ Deserializacja zwróciła null dla polaczenieWartosciAllSystem");
                 await Task.Delay(1000);
             }
         }
         else
         {
-            // Console.WriteLine($"❌ Błąd pobierania danych: {polaczenieFindWartosciAllSystem.StatusCode}");
+            // _logger.LogDebug($"❌ Błąd pobierania danych: {polaczenieFindWartosciAllSystem.StatusCode}");
             generator.BledySystemowe.Add($"❌ Błąd pobierania danych: {polaczenieFindWartosciAllSystem.StatusCode}");
             await Task.Delay(1000);
             // Opcjonalnie: rzuć wyjątek lub obsłuż błąd
@@ -8167,7 +8184,7 @@
         {
             // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
 
-            // Console.WriteLine($"WyliczObszarSkrzydla   ✅ 📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}' KatLinii: {bok.KatLinii}");
+            // _logger.LogDebug($"WyliczObszarSkrzydla   ✅ 📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}' KatLinii: {bok.KatLinii}");
 
             List<PrzesuniecieDto> polaczenieWartosci;
 
@@ -8177,20 +8194,20 @@
 
                 if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
                     generator.BledySystemowe.Add($"⚠️ WyliczObszarSkrzydla   ✅ -> Nie znaleziono połączenia dla strony '{bok.Strona}' - Dane pobieram rekord po rekordzie");
-                //Console.WriteLine($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wolne działanie strona po stronie");
+                //_logger.LogDebug($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wolne działanie strona po stronie");
             }
             else
             {
 
                 polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase)
                 && x.ElementZewnetrznyId == bok.RowIdSasiada && x.ElementWewnetrznyId == bok.RowIdElementu).ToList();
-                // Console.WriteLine($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
+                // _logger.LogDebug($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
                 if (polaczenieWartosci.Count == 0)
                 {
                     //Próbuje wyszukać odwrotnie
                     polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase)
                     && x.ElementZewnetrznyId == bok.RowIdElementu && x.ElementWewnetrznyId == bok.RowIdSasiada).ToList();
-                    //Console.WriteLine($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
+                    //_logger.LogDebug($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
                 }
 
                 // generator.BledySystemowe.Add($"x.ElementZewnetrznyId == {bok.RowIdSasiada} && x.ElementWewnetrznyId == {bok.RowIdElementu} polaczenieWartosci wyszukano: {polaczenieWartosci.Count()}");
@@ -8202,7 +8219,7 @@
             {
                 bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
                 s_polaczenieStrona.Strona = bok.Strona;
-                Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono ponownie stronę na: {bok.Strona} !!!!!!");
+                _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono ponownie stronę na: {bok.Strona} !!!!!!");
             }
 
             double przesY = 0;
@@ -8211,52 +8228,52 @@
             {
                 // przesY = Math.Abs(s_polaczenieStrona.PrzesuniecieY);
                 przesY = s_polaczenieStrona.PrzesuniecieY;
-                //Console.WriteLine($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={s_polaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{s_polaczenieStrona.Strona}'");
+                //_logger.LogDebug($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={s_polaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{s_polaczenieStrona.Strona}'");
             }
             else
             {
-                //Console.WriteLine($"WyliczObszarSkrzydla   Nie znaleziono połączenia dla strony '{bok.Strona}'");
+                //_logger.LogDebug($"WyliczObszarSkrzydla   Nie znaleziono połączenia dla strony '{bok.Strona}'");
                 generator.Komunikaty.Add($"WyliczObszarSkrzydla  -> Nie znaleziono połączenia dla strony '{bok.Strona}' bok.RowIdSasiada:{bok.RowIdSasiada} bok.RowIdElementu:{bok.RowIdElementu}");
             }
 
             //string stronaNormalized = bok.Strona?.ToLower().Trim() ?? "";
 
 
-            //Console.WriteLine($"WyliczObszarSkrzydla   Znormalizowana strona: '{stronaNormalized}'");
+            //_logger.LogDebug($"WyliczObszarSkrzydla   Znormalizowana strona: '{stronaNormalized}'");
 
             switch (s_polaczenieStrona?.Strona)
             {
                 case "lewa":
                     przesLewo = przesY;
                     ustawionoLewa = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesLewo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesLewo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 case "prawa":
                     przesPrawo = przesY;
                     ustawionoPrawa = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesPrawo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesPrawo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 case "góra":
                 case "gora":
                     przesGora = przesY;
                     ustawionoGora = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesGora = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesGora = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 case "dół":
                 case "dol":
                     przesDol = przesY;
                     ustawionoDol = true;
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesDol = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesDol = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
                 default:
-                    Console.WriteLine($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ⚠️ Nieznana strona: '{bok.Strona}' s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ⚠️ Nieznana strona: '{bok.Strona}' s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
                     break;
             }
 
             // fallback tylko gdy brak sąsiada
             if (bok.RowIdSasiada == Guid.Empty)
             {
-                //Console.WriteLine($"WyliczObszarSkrzydla   ⚠️ Brak sąsiada (RowIdSasiada = Guid.Empty)");
+                //_logger.LogDebug($"WyliczObszarSkrzydla   ⚠️ Brak sąsiada (RowIdSasiada = Guid.Empty)");
 
                 var konf = generator.KonfiguracjeSystemu
                     .FirstOrDefault(s => s.RowId == bok.RowIdElementu);
@@ -8264,8 +8281,8 @@
                 if (konf != null)
                 {
                     double fallback = -((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
-                    Console.WriteLine($"WyliczObszarSkrzydla   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
-                    Console.WriteLine($"WyliczObszarSkrzydla   Fallback value: {fallback}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
+                    _logger.LogDebug($"WyliczObszarSkrzydla   Fallback value: {fallback}");
 
 
                     switch (s_polaczenieStrona?.Strona)
@@ -8275,7 +8292,7 @@
                             {
                                 przesLewo = fallback;
                                 ustawionoLewa = true;
-                                //Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla lewej: {fallback}");
+                                //_logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla lewej: {fallback}");
                             }
                             break;
                         case "prawa":
@@ -8283,42 +8300,42 @@
                             {
                                 przesPrawo = fallback;
                                 ustawionoPrawa = true;
-                                // Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla prawej: {fallback}");
+                                // _logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla prawej: {fallback}");
                             }
                             break;
                         case "góra":
                         case "gora":
                             przesGora = fallback;
                             ustawionoGora = true;
-                            //Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla góry: {fallback}");
+                            //_logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla góry: {fallback}");
                             break;
                         case "dół":
                         case "dol":
                             przesDol = fallback;
                             ustawionoDol = true;
-                            //Console.WriteLine($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla dołu: {fallback}");
+                            //_logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla dołu: {fallback}");
                             break;
                     }
                 }
                 else
                 {
-                    // Console.WriteLine($"WyliczObszarSkrzydla   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
+                    // _logger.LogDebug($"WyliczObszarSkrzydla   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
                     generator.Komunikaty.Add($"WyliczObszarSkrzydla   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
                 }
             }
             // else
             // {
-            //     //Console.WriteLine($"WyliczObszarSkrzydla   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
+            //     //_logger.LogDebug($"WyliczObszarSkrzydla   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
             //     generator.Komunikaty.Add($"WyliczObszarSkrzydla   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
             // }
         }
 
         // // 🔹 Podsumowanie ustawionych przesunięć
-        // Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ:");
-        // Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ Lewa:  {przesLewo} (ustawiono: {ustawionoLewa})");
-        // Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ  Prawa: {przesPrawo} (ustawiono: {ustawionoPrawa})");
-        // Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ Góra:  {przesGora} (ustawiono: {ustawionoGora})");
-        // Console.WriteLine($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ  Dół:   {przesDol} (ustawiono: {ustawionoDol})");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ:");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ Lewa:  {przesLewo} (ustawiono: {ustawionoLewa})");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ  Prawa: {przesPrawo} (ustawiono: {ustawionoPrawa})");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ Góra:  {przesGora} (ustawiono: {ustawionoGora})");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   📊 PODSUMOWANIE PRZESUNIĘĆ  Dół:   {przesDol} (ustawiono: {ustawionoDol})");
         // 🔹 Sprawdź które strony nie zostały ustawione
         var nieustawioneStrony = new List<string>();
         if (!ustawionoLewa) nieustawioneStrony.Add("lewa");
@@ -8328,18 +8345,18 @@
 
         if (nieustawioneStrony.Any())
         {
-            //Console.WriteLine($"WyliczObszarSkrzydla ⚠️  Nie ustawiono przesunięć dla stron: {string.Join(", ", nieustawioneStrony)}");
+            //_logger.LogDebug($"WyliczObszarSkrzydla ⚠️  Nie ustawiono przesunięć dla stron: {string.Join(", ", nieustawioneStrony)}");
             generator.Komunikaty.Add($"WyliczObszarSkrzydla ⚠️  Nie ustawiono przesunięć dla stron: {string.Join(", ", nieustawioneStrony)}");
         }
 
         // 🔹 Sprawdź jakie strony są dostępne w danych
-        // Console.WriteLine($"\n WyliczObszarSkrzydla 🔍 ANALIZA DOSTĘPNYCH STRON W state.ListaKwadratow:");
+        // _logger.LogDebug($"\n WyliczObszarSkrzydla 🔍 ANALIZA DOSTĘPNYCH STRON W state.ListaKwadratow:");
         var wszystkieStrony = state.ListaKwadratow
             .Select(b => b.Strona?.ToLower().Trim() ?? "")
             .Distinct()
             .ToList();
 
-        //Console.WriteLine($"WyliczObszarSkrzydla   Dostępne strony: {string.Join(", ", wszystkieStrony)}");
+        //_logger.LogDebug($"WyliczObszarSkrzydla   Dostępne strony: {string.Join(", ", wszystkieStrony)}");
 
         // 🔹 Sprawdź czy są wszystkie wymagane strony
         var wymaganeStrony = new List<string> { "lewa", "prawa", "góra", "dół" };
@@ -8349,7 +8366,7 @@
 
         // if (brakujaceStrony.Any())
         // {
-        //     Console.WriteLine($"WyliczObszarSkrzydla ❌ Brakuje konfiguracji dla stron: {string.Join(", ", brakujaceStrony)}");
+        //     _logger.LogDebug($"WyliczObszarSkrzydla ❌ Brakuje konfiguracji dla stron: {string.Join(", ", brakujaceStrony)}");
 
         //     // Sprawdź czy może są w innej formie
         //     foreach (var strona in brakujaceStrony)
@@ -8364,7 +8381,7 @@
 
         //         if (alternatywy.Any())
         //         {
-        //             Console.WriteLine($"WyliczObszarSkrzydla   Możliwe alternatywy dla '{strona}': {string.Join(", ", alternatywy)}");
+        //             _logger.LogDebug($"WyliczObszarSkrzydla   Możliwe alternatywy dla '{strona}': {string.Join(", ", alternatywy)}");
         //         }
         //     }
         // }
@@ -8428,8 +8445,8 @@
         regionPointsSkrzydlo = nowePunkty;
 
         double minXSPRAWDZENIE = regionPointsSkrzydlo.Min(p => p.X);
-        // Console.WriteLine($"\n WyliczObszarSkrzydla 📦📦📦 Po przesunięciu minX: {minXSPRAWDZENIE}");
-        // Console.WriteLine($"WyliczObszarSkrzydla   Finalne przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
+        // _logger.LogDebug($"\n WyliczObszarSkrzydla 📦📦📦 Po przesunięciu minX: {minXSPRAWDZENIE}");
+        // _logger.LogDebug($"WyliczObszarSkrzydla   Finalne przesunięcia: L={przesLewo}, P={przesPrawo}, G={przesGora}, D={przesDol}");
 
         // 🔹 Zaktualizuj offsety w stanie
         if (state != null && state.ListaKwadratow.Count() > 0)
@@ -8439,11 +8456,11 @@
             state.ListaKwadratow[^1].OffsetTop = przesGora;
             state.ListaKwadratow[^1].OffsetBottom = przesDol;
 
-            // Console.WriteLine($"WyliczObszarSkrzydla 💾 Zapisano offsety w state:");
-            // Console.WriteLine($"WyliczObszarSkrzydla   OffsetLeft: {state.ListaKwadratow[^1].OffsetLeft}");
-            // Console.WriteLine($"WyliczObszarSkrzydla   OffsetRight: {state.ListaKwadratow[^1].OffsetRight}");
-            // Console.WriteLine($"WyliczObszarSkrzydla   OffsetTop: {state.ListaKwadratow[^1].OffsetTop}");
-            // Console.WriteLine($"WyliczObszarSkrzydla   OffsetBottom: {state.ListaKwadratow[^1].OffsetBottom}");
+            // _logger.LogDebug($"WyliczObszarSkrzydla 💾 Zapisano offsety w state:");
+            // _logger.LogDebug($"WyliczObszarSkrzydla   OffsetLeft: {state.ListaKwadratow[^1].OffsetLeft}");
+            // _logger.LogDebug($"WyliczObszarSkrzydla   OffsetRight: {state.ListaKwadratow[^1].OffsetRight}");
+            // _logger.LogDebug($"WyliczObszarSkrzydla   OffsetTop: {state.ListaKwadratow[^1].OffsetTop}");
+            // _logger.LogDebug($"WyliczObszarSkrzydla   OffsetBottom: {state.ListaKwadratow[^1].OffsetBottom}");
         }
 
         _regionsSkrzydlo.Wierzcholki = regionPointsSkrzydlo;
@@ -8456,51 +8473,51 @@
         if (przesLewo == 0 && ustawionoLewa)
         {
             komunitakaty = $"Nie wykryto przesunięcia z lewej strony skrzydła. Upewnij się, że sąsiad po lewej stronie jest poprawnie skonfigurowany. \r\n";
-            //Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesLewo = 0 (ale strona była ustawiona)");
+            //_logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesLewo = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoLewa)
         {
             komunitakaty += $"Brak konfiguracji dla lewej strony skrzydła.\r\n";
-            //Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia lewej strony");
+            //_logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia lewej strony");
         }
 
         if (przesPrawo == 0 && ustawionoPrawa)
         {
             komunitakaty += $"Nie wykryto przesunięcia z prawej strony skrzydła. Upewnij się, że sąsiad po prawej stronie jest poprawnie skonfigurowany. \r\n";
-            // Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesPrawo = 0 (ale strona była ustawiona)");
+            // _logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesPrawo = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoPrawa)
         {
             komunitakaty += $"Brak konfiguracji dla prawej strony skrzydła.\r\n";
-            // Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia prawej strony");
+            // _logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia prawej strony");
         }
 
         if (przesGora == 0 && ustawionoGora)
         {
             komunitakaty += $"Nie wykryto przesunięcia z góry skrzydła. Upewnij się, że sąsiad po stronie górnej jest poprawnie skonfigurowany. \r\n";
-            //Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesGora = 0 (ale strona była ustawiona)");
+            //_logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesGora = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoGora)
         {
             komunitakaty += $"Brak konfiguracji dla górnej strony skrzydła.";
-            //Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia górnej strony");
+            //_logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia górnej strony");
         }
 
         if (przesDol == 0 && ustawionoDol)
         {
             komunitakaty += $"Nie wykryto przesunięcia z dołu skrzydła. Upewnij się, że sąsiad po stronie dolnej jest poprawnie skonfigurowany. \r\n";
-            //Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesDol = 0 (ale strona była ustawiona)");
+            //_logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: przesDol = 0 (ale strona była ustawiona)");
         }
         else if (!ustawionoDol)
         {
             komunitakaty += $"Brak konfiguracji dla dolnej strony skrzydła.\r\n";
-            // Console.WriteLine($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia dolnej strony");
+            // _logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia dolnej strony");
         }
 
         await Task.WhenAll(); // czekaj na wszystkie operacje asynchroniczne (jeśli jest ich więcej)
         await Task.Delay(10); // krótkie opóźnienie dla stabilności krótszy czas jest problem z pobieraniem danych z systemu, dłuższy czas powoduje lagi w interfejsie przy dużej ilości danych o połączeniach
 
-        Console.WriteLine($"✅ WyliczObszarSkrzydla KONIEC");
+        _logger.LogDebug($"✅ WyliczObszarSkrzydla KONIEC");
         return new WynikObliczen
         {
             Success = true,
@@ -8534,7 +8551,7 @@
 
         // var bez_contur = _generator.BuildClosedContour(bezDuplikatow);
 
-        //Console.WriteLine($"📐 BuildContourFromPoints -> Oryginalny kontur miał {contur.Count} left:{left} right:{right} top:{top} bottom:{bottom}.");
+        //_logger.LogDebug($"📐 BuildContourFromPoints -> Oryginalny kontur miał {contur.Count} left:{left} right:{right} top:{top} bottom:{bottom}.");
 
         return await _generator.CalculateOffsetPolygonKonturSkrzydlo(
             bezDuplikatow,
@@ -8588,7 +8605,7 @@
 
         try
         {
-            Console.WriteLine($"📦 PobierzPolaczenia-> Pobieram przesunięcia zewnątrz: {zewId} wewnątrz: {wewId} strona: {strona}");
+            _logger.LogDebug($"📦 PobierzPolaczenia-> Pobieram przesunięcia zewnątrz: {zewId} wewnątrz: {wewId} strona: {strona}");
 
             var response = await Http.GetAsync($"api/konfpolaczenie/find-shifts/{zewId}/{wewId}/{strona}");
 
@@ -8600,7 +8617,7 @@
                 // {
                 //     foreach (var item in lista)
                 //     {
-                //         Console.WriteLine($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
+                //         _logger.LogDebug($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
                 //     }
                 // }
 
@@ -8608,12 +8625,12 @@
             }
             else
             {
-                Console.WriteLine($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {response.ReasonPhrase} - strona: {strona}");
+                _logger.LogDebug($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {response.ReasonPhrase} - strona: {strona}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {ex.Message}");
+            _logger.LogDebug($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {ex.Message}");
         }
 
         return new List<PrzesuniecieDto>();
@@ -8621,7 +8638,7 @@
 
     private async Task<List<PrzesuniecieDto>> PobierzPolaczeniaStyczneSlupkowe(Guid zewId, Guid wewId, string strona, bool slupekStaly)
     {
-        Console.WriteLine($"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
+        _logger.LogDebug($"🟢 [CLIENT START] zewId={zewId} | wewId={wewId} | strona={strona}");
 
         if (zewId == Guid.Empty || wewId == Guid.Empty || string.IsNullOrWhiteSpace(strona))
         {
@@ -8644,7 +8661,7 @@
 
         try
         {
-            Console.WriteLine($"📦 PobierzPolaczenia-> Pobieram przesunięcia zewnątrz: {zewId} wewnątrz: {wewId} strona: {strona}");
+            _logger.LogDebug($"📦 PobierzPolaczenia-> Pobieram przesunięcia zewnątrz: {zewId} wewnątrz: {wewId} strona: {strona}");
 
             string endpoint = slupekStaly ? "find-shifts-slupek" : "find-shifts";
 
@@ -8659,11 +8676,11 @@
                 {
                     foreach (var item in lista)
                     {
-                        Console.WriteLine($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
+                        _logger.LogDebug($"📦 PobierzPolaczenia-> : PrzesuniecieX: {item.PrzesuniecieX}, PrzesuniecieY: {item.PrzesuniecieY}");
                     }
                 }
 
-                Console.WriteLine(
+                _logger.LogDebug(
                $"🟣 [CLIENT END] zewId={zewId} | wewId={wewId} | " +
                $"wyników={lista?.Count ?? 0}");
 
@@ -8671,12 +8688,12 @@
             }
             else
             {
-                Console.WriteLine($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {response.ReasonPhrase} - strona: {strona}");
+                _logger.LogDebug($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {response.ReasonPhrase} - strona: {strona}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {ex.Message}");
+            _logger.LogDebug($"❌ PobierzPolaczenia-> Błąd podczas pobierania przesunięć: {ex.Message}");
         }
 
         return new List<PrzesuniecieDto>();
@@ -8686,7 +8703,7 @@
     {
         try
         {
-            Console.WriteLine($"📦 Pobieram dane połączeń z: {zewId} w: {wewId} strona: {strona}");
+            _logger.LogDebug($"📦 Pobieram dane połączeń z: {zewId} w: {wewId} strona: {strona}");
             var response = await Http.GetAsync($"api/konfpolaczenie/find-by-elements-all/{zewId}/{wewId}");
             if (response.IsSuccessStatusCode)
             {
@@ -8695,12 +8712,12 @@
             }
             else
             {
-                Console.WriteLine($"❌ Błąd podczas pobierania połączeń: {response.ReasonPhrase} - strona: {strona}");
+                _logger.LogDebug($"❌ Błąd podczas pobierania połączeń: {response.ReasonPhrase} - strona: {strona}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Błąd podczas pobierania połączenia: {ex.Message}");
+            _logger.LogDebug($"❌ Błąd podczas pobierania połączenia: {ex.Message}");
         }
 
         return new List<KonfPolaczenie>();
@@ -8790,7 +8807,7 @@
         double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
         katLinii = (katLinii + 360) % 360; // Normalizacja do 0-360
 
-        // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
+        // _logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii -> Kąt linii: {katLinii:F1}°");
 
         // 🔹 Określ typ linii z większą tolerancją
         const double katTolerancja = 12.0;
@@ -8831,7 +8848,7 @@
         string slLewa = slRuchStroLewa ? typSlupka : "";
         string slPrawa = slRuchStroPrawa ? typSlupka : "";
 
-        // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii -> Typ: {typSlupka}, " +
+        // _logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii -> Typ: {typSlupka}, " +
         //                   $"Pionowa: {jestPionowa}, Pozioma: {jestPozioma}, Skośna: {jestSkosna}, " +
         //                   $"Kierunek: {kierunek}, Środek X: {srodekX:F1}, Y: {srodekY:F1}");
 
@@ -8840,7 +8857,7 @@
         {
             string strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(katLinii);
 
-            // Console.WriteLine(
+            // _logger.LogDebug(
             //     $"🔍 ZnajdzKonfiguracjeDlaLinii 🔍 Linia skośna {katLinii:F1}° -> strona: {strona}");
 
             foreach (var konf in stan.MVCKonfModelu.KonfSystem)
@@ -8856,7 +8873,7 @@
 
                 if (pasuje)
                 {
-                    // Console.WriteLine(
+                    // _logger.LogDebug(
                     //     $"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Skośna] {strona} -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
@@ -8881,7 +8898,7 @@
 
                     if (czyPasujeDoSlupka)
                     {
-                        // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                        // _logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Lewa -> {konf.RowId} Typ:{konf.Typ}");
                         return konf.RowId;
                     }
                 }
@@ -8895,7 +8912,7 @@
 
                     if (czyPasujeDoSlupka)
                     {
-                        //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                        //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Prawa -> {konf.RowId} Typ:{konf.Typ}");
                         return konf.RowId;
                     }
                 }
@@ -8905,14 +8922,14 @@
                 // 🔹 Sprawdź czy linia jest blisko górnej krawędzi
                 if (Math.Abs(p1.Y - minY) < tolerancjaY && konf.WystepujeGora)
                 {
-                    //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                    //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Góra -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
 
                 // 🔹 Sprawdź czy linia jest blisko dolnej krawędzi
                 if (Math.Abs(p1.Y - maxY) < tolerancjaY && konf.WystepujeDol)
                 {
-                    // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                    // _logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Słupkowy] Dół -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
             }
@@ -8925,13 +8942,13 @@
             {
                 if (Math.Abs(p1.X - minX) < tolerancjaX && konf.WystepujeLewa)
                 {
-                    // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Lewa -> {konf.RowId} Typ:{konf.Typ}");
+                    // _logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Lewa -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
 
                 if (Math.Abs(p1.X - maxX) < tolerancjaX && konf.WystepujePrawa)
                 {
-                    // Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Prawa -> {konf.RowId} Typ:{konf.Typ}");
+                    // _logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Prawa -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
             }
@@ -8939,13 +8956,13 @@
             {
                 if (Math.Abs(p1.Y - minY) < tolerancjaY && konf.WystepujeGora)
                 {
-                    //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Góra -> {konf.RowId} Typ:{konf.Typ}");
+                    //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Góra -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
 
                 if (Math.Abs(p1.Y - maxY) < tolerancjaY && konf.WystepujeDol)
                 {
-                    //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Dół -> {konf.RowId} Typ:{konf.Typ}");
+                    //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Bez słupka] Dół -> {konf.RowId} Typ:{konf.Typ}");
                     return konf.RowId;
                 }
             }
@@ -8956,25 +8973,25 @@
         {
             if (jestPionowa && (konf.WystepujeLewa || konf.WystepujePrawa))
             {
-                //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Fallback] -> {konf.RowId} Typ:{konf.Typ}");
+                //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Fallback] -> {konf.RowId} Typ:{konf.Typ}");
                 return konf.RowId;
             }
 
             if (jestPozioma && (konf.WystepujeGora || konf.WystepujeDol))
             {
-                //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Fallback] -> {konf.RowId} Typ:{konf.Typ}");
+                //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Fallback] -> {konf.RowId} Typ:{konf.Typ}");
                 return konf.RowId;
             }
 
             if (jestSkosna)
             {
                 // Dla skośnych akceptujemy dowolną konfigurację
-                //Console.WriteLine($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Fallback skośna] -> {konf.RowId} Typ:{konf.Typ}");
+                //_logger.LogDebug($"🔍 ZnajdzKonfiguracjeDlaLinii ✅ [Fallback skośna] -> {konf.RowId} Typ:{konf.Typ}");
                 return konf.RowId;
             }
         }
 
-        //Console.WriteLine("🔍 ZnajdzKonfiguracjeDlaLinii ❌ ZnajdzKonfiguracjeDlaLinii -> Nie znaleziono konfiguracji.");
+        //_logger.LogDebug("🔍 ZnajdzKonfiguracjeDlaLinii ❌ ZnajdzKonfiguracjeDlaLinii -> Nie znaleziono konfiguracji.");
 
         await Task.CompletedTask;
 
@@ -8998,7 +9015,7 @@
       List<KsztaltElementu> ksztaltElementu,
       double tolerancja)
     {
-        //  Console.WriteLine($"🔍 ZnajdzSasiada start funkcji");
+        //  _logger.LogDebug($"🔍 ZnajdzSasiada start funkcji");
 
         Guid stronaElementuA = Guid.Empty;
         Guid stronaElementuB = Guid.Empty;
@@ -9011,7 +9028,7 @@
         // 🔹 Walidacja wejścia
         if (linia == null || linia.Count != 2)
         {
-            Console.WriteLine($"🔍 ZnajdzSasiada zmienna linia ma punktów: {(linia == null ? "linia ma wartość null" : linia.Count)} strona: {strona}");
+            _logger.LogDebug($"🔍 ZnajdzSasiada zmienna linia ma punktów: {(linia == null ? "linia ma wartość null" : linia.Count)} strona: {strona}");
             return new List<SasiadInfo>
         {
             new SasiadInfo
@@ -9035,7 +9052,7 @@
         double katLinii = Math.Atan2(dy, dx) * 180.0 / Math.PI;
         katLinii = (katLinii + 360) % 360; // normalizacja do 0–360°
 
-        // Console.WriteLine($"📐 ZnajdzSasiada -> Rzeczywisty kąt linii: {katLinii:F1}°, Parametr kat: {kat}°");
+        // _logger.LogDebug($"📐 ZnajdzSasiada -> Rzeczywisty kąt linii: {katLinii:F1}°, Parametr kat: {kat}°");
 
         // 🔹 Określ typ linii z większą tolerancją
         const double katTolerancja = 44.9; // Zwiększona tolerancja dla kątów skośnych
@@ -9054,11 +9071,11 @@
 
         if (ksztaltElementu != null)
         {
-            // Console.WriteLine($"🔍 ZnajdzSasiada -> ksztaltElementu - OK Count: {ksztaltElementu.Count}");
+            // _logger.LogDebug($"🔍 ZnajdzSasiada -> ksztaltElementu - OK Count: {ksztaltElementu.Count}");
 
             // foreach(var test in ksztaltElementu)
             //{
-            //   Console.WriteLine($"🔍 ZnajdzSasiada test Kat: {test.Kat}");
+            //   _logger.LogDebug($"🔍 ZnajdzSasiada test Kat: {test.Kat}");
             // }
 
             var wybranyKsztalID = ksztaltElementu.FirstOrDefault(s => s.Kat == kat);
@@ -9071,11 +9088,11 @@
                 sasiadToSlupekStronaA = wybranyKsztalID.ElementToSlupekStronaA;
                 sasiadToSlupekStronaB = wybranyKsztalID.ElementToSlupekStronaB;
 
-                Console.WriteLine($"🔍 ZnajdzSasiada -> wybranyKsztalID - OK kat: {kat} stronaElementuA: {stronaElementuA}, stronaElementuB: {stronaElementuB}");
+                _logger.LogDebug($"🔍 ZnajdzSasiada -> wybranyKsztalID - OK kat: {kat} stronaElementuA: {stronaElementuA}, stronaElementuB: {stronaElementuB}");
             }
             else
             {
-                Console.WriteLine($"🔍 ZnajdzSasiada -> wybranyKsztalID - NOK kat: {kat}");
+                _logger.LogDebug($"🔍 ZnajdzSasiada -> wybranyKsztalID - NOK kat: {kat}");
             }
         }
 
@@ -9083,7 +9100,7 @@
         foreach (var stan in stanyDoPrzeszukania)
         {
 
-            Console.WriteLine($"🔍 ZnajdzSasiada -> Sprawdzam stan IdRegion: {stan.IdRegion}, Id: {stan.Id}");
+            _logger.LogDebug($"🔍 ZnajdzSasiada -> Sprawdzam stan IdRegion: {stan.IdRegion}, Id: {stan.Id}");
 
             var wierzcholki = stan.WierzcholkiWartosciNominalne!;
             var linieStanu = ExtractLinesFromSquare(wierzcholki);
@@ -9105,7 +9122,7 @@
                 double katLiniiNorm = katLinii % 180;
                 double katSasiadaNorm = katSasiada % 180;
 
-                //  Console.WriteLine($"🔍 ZnajdzSasiada 🔍 Porównanie: katLiniiNorm={katLiniiNorm:F1}°, katSasiadaNorm={katSasiadaNorm:F1}° stan.NazwaKonfiguracji: {stan.WybranyModel.NazwaKonfiguracji}");
+                //  _logger.LogDebug($"🔍 ZnajdzSasiada 🔍 Porównanie: katLiniiNorm={katLiniiNorm:F1}°, katSasiadaNorm={katSasiadaNorm:F1}° stan.NazwaKonfiguracji: {stan.WybranyModel.NazwaKonfiguracji}");
 
                 // 🔹 Sprawdź czy linie są równoległe (lub przeciwnie skierowane)
                 // bool saRownolegle = Math.Abs(katLiniiNorm - katSasiadaNorm) < 15.0 ||
@@ -9135,8 +9152,8 @@
                     out var znalezionaLinia,
                     out var czyPoczatek))
                 {
-                    // Console.WriteLine($"🔍 ZnajdzSasiada Znaleziono przecięcie z linią stanu!");
-                    // Console.WriteLine($"🔍 ZnajdzSasiada Typ przecięcia: {(czyPoczatek ? "początek" : "koniec")} linii");
+                    // _logger.LogDebug($"🔍 ZnajdzSasiada Znaleziono przecięcie z linią stanu!");
+                    // _logger.LogDebug($"🔍 ZnajdzSasiada Typ przecięcia: {(czyPoczatek ? "początek" : "koniec")} linii");
                     punktNaPoczatkuLubKoncu = true;
                 }
 
@@ -9159,7 +9176,7 @@
                 // DODAJ OBLICZENIE ODLEGŁOŚCI:
                 double odleglosc = ObliczOdlegloscMiedzyRownoleglymi(p1, p2, q1, q2);
 
-                // Console.WriteLine($"🔍 ZnajdzSasiada 📏 Odległość między liniami: {odleglosc:F3}, szukajNieRownoleglych: {szukajNieRownoleglych} przecinajaSie: {przecinajaSie},  tolerancja: {tolerancja} katSlupkaStalego: {katSlupkaStalego} katLiniiNorm={katLiniiNorm:F1}°, katLinii: {katLinii}°, kat: {kat}°, katSasiadaNorm={katSasiadaNorm:F1}° ");
+                // _logger.LogDebug($"🔍 ZnajdzSasiada 📏 Odległość między liniami: {odleglosc:F3}, szukajNieRownoleglych: {szukajNieRownoleglych} przecinajaSie: {przecinajaSie},  tolerancja: {tolerancja} katSlupkaStalego: {katSlupkaStalego} katLiniiNorm={katLiniiNorm:F1}°, katLinii: {katLinii}°, kat: {kat}°, katSasiadaNorm={katSasiadaNorm:F1}° ");
 
                 // Zmień warunek nakładania z uwzględnieniem odległości:
                 bool nakladaja = CzyNakladajaSieDowolne(p1, p2, q1, q2, tolerancja, kat) && odleglosc <= tolerancja;
@@ -9192,7 +9209,7 @@
                     if (roznicaKierunkow > tolerancjaKata)
                     {
                         czyDodac = true;
-                        // Console.WriteLine($"LINIE RÓŻNE: test={katSlupkaStalego:F2}° -> kierunek={kierunekTestowy:F2}°, " +
+                        // _logger.LogDebug($"LINIE RÓŻNE: test={katSlupkaStalego:F2}° -> kierunek={kierunekTestowy:F2}°, " +
                         //                   $"linia={tmpWyliczonyKatLinii:F2}° -> kierunek={kierunekLinii:F2}°, " +
                         //                   $"różnica={roznicaKierunkow:F2}°");
                     }
@@ -9200,11 +9217,11 @@
                     if (punktNaPoczatkuLubKoncu && przecinajaSie)
                     {
                         czyDodac = true;
-                        //Console.WriteLine($"🔍 ZnajdzSasiada -> Dodano sąsiada ze względu na przecięcie w punkcie początkowym lub końcowym linii. IdRegion: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {stan.WybranyModel.NazwaKonfiguracji}");
+                        //_logger.LogDebug($"🔍 ZnajdzSasiada -> Dodano sąsiada ze względu na przecięcie w punkcie początkowym lub końcowym linii. IdRegion: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {stan.WybranyModel.NazwaKonfiguracji}");
                     }
                     // else
                     // {
-                    //     Console.WriteLine($"LINIE TAKIE SAME: test={katSlupkaStalego:F2}° -> kierunek={kierunekTestowy:F2}°, " +
+                    //     _logger.LogDebug($"LINIE TAKIE SAME: test={katSlupkaStalego:F2}° -> kierunek={kierunekTestowy:F2}°, " +
                     //                       $"linia={tmpWyliczonyKatLinii:F2}° -> kierunek={kierunekLinii:F2}°, " +
                     //                       $"różnica={roznicaKierunkow:F2}°");
                     // }
@@ -9237,7 +9254,7 @@
                 // Proste filtrowanie
                 //konfLista = konfLista.WyfiltrujPoStronie(strona);
 
-                //  Console.WriteLine($"🔍 ZnajdzSasiada 🔍 Warunki: konfLista <- Równoległe={saRownolegle}, Przecinają={przecinajaSie}, Nakładają={nakladaja} kąt: {katLinii} kąt sąsiada: {katSasiada} czyDodac: {czyDodac} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma}");
+                //  _logger.LogDebug($"🔍 ZnajdzSasiada 🔍 Warunki: konfLista <- Równoległe={saRownolegle}, Przecinają={przecinajaSie}, Nakładają={nakladaja} kąt: {katLinii} kąt sąsiada: {katSasiada} czyDodac: {czyDodac} jestPionowa: {jestPionowa} jestPozioma: {jestPozioma}");
 
                 foreach (var konf in konfLista)
                 {
@@ -9263,7 +9280,7 @@
                         testStrona = "Prawa";
                     }
 
-                    //Console.WriteLine($"✅ ZnajdzSasiada -> Add -1 Info sąsiad: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} ID: {konf.RowId}");
+                    //_logger.LogDebug($"✅ ZnajdzSasiada -> Add -1 Info sąsiad: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} ID: {konf.RowId}");
 
                     // 🔹 Dla linii skośnych wybieramy wszystkie pasujące konfiguracje
                     if (jestSkosna)
@@ -9292,14 +9309,14 @@
                             SasiadStronaB = stronaElementuB
                         });
 
-                        // Console.WriteLine($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
+                        // _logger.LogDebug($"✅ ZnajdzSasiada -> Add 1 Dodano skośnego sąsiada: {stan.IdRegion}, Kąt: {katSasiada:F1}°, Typ: {konf.Typ} jestSkosna: {jestSkosna} Lewa: {konf.WystepujeDol} ID: {konf.RowId}");
                     }
                     else if (jestPionowa)
                     {
                         // 🔹 Dla linii pionowych sprawdź strony
                         if ((Math.Abs(katLinii - 90) <= katTolerancja) && konf.WystepujeLewa)
                         {
-                            // Console.WriteLine($"✅ ZnajdzSasiada -> Add jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 90)} <= {katTolerancja} && {konf.WystepujeLewa}");
+                            // _logger.LogDebug($"✅ ZnajdzSasiada -> Add jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 90)} <= {katTolerancja} && {konf.WystepujeLewa}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -9325,7 +9342,7 @@
                         }
                         else if ((Math.Abs(katLinii - 270) <= katTolerancja) && konf.WystepujePrawa)
                         {
-                            //Console.WriteLine($"✅ ZnajdzSasiada -> Add 2 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 270)} <= {katTolerancja} && {konf.WystepujePrawa} Prawa: {konf.WystepujeDol} ID: {konf.RowId}");
+                            //_logger.LogDebug($"✅ ZnajdzSasiada -> Add 2 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii - 270)} <= {katTolerancja} && {konf.WystepujePrawa} Prawa: {konf.WystepujeDol} ID: {konf.RowId}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -9355,7 +9372,7 @@
                         // 🔹 Dla linii poziomych sprawdź górę/dół
                         if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 360) <= katTolerancja)) && konf.WystepujeGora)
                         {
-                            //Console.WriteLine($"✅ ZnajdzSasiada -> Add 3 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 360)} <= {katTolerancja} && {konf.WystepujeGora} Góra: {konf.WystepujeDol} ID: {konf.RowId}");
+                            //_logger.LogDebug($"✅ ZnajdzSasiada -> Add 3 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 360)} <= {katTolerancja} && {konf.WystepujeGora} Góra: {konf.WystepujeDol} ID: {konf.RowId}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -9381,7 +9398,7 @@
                         }
                         else if ((Math.Abs(katLinii) <= katTolerancja || (Math.Abs(katLinii - 180) <= katTolerancja)) && konf.WystepujeDol)
                         {
-                            //Console.WriteLine($"✅ ZnajdzSasiada -> Add 4 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 180)} <= {katTolerancja} && Dół: {konf.WystepujeDol} ID: {konf.RowId}");
+                            //_logger.LogDebug($"✅ ZnajdzSasiada -> Add 4 jestPionowa: {jestPionowa} oraz {Math.Abs(katLinii)} i {Math.Abs(katLinii - 180)} <= {katTolerancja} && Dół: {konf.WystepujeDol} ID: {konf.RowId}");
 
                             pasujace.Add(new SasiadInfo
                             {
@@ -9414,7 +9431,7 @@
         // int iLicz = 1;
         // foreach (var sasiad in pasujace)
         // {
-        //     Console.WriteLine($"🔍 ZnajdzSasiada -> {iLicz++}/{pasujace.Count()} Pasujący sąsiad: RowIdElementu={sasiad.RowIdElementu}, IdRegionu={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}, KatSasiada={sasiad.KatSasiada} ZIndeks={sasiad.ZIndeks}");
+        //     _logger.LogDebug($"🔍 ZnajdzSasiada -> {iLicz++}/{pasujace.Count()} Pasujący sąsiad: RowIdElementu={sasiad.RowIdElementu}, IdRegionu={sasiad.IdRegionu}, ZIndeks={sasiad.ZIndeks}, Kąt={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}, KatSasiada={sasiad.KatSasiada} ZIndeks={sasiad.ZIndeks}");
         // }
 
         // 🔹 Filtracja wyników
@@ -9436,7 +9453,7 @@
                 var wybrany = sasiedziZIndeks1.First();
                 wynik = new List<SasiadInfo> { wybrany };
 
-                Console.WriteLine($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
+                _logger.LogDebug($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
             }
             else
             {
@@ -9446,7 +9463,7 @@
                     .First();
 
                 wynik = new List<SasiadInfo> { wybrany };
-                //  Console.WriteLine($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks} (kąt: {wybrany.KatSasiada:F2}, docelowy: {katLinii:F2}, różnica: {Math.Abs(wybrany.KatSasiada - katLinii):F2})");
+                //  _logger.LogDebug($"🔍 ZnajdzSasiada -> 🔹 Priorytet dla słupków stałych Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks} (kąt: {wybrany.KatSasiada:F2}, docelowy: {katLinii:F2}, różnica: {Math.Abs(wybrany.KatSasiada - katLinii):F2})");
             }
         }
         else
@@ -9456,7 +9473,7 @@
 
             // foreach (var sasiad in wynik)
             // {
-            //     Console.WriteLine($"🔍 ZnajdzSasiada -> 2# Pasujący sąsiad: IdRegion={sasiad.IdRegionu}, sasiad.Strona: {sasiad.Strona} RowIdElementuSąsiada={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatSasiada={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}");
+            //     _logger.LogDebug($"🔍 ZnajdzSasiada -> 2# Pasujący sąsiad: IdRegion={sasiad.IdRegionu}, sasiad.Strona: {sasiad.Strona} RowIdElementuSąsiada={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatSasiada={sasiad.KatSasiada:F1}°, Typ={sasiad.WybranyTyp}");
             // }
 
             // 🔹 Priorytet dla słupków stałych
@@ -9464,7 +9481,7 @@
             {
                 var wybrany = wynik.First(x => x.ZIndeks == 1);
                 wynik = new List<SasiadInfo> { wybrany };
-                // Console.WriteLine($"🔍 ZnajdzSasiada -> Ustawiono prirytet słupek stały Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
+                // _logger.LogDebug($"🔍 ZnajdzSasiada -> Ustawiono prirytet słupek stały Wybrano sąsiada ze ZIndeks == {wybrany.ZIndeks}");
             }
         }
 
@@ -9509,12 +9526,12 @@
         // for (int i = 0; i < wynik.Count; i++)
         // {
         //     var sasiad = wynik[i];
-        //     Console.WriteLine($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, SasiadToSlupek: {sasiad.SasiadToSlupek}," +
+        //     _logger.LogDebug($"🔍 ZnajdzSasiada -> Pasujący sąsiad zwracam wyniki #{i + 1}/{wynik.Count()}: IdRegion={sasiad.IdRegionu}, SasiadToSlupek: {sasiad.SasiadToSlupek}," +
         //     $"sasiad.RowIdElementu={sasiad.RowIdElementu}, ZIndeks={sasiad.ZIndeks}, KatLinii={sasiad.KatLinii:F1}°, KatSasiada={sasiad.KatSasiada:F1}°, " +
         //     $"Typ={sasiad.WybranyTyp} WystepujeDol: {sasiad.WystepujeDol} WystepujeGora: {sasiad.WystepujeGora} WystepujeLewa: {sasiad.WystepujeLewa} WystepujePrawa: {sasiad.WystepujePrawa}");
         // }
 
-        //  Console.WriteLine($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
+        //  _logger.LogDebug($"🔍 ZnajdzSasiada -> Znaleziono {wynik.Count} sąsiadów");
 
         await Task.CompletedTask;
 
@@ -9691,7 +9708,7 @@
         double katA = ObliczKatLinii(new List<XPoint> { a1, a2 });
         double katB = ObliczKatLinii(new List<XPoint> { b1, b2 });
 
-        //Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> Kąt linii A: {katA:F1}°, B: {katB:F1}°, Δkat={katMiedzy:F1}°");
+        //_logger.LogDebug($"🔍 CzyNakladajaSieDowolne -> Kąt linii A: {katA:F1}°, B: {katB:F1}°, Δkat={katMiedzy:F1}°");
 
         // 🔹 Sprawdzenie prostych linii (0°, 90°, 180°, 270°)
         bool jestAProsta = Math.Abs(katA % 90) < 5.0;
@@ -9701,7 +9718,7 @@
         {
             if (katMiedzy > 15.0 && katMiedzy < 165.0)
             {
-                //Console.WriteLine($"🚫 Linie proste nie są równoległe (Δkat={katMiedzy:F1}°)");
+                //_logger.LogDebug($"🚫 Linie proste nie są równoległe (Δkat={katMiedzy:F1}°)");
                 return false;
             }
         }
@@ -9741,7 +9758,6 @@
 
             if (roznica > tolerancjaKatSko)
             {
-                Console.WriteLine($"🚫 Linie skośne zbyt różne (Δ={roznica:F1}° > {tolerancjaKatSko}°)");
                 return false;
             }
 
@@ -9756,7 +9772,7 @@
 
                 if (minOdl < tol * 20)
                 {
-                    //Console.WriteLine($"✅ Linie skośne stykają się w odległości {minOdl:F3}");
+                    //_logger.LogDebug($"✅ Linie skośne stykają się w odległości {minOdl:F3}");
                     nakladaja = true;
                 }
             }
@@ -9766,11 +9782,11 @@
         double maxOdleglosc = jestAProsta ? tol * 10 : tol * 50;
         if (odleglosc > maxOdleglosc)
         {
-            //Console.WriteLine($"🚫 Odległość={odleglosc:F3} > max={maxOdleglosc:F3}");
+            //_logger.LogDebug($"🚫 Odległość={odleglosc:F3} > max={maxOdleglosc:F3}");
             return false;
         }
 
-        //Console.WriteLine($"🔍 CzyNakladajaSieDowolne -> odległość={odleglosc:F3}, nakładają={nakladaja}, overlapLength={overlapLength:F3}, minRequired={minOverlap:F3}");
+        //_logger.LogDebug($"🔍 CzyNakladajaSieDowolne -> odległość={odleglosc:F3}, nakładają={nakladaja}, overlapLength={overlapLength:F3}, minRequired={minOverlap:F3}");
         return nakladaja;
     }
 
@@ -9865,7 +9881,7 @@
             bool koniecNaLiniiStanu =
                 PunktLezyNaOdcinku(p2, q1, q2, tolerancja);
 
-            //Console.WriteLine($"🔍 CzyLiniaPrzecinaLinieStanuZeSzczegolami -> Sprawdzam liniaStanu: {q1.X:F2},{q1.Y:F2} -> {q2.X:F2},{q2.Y:F2} p1: {p1.X:F2},{p1.Y:F2} p2: {p2.X:F2},{p2.Y:F2} | poczatekNaLiniiStanu={poczatekNaLiniiStanu}, koniecNaLiniiStanu={koniecNaLiniiStanu}");
+            //_logger.LogDebug($"🔍 CzyLiniaPrzecinaLinieStanuZeSzczegolami -> Sprawdzam liniaStanu: {q1.X:F2},{q1.Y:F2} -> {q2.X:F2},{q2.Y:F2} p1: {p1.X:F2},{p1.Y:F2} p2: {p2.X:F2},{p2.Y:F2} | poczatekNaLiniiStanu={poczatekNaLiniiStanu}, koniecNaLiniiStanu={koniecNaLiniiStanu}");
 
             if (poczatekNaLiniiStanu || koniecNaLiniiStanu)
             {
@@ -9890,7 +9906,7 @@
         if (dlugoscOdcinka <= tolerancja)
             return Odleglosc(punkt, poczatek) <= tolerancja;
 
-        //Console.WriteLine($"🔍 PunktLezyNaOdcinku -> szuk punkt: {punkt.X};{punkt.Y} dlugoscOdcinka={dlugoscOdcinka:F3}, tolerancja={tolerancja:F3}, Odleglosc(punkt, poczatek)={Odleglosc(punkt, poczatek):F3}, Odleglosc(punkt, koniec)={Odleglosc(punkt, koniec):F3}");
+        //_logger.LogDebug($"🔍 PunktLezyNaOdcinku -> szuk punkt: {punkt.X};{punkt.Y} dlugoscOdcinka={dlugoscOdcinka:F3}, tolerancja={tolerancja:F3}, Odleglosc(punkt, poczatek)={Odleglosc(punkt, poczatek):F3}, Odleglosc(punkt, koniec)={Odleglosc(punkt, koniec):F3}");
 
         // Suma odległości punkt -> początek
         // i punkt -> koniec powinna być równa
@@ -9899,7 +9915,7 @@
             Odleglosc(poczatek, punkt) +
             Odleglosc(punkt, koniec);
 
-        //Console.WriteLine($"🔍 PunktLezyNaOdcinku -> return={Math.Abs(suma - dlugoscOdcinka) <= tolerancja}");
+        //_logger.LogDebug($"🔍 PunktLezyNaOdcinku -> return={Math.Abs(suma - dlugoscOdcinka) <= tolerancja}");
 
         return Math.Abs(suma - dlugoscOdcinka) <= tolerancja;
     }
@@ -9918,8 +9934,6 @@
 
             linie.Add(new List<XPoint> { start, end });
         }
-
-        Console.WriteLine($"ExtractLinesFromSquare -- > {(linie == null ? "null" : linie.Count)}");
 
         return linie;
     }
@@ -9943,7 +9957,7 @@
 
         if (string.IsNullOrWhiteSpace(regionId))
         {
-            //Console.WriteLine("AddOrUpdateGeneratorState ❌ AddOrUpdateGeneratorState: regionId jest puste!");
+            //_logger.LogDebug("AddOrUpdateGeneratorState ❌ AddOrUpdateGeneratorState: regionId jest puste!");
             return;
         }
 
@@ -9964,15 +9978,15 @@
     {
         regionId = CleanId(regionId);
 
-        Console.WriteLine($"🔍 GetGeneratorState -> regionId = '{regionId}'");
+        _logger.LogDebug($"🔍 GetGeneratorState -> regionId = '{regionId}'");
 
         if (_generatorStates.TryGetValue(regionId, out var found))
         {
-            Console.WriteLine("✅ GeneratorState znaleziony!");
+            _logger.LogDebug("✅ GeneratorState znaleziony!");
             return found;
         }
 
-        Console.WriteLine("❌ Brak GeneratorState o takim regionId!");
+        _logger.LogDebug("❌ Brak GeneratorState o takim regionId!");
         return null;
     }
 
@@ -10013,7 +10027,7 @@
         double szer = constWlasciwosciOkna.Szerokosc;
         double wys = constWlasciwosciOkna.Wysokosc;
 
-        Console.WriteLine($"🔄 Regeneracja: {szer:F1}x{wys:F1}, shapes={ShapeService.Shapes.Count}");
+        _logger.LogDebug($"🔄 Regeneracja: {szer:F1}x{wys:F1}, shapes={ShapeService.Shapes.Count}");
 
         _regionsDualRama = await GeometryUtils.GenerujRegionyZPodzialu(
             ShapeService.Shapes, szer, wys, rama: true, stareStany: _generatorStates);
@@ -10021,7 +10035,7 @@
         _regionsSkrzydlo = await GeometryUtils.GenerujRegionyZPodzialu(
             ShapeService.Shapes, szer, wys, rama: false, stareStany: _generatorStates);
 
-        Console.WriteLine($"   → DualRama={_regionsDualRama.Count}, Skrzydlo={_regionsSkrzydlo.Count}");
+        _logger.LogDebug($"   → DualRama={_regionsDualRama.Count}, Skrzydlo={_regionsSkrzydlo.Count}");
 
         // ⭐ NIE usuwaj osieroconych — zamiast tego dodaj stany dla nowych regionów
         DodajBrakujaceStany();
@@ -10041,7 +10055,7 @@
             if (string.IsNullOrEmpty(region.Id)) continue;
             if (_generatorStates.ContainsKey(region.Id)) continue;
 
-            Console.WriteLine($"➕ Brakujący stan dla regionu '{region.Id}' " +
+            _logger.LogDebug($"➕ Brakujący stan dla regionu '{region.Id}' " +
                               $"({region.TypKsztaltu}, Rama={region.Rama})");
 
             _generatorStates[region.Id] = new GeneratorState
@@ -10094,7 +10108,7 @@
 
         if (doUsuniecia.Count == 0) return;
 
-        Console.WriteLine($"🧹 WyczyscOsieroconeStany: {doUsuniecia.Count} stanów do usunięcia");
+        _logger.LogDebug($"🧹 WyczyscOsieroconeStany: {doUsuniecia.Count} stanów do usunięcia");
 
         foreach (var kvp in doUsuniecia)
         {
@@ -10120,7 +10134,7 @@
                 }
             }
           
-            Console.WriteLine($"   🗑️ Usuwam '{kvp.Value.IdRegion}'");
+            _logger.LogDebug($"   🗑️ Usuwam '{kvp.Value.IdRegion}'");
             _generatorStates.Remove(kvp.Key);
         }
     }
@@ -10181,13 +10195,13 @@
 
             if (ksztalty == null || !ksztalty.Any())
             {
-                Console.WriteLine("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
+                _logger.LogDebug("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
                 return;
             }
 
             if (ListaModeli == null || !ListaModeli.Any())
             {
-                Console.WriteLine("RenderFrame -> Brak modeli do narysowania.");
+                _logger.LogDebug("RenderFrame -> Brak modeli do narysowania.");
                 return;
             }
             // ZAPISZ stan na początku
@@ -10198,7 +10212,7 @@
             await _context.TranslateAsync(_offsetX, _offsetY);
             await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
 
-            // Console.WriteLine($"RenderFrame _currentScale: {_aktywnaSkala}");
+            // _logger.LogDebug($"RenderFrame _currentScale: {_aktywnaSkala}");
 
             if (oknaMogaBycLukowe)
             {
@@ -10206,7 +10220,7 @@
 
                 // if (ksztalty == null || !ksztalty.Any())
                 // {
-                //     Console.WriteLine("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
+                //     _logger.LogDebug("RenderFrame -> Brak kształtów z wierzchołkami z łukami do narysowania.");
                 //     return;
                 // }
 
@@ -10214,18 +10228,18 @@
                 var baseUrl = Navigation.BaseUri;
                 var imageUrl = $"{baseUrl}api/images/{woodPatternName}";
 
-                // Console.WriteLine($"RenderFrame -> ksztalty: {ksztalty.Count()}");
+                // _logger.LogDebug($"RenderFrame -> ksztalty: {ksztalty.Count()}");
 
                 // Rysowanie każdego kształtu
                 foreach (var ksztalt in ksztalty)
                 {
-                    //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+                    //_logger.LogDebug($"Rysuję kształt: {ksztalt.TypKsztaltu}");
 
                     //if (ksztalt.WierzcholkiZLukami == null || ksztalt.WierzcholkiZLukami.Count < 3)
                     if (ksztalt.WierzcholkiZLukami == null)
                         continue;
 
-                    //Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
+                    //_logger.LogDebug($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                     await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
                     await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.DlogoscElementu}mm]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
@@ -10248,12 +10262,12 @@
                 // Rysowanie każdego kształtu
                 foreach (var ksztalt in ksztalty)
                 {
-                    //Console.WriteLine($"Rysuję kształt: {ksztalt.TypKsztaltu}");
+                    //_logger.LogDebug($"Rysuję kształt: {ksztalt.TypKsztaltu}");
 
                     if (ksztalt.Wierzcholki == null || ksztalt.Wierzcholki.Count < 3)
                         continue;
 
-                    //  Console.WriteLine($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
+                    //  _logger.LogDebug($"*********** >>>>>> IndeksElementu: {ksztalt.IndeksElementu} Grupa: {ksztalt.Grupa} DlogoscElementu: {ksztalt.DlogoscElementu}");
 
                     await DrawShapeWithVariableOffset(_context, ksztalt, imageUrl, calculate);
                     await DrawSingleContourTextOnly(_context, ksztalt.Wierzcholki, $"[{ksztalt.NrPozWModelu}]-{ksztalt.IndeksElementu.ToString()} [{Math.Round(ksztalt.Kat, 1).ToString()}°/{ksztalt.Strona}-{ksztalt.RodzajpolaczenAiB}]", (ksztalt.Kat == 180 ? 0 : ksztalt.Kat)); // Tekst z ID i kątem na profilu
@@ -10271,7 +10285,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Błąd renderowania: {ex.Message}\n{ex.StackTrace}");
+            _logger.LogDebug($"Błąd renderowania: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -10284,21 +10298,21 @@
 
             // await DrawSingleContour(context, outerPoints);
 
-            //Console.WriteLine($"\n🔷 Rysowanie kształtu: {ksztalt.TypKsztaltu} Grupa: {ksztalt.Grupa} IndeksElementu: {ksztalt.IndeksElementu} NrPozWModelu: {ksztalt.NrPozWModelu} DlogoscElementu: {ksztalt.DlogoscElementu} Kat: {ksztalt.Kat} Strona: {ksztalt.Strona} RodzajPolaczen: {ksztalt.RodzajpolaczenAiB}");
+            //_logger.LogDebug($"\n🔷 Rysowanie kształtu: {ksztalt.TypKsztaltu} Grupa: {ksztalt.Grupa} IndeksElementu: {ksztalt.IndeksElementu} NrPozWModelu: {ksztalt.NrPozWModelu} DlogoscElementu: {ksztalt.DlogoscElementu} Kat: {ksztalt.Kat} Strona: {ksztalt.Strona} RodzajPolaczen: {ksztalt.RodzajpolaczenAiB}");
 
             if (oknaMogaBycLukowe && ksztalt.WierzcholkiZLukami != null)
             {
                 //// Debugowanie konturu przed rysowaniem
-                // Console.WriteLine($"\n🔷 Rysowanie WierzcholkiZLukami - {ksztalt.WierzcholkiZLukami.Count} segmentów:");
+                // _logger.LogDebug($"\n🔷 Rysowanie WierzcholkiZLukami - {ksztalt.WierzcholkiZLukami.Count} segmentów:");
                 // for (int i = 0; i < ksztalt.WierzcholkiZLukami.Count; i++)
                 // {
                 //     var seg = ksztalt.WierzcholkiZLukami[i];
                 //     string typ = seg.Type == SegmentType.Arc ? "ŁUK" : "LINIA";
-                //     Console.WriteLine($"  [{i}] {typ}: ({seg.Start.X},{seg.Start.Y}) → ({seg.End.X},{seg.End.Y})");
+                //     _logger.LogDebug($"  [{i}] {typ}: ({seg.Start.X},{seg.Start.Y}) → ({seg.End.X},{seg.End.Y})");
 
                 //     if (seg.Type == SegmentType.Arc && seg.Center.HasValue)
                 //     {
-                //         Console.WriteLine($"       środek=({seg.Center.Value.X},{seg.Center.Value.Y:F1}) R={seg.Radius} kierunek={(seg.CounterClockwise ? "↺" : "↻")}");
+                //         _logger.LogDebug($"       środek=({seg.Center.Value.X},{seg.Center.Value.Y:F1}) R={seg.Radius} kierunek={(seg.CounterClockwise ? "↺" : "↻")}");
                 //     }
                 // }
 
@@ -10342,7 +10356,7 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"❌ Błąd podczas ładowania tekstury: {ex.Message}");
+                    _logger.LogDebug($"❌ Błąd podczas ładowania tekstury: {ex.Message}");
                     // Możesz tutaj podjąć decyzję, czy chcesz kontynuować bez tekstury, czy coś innego
                 }
             }
@@ -10359,7 +10373,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ Błąd w DrawShapeWithVariableOffset: {ex.Message}");
+            _logger.LogDebug($"❌ Błąd w DrawShapeWithVariableOffset: {ex.Message}");
         }
     }
 
@@ -10417,7 +10431,7 @@
     {
         if (segments == null || segments.Count == 0 || boolNieGenerujPojedynczych)
         {
-            Console.WriteLine("DrawContourFromSegments ❌ Brak segmentów do rysowania");
+            _logger.LogDebug("DrawContourFromSegments ❌ Brak segmentów do rysowania");
             return;
         }
 
@@ -10427,24 +10441,24 @@
         // string color = "orange";
         // float lineWidth = 3f;
 
-        // Console.WriteLine($"DrawContourFromSegments -> Rysowanie {segments.Count} segmentów (Łuki: {liczbaLukow}, Linie: {liczbaLinii})");
+        // _logger.LogDebug($"DrawContourFromSegments -> Rysowanie {segments.Count} segmentów (Łuki: {liczbaLukow}, Linie: {liczbaLinii})");
 
         await context.BeginPathAsync();
 
         // Rozpocznij od pierwszego punktu
         await context.MoveToAsync(segments[0].Start.X, segments[0].Start.Y);
-        // Console.WriteLine($"MoveTo: ({segments[0].Start.X:F2}, {segments[0].Start.Y:F2})");
+        // _logger.LogDebug($"MoveTo: ({segments[0].Start.X:F2}, {segments[0].Start.Y:F2})");
 
         // Rysuj wszystkie segmenty
         for (int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
-            //  Console.WriteLine($"Segment {i}: {seg.Type}, {seg.Informacja}");
+            //  _logger.LogDebug($"Segment {i}: {seg.Type}, {seg.Informacja}");
 
             if (seg.Type == SegmentType.Line)
             {
                 await context.LineToAsync(seg.End.X, seg.End.Y);
-                //Console.WriteLine($"  Linia: ({seg.Start.X:F2},{seg.Start.Y:F2}) -> ({seg.End.X:F2},{seg.End.Y:F2})");
+                //_logger.LogDebug($"  Linia: ({seg.Start.X:F2},{seg.Start.Y:F2}) -> ({seg.End.X:F2},{seg.End.Y:F2})");
             }
             else if (seg.Type == SegmentType.Arc && seg.Center != null)
             {
@@ -10460,7 +10474,7 @@
         await context.SetLineWidthAsync(2f);
         await context.StrokeAsync();
 
-        // Console.WriteLine("✅ Kontur narysowany pomyślnie");
+        // _logger.LogDebug("✅ Kontur narysowany pomyślnie");
     }
 
     private async Task RysujLuk(Canvas2DContext context, ContourSegment seg)
@@ -10544,7 +10558,7 @@
                 finalEndAngle -= TwoPi;
         }
 
-        // Console.WriteLine(
+        // _logger.LogDebug(
         //     $"ARC | " +
         //     $"Start=({sx:F3};{sy:F3}) -> " +
         //     $"End=({ex:F3};{ey:F3}) | " +
@@ -10706,19 +10720,19 @@
     {
         if (segments == null || segments.Count == 0) return;
 
-        //Console.WriteLine("\n🎨 Rysowanie konturu (jeden ciągły kształt)");
+        //_logger.LogDebug("\n🎨 Rysowanie konturu (jeden ciągły kształt)");
 
         await context.BeginPathAsync();
 
         var firstSeg = segments[0];
         await context.MoveToAsync(firstSeg.Start.X, firstSeg.Start.Y);
-        // Console.WriteLine($"MoveTo: ({firstSeg.Start.X:F2}, {firstSeg.Start.Y:F2})");
+        // _logger.LogDebug($"MoveTo: ({firstSeg.Start.X:F2}, {firstSeg.Start.Y:F2})");
 
         for (int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
 
-            // Console.WriteLine($"Segment {i}: {seg.Type}, Start({seg.Start.X:F2},{seg.Start.Y:F2}) -> End({seg.End.X:F2},{seg.End.Y:F2})");
+            // _logger.LogDebug($"Segment {i}: {seg.Type}, Start({seg.Start.X:F2},{seg.Start.Y:F2}) -> End({seg.End.X:F2},{seg.End.Y:F2})");
 
             if (seg.Type == SegmentType.Line)
             {
@@ -10729,8 +10743,8 @@
                 double startAngle = Math.Atan2(seg.Start.Y - seg.Center.Value.Y, seg.Start.X - seg.Center.Value.X);
                 double endAngle = Math.Atan2(seg.End.Y - seg.Center.Value.Y, seg.End.X - seg.Center.Value.X);
 
-                //  Console.WriteLine($"  Arc: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
-                //  Console.WriteLine($"  Raw angles: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
+                //  _logger.LogDebug($"  Arc: Center({seg.Center.Value.X:F2},{seg.Center.Value.Y:F2}), R={seg.Radius:F2}, CCW={seg.CounterClockwise}");
+                //  _logger.LogDebug($"  Raw angles: start={startAngle:F4} rad ({startAngle * 180 / Math.PI:F1}°), end={endAngle:F4} rad ({endAngle * 180 / Math.PI:F1}°)");
 
                 // 🔥 PROSTSZE ROZWIĄZANIE: Zawsze rysujemy jako CW
                 // Obliczamy różnicę kątów
@@ -10750,8 +10764,8 @@
                 // Używamy tylko CW (flaga = false) i odpowiednio dobranego kąta końcowego
                 double finalEndAngle = startAngle + deltaAngle;
 
-                // Console.WriteLine($"  Final: start={startAngle:F4}, end={finalEndAngle:F4}, delta={deltaAngle:F4}");
-                // Console.WriteLine($"  Using CW flag (false)");
+                // _logger.LogDebug($"  Final: start={startAngle:F4}, end={finalEndAngle:F4}, delta={deltaAngle:F4}");
+                // _logger.LogDebug($"  Using CW flag (false)");
 
                 await context.ArcAsync(
                     seg.Center.Value.X,
@@ -10779,7 +10793,7 @@
         await context.SetLineWidthAsync(lineWidth);
         await context.StrokeAsync();
 
-        //Console.WriteLine("✅ Kontur narysowany\n");
+        //_logger.LogDebug("✅ Kontur narysowany\n");
     }
 
     // Rysowanie konturu szklenia
@@ -10881,11 +10895,11 @@
 
     private async Task GoCAD()
     {
-        Console.WriteLine("GoCAD START");
+        _logger.LogDebug("GoCAD START");
 
         await JS.InvokeVoidAsync("ResetCursorGlobal");
 
-        // Console.WriteLine("JS done");
+        // _logger.LogDebug("JS done");
 
         if (ShapeService != null)
         {
@@ -10897,10 +10911,10 @@
 
             await Task.Yield(); // Daj czas na aktualizację stanu przed nawigacją
 
-            Console.WriteLine("GoCAD Ustawiono zmienne w ShapeService");
+            _logger.LogDebug("GoCAD Ustawiono zmienne w ShapeService");
         }
 
-        Console.WriteLine("GoCAD Próba nawigacji → /DrawCAD");
+        _logger.LogDebug("GoCAD Próba nawigacji → /DrawCAD");
 
 
         if (!string.IsNullOrEmpty(SelectedSystemId))
@@ -10912,7 +10926,7 @@
             NavigationManager.NavigateTo($"/DrawCAD");
         }
 
-        Console.WriteLine("GoCAD END");
+        _logger.LogDebug("GoCAD END");
     }
 
     private bool boolOdczyt = false;
@@ -10937,7 +10951,7 @@
 
         string nazwaTabeli = "SystemyOkienne";
 
-        Console.WriteLine($"api/ZwrocSatus/{user}/{nazwaTabeli}");
+        _logger.LogDebug($"api/ZwrocSatus/{user}/{nazwaTabeli}");
 
         try
         {
@@ -10945,12 +10959,12 @@
         }
         catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            Console.WriteLine("Brak danych!!!");
+            _logger.LogDebug("Brak danych!!!");
             await _message.Error("Brak danych - status użytkownika");
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            _logger.LogDebug(ex.Message);
             await _message.Error(ex.Message);
         }
 
@@ -10959,7 +10973,7 @@
             if (uprawnienia.Count > 0)
             {
                 var znalezioneElementy = uprawnienia.Where(uprawnienie => uprawnienie.TableName == nazwaTabeli);
-                //Console.WriteLine("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
+                //_logger.LogDebug("Znaleziono uprawnienia dla użytkownika: " + user + " w tabeli: " + nazwaTabeli + " ilość rekordów: " + znalezioneElementy.Count());
                 if (znalezioneElementy.Any())
                 {
                     var szuk = znalezioneElementy.FirstOrDefault(x => x.TableName == nazwaTabeli);

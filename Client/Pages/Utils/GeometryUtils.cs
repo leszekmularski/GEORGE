@@ -1,11 +1,22 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GEORGE.Client.Pages.Utils
 {
     public static class GeometryUtils
     {
+        // Domyślnie "nic nie loguje" – nadpisywany przy starcie
+        private static ILogger _logger = NullLogger.Instance;
+
+        // Wywoływane raz przy starcie aplikacji
+        public static void Initialize(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger("GEORGE.Client.Pages.Utils.GeometryUtils");
+            Console.WriteLine("✅ Initialize wywołane");
+        }
         public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc,
             double _wysokosc, bool rama, Dictionary<string, GeneratorState>? stareStany = null)
         {
@@ -76,7 +87,7 @@ namespace GEORGE.Client.Pages.Utils
                     _ => "Brak podziału"
                 };
 
-                //Console.WriteLine($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typLinii: {typLinii}");
+                //_logger.LogDebug($"🔲 Generowanie regionów z podziału dla {shapes.Count} kształtów. {_szerokosc}x{_wysokosc} typLinii: {typLinii}");
 
                 if (pts == null) continue;
 
@@ -205,7 +216,7 @@ namespace GEORGE.Client.Pages.Utils
                             // Segment jest łukiem jeśli jest w obszarze łuku i nie jest linią poziomą ani pionową
                             bool isArcSegment = !isHorizontalLine && !isVerticalLine && isInArcRegion;
 
-                            //Console.WriteLine($"🔍 XRoundedTopRectangleShapeFixed segment: " +
+                            //_logger.LogDebug($"🔍 XRoundedTopRectangleShapeFixed segment: " +
                             //                  $"P({p.X},{p.Y}) Next({next.X},{next.Y}) " +
                             //                  $"arcStartY={arcStartY:F2} " +
                             //                  $"isArcSegment={isArcSegment} " +
@@ -289,7 +300,7 @@ namespace GEORGE.Client.Pages.Utils
 
                                 bool reversed = reverse;
 
-                                //Console.WriteLine(
+                                //_logger.LogDebug(
                                 //    $"🔍 XRoundedRectangleShape match: " +
                                 //    $"Start({seg.Start.X},{seg.Start.Y}) End({seg.End.X},{seg.End.Y}) Reversed={reversed}");
 
@@ -454,20 +465,20 @@ namespace GEORGE.Client.Pages.Utils
                         .ToList();
 
                     // ⭐ DIAGNOSTYKA
-                    Console.WriteLine($"═══════════════════════════════════════════════");
-                    Console.WriteLine($"🔍 RAMA: linieDzielace={linieDzielace.Count}");
+                    _logger.LogDebug($"═══════════════════════════════════════════════");
+                    _logger.LogDebug($"🔍 RAMA: linieDzielace={linieDzielace.Count}");
                     foreach (var l in linieDzielace)
                     {
-                        Console.WriteLine($"   Line ID={l.ID.Substring(0, 8)} " +
+                        _logger.LogDebug($"   Line ID={l.ID.Substring(0, 8)} " +
                                           $"({l.X1:F0},{l.Y1:F0}) → ({l.X2:F0},{l.Y2:F0})  " +
                                           $"DualRama={l.DualRama} Ruchomy={l.RuchomySlupek} Staly={l.StalySlupek} " +
                                           $"SplitGroupId={l.SplitGroupId?.Substring(0, 8) ?? "null"}");
                     }
-                    Console.WriteLine($"═══════════════════════════════════════════════");
+                    _logger.LogDebug($"═══════════════════════════════════════════════");
 
                     var podzielone = await PodzielRegionRekurencyjnie(initial, linieDzielace, id, rama);
 
-                    Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
+                    _logger.LogDebug($"🔲 Generowanie regionów PodzielRegionRekurencyjnie podzielone.Count: {podzielone.Count} id:{id}");
 
                     int idCounter = 0;
 
@@ -606,7 +617,7 @@ namespace GEORGE.Client.Pages.Utils
 
                         r.RozpoznajTyp(r.TypKsztaltu);
 
-                        // Console.WriteLine($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
+                        // _logger.LogDebug($"🔹 Region id: {r.Id} po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - RAMA");
 
                         if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                         {
@@ -657,7 +668,7 @@ namespace GEORGE.Client.Pages.Utils
                         .Where(l => l.DualRama || l.StalySlupek || l.RuchomySlupek)
                         .ToList();
 
-                    //Console.WriteLine($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
+                    //_logger.LogDebug($"🔲 Generowanie regionów bez ramy dla shape id: {initial.Id} id: {id}");
 
                     List<ShapeRegion> podzielone;
                     List<XPoint> napraw;
@@ -666,7 +677,7 @@ namespace GEORGE.Client.Pages.Utils
                     if (!linieDzielace.Any())
                     {
                         // BRAK LINII DZIELĄCYCH - zachowaj oryginalny kształt
-                        Console.WriteLine($"⚠️ Brak linii dzielących - zachowuję oryginalny kontur");
+                        _logger.LogDebug($"⚠️ Brak linii dzielących - zachowuję oryginalny kontur");
                         podzielone = new List<ShapeRegion> { initial };
 
                         // Przetwarzanie dla przypadku bez linii dzielących (TAK SAMO JAK DLA RAMY)
@@ -765,7 +776,7 @@ namespace GEORGE.Client.Pages.Utils
                                 r.RozpoznajTyp(r.TypKsztaltu);
                             }
 
-                            //   Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
+                            //   _logger.LogDebug($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (bez podziału)");
 
                             if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
@@ -814,11 +825,11 @@ namespace GEORGE.Client.Pages.Utils
                     else
                     {
                         // SĄ LINIE DZIELĄCE - wykonaj podział
-                        //Console.WriteLine($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
+                        //_logger.LogDebug($"✅ Znaleziono {linieDzielace.Count} linii dzielących - wykonuję podział");
                         podzielone = await PodzielRegionRekurencyjnieDeterministycznie(initial, linieDzielace, id, rama);
 
 
-                        //Console.WriteLine($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
+                        //_logger.LogDebug($"🔲 Generowanie regionów PodzielRegionRekurencyjnieDeterministycznie podzielone.Count: {podzielone.Count}");
 
                         foreach (var r in podzielone)
                         {
@@ -958,7 +969,7 @@ namespace GEORGE.Client.Pages.Utils
 
                             r.RozpoznajTyp(r.TypKsztaltu);
 
-                            // Console.WriteLine($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
+                            // _logger.LogDebug($"🔹 Region po podziale: {r.TypKsztaltu} z {r.Wierzcholki.Count} wierzchołkami. - SKRZYDŁO (z podziałem)");
 
                             if (r.TypKsztaltu == "xhouseshape" && r.Wierzcholki.Count == 4)
                             {
@@ -1066,7 +1077,7 @@ namespace GEORGE.Client.Pages.Utils
 
             if (starePasujace.Count == 0)
             {
-                Console.WriteLine($"🆔 DopasujIdPoTozsamosci [{rama}]: brak starych stanów");
+                _logger.LogDebug($"🆔 DopasujIdPoTozsamosci [{rama}]: brak starych stanów");
                 return;
             }
 
@@ -1081,8 +1092,8 @@ namespace GEORGE.Client.Pages.Utils
                 poz++;
             }
 
-            Console.WriteLine($"═══════════════════════════════════════════════");
-            Console.WriteLine($"🆔 DopasujIdPoTozsamosci [{rama}]: " +
+            _logger.LogDebug($"═══════════════════════════════════════════════");
+            _logger.LogDebug($"🆔 DopasujIdPoTozsamosci [{rama}]: " +
                               $"nowe={nowe.Count}, stare={starePasujace.Count}");
 
             var uzyteStany = new HashSet<string>();
@@ -1105,7 +1116,7 @@ namespace GEORGE.Client.Pages.Utils
                     uzyteStany.Add(stary.IdRegion!);
                     preMatchLinii++;
                     dopasowane++;
-                    Console.WriteLine($"   🔗 Linia (pre): IdMaster={nowy.IdMaster?.Substring(0, Math.Min(8, nowy.IdMaster?.Length ?? 0))} " +
+                    _logger.LogDebug($"   🔗 Linia (pre): IdMaster={nowy.IdMaster?.Substring(0, Math.Min(8, nowy.IdMaster?.Length ?? 0))} " +
                                       $"→ '{stary.IdRegion}'");
                 }
             }
@@ -1142,14 +1153,14 @@ namespace GEORGE.Client.Pages.Utils
                 if (pasujace.Count > 1)
                 {
                     scalone++;
-                    Console.WriteLine($"   🔀 MERGE: {nowy.TypKsztaltu} ← " +
+                    _logger.LogDebug($"   🔀 MERGE: {nowy.TypKsztaltu} ← " +
                         $"[{string.Join(", ", pasujace.Select(s => s.IdRegion))}] " +
                         $"→ '{zwyciezca.IdRegion}'");
                 }
                 else
                 {
                     dopasowane++;
-                    Console.WriteLine($"   ✅ 1:1: {nowy.TypKsztaltu} → '{zwyciezca.IdRegion}'");
+                    _logger.LogDebug($"   ✅ 1:1: {nowy.TypKsztaltu} → '{zwyciezca.IdRegion}'");
                 }
             }
 
@@ -1158,7 +1169,7 @@ namespace GEORGE.Client.Pages.Utils
             // ─────────────────────────────────────────────────
             if (nieDopasowaneNowe.Count > 0)
             {
-                Console.WriteLine($"   📐 Fallback pozycyjny dla {nieDopasowaneNowe.Count} regionów");
+                _logger.LogDebug($"   📐 Fallback pozycyjny dla {nieDopasowaneNowe.Count} regionów");
 
                 var stareWolne = starePasujace
                     .Where(s => !uzyteStany.Contains(s.IdRegion!))
@@ -1181,14 +1192,14 @@ namespace GEORGE.Client.Pages.Utils
                         uzyteStany.Add(najblizszy.IdRegion!);
                         stareWolne.Remove(najblizszy);
                         dopasowane++;
-                        Console.WriteLine($"   📍 Fallback: {nowy.TypKsztaltu} → '{najblizszy.IdRegion}'");
+                        _logger.LogDebug($"   📍 Fallback: {nowy.TypKsztaltu} → '{najblizszy.IdRegion}'");
                     }
                 }
             }
 
-            Console.WriteLine($"🆔 Wynik [{rama}]: preMatchLinii={preMatchLinii}, 1:1={dopasowane - preMatchLinii}, " +
+            _logger.LogDebug($"🆔 Wynik [{rama}]: preMatchLinii={preMatchLinii}, 1:1={dopasowane - preMatchLinii}, " +
                               $"scalone={scalone}, nie dopasowane={nowe.Count - dopasowane - scalone}/{nowe.Count}");
-            Console.WriteLine("═══════════════════════════════════════════════");
+            _logger.LogDebug("═══════════════════════════════════════════════");
         }
 
         // ─── Metody pomocnicze ──────────────────────────────────────────────
@@ -1298,21 +1309,21 @@ namespace GEORGE.Client.Pages.Utils
 
             if (starePasujace.Count == 0)
             {
-                Console.WriteLine($"🆔 DopasujStareId [{rama}]: brak starych stanów – zostawiam nowe Id");
+                _logger.LogDebug($"🆔 DopasujStareId [{rama}]: brak starych stanów – zostawiam nowe Id");
                 return;
             }
 
-            Console.WriteLine($"═══════════════════════════════════════════════");
-            Console.WriteLine($"🔍 DopasujStareId [{rama}]: starePasujace={starePasujace.Count}");
+            _logger.LogDebug($"═══════════════════════════════════════════════");
+            _logger.LogDebug($"🔍 DopasujStareId [{rama}]: starePasujace={starePasujace.Count}");
             foreach (var s in starePasujace.Take(10))
             {
-                Console.WriteLine($"   IdRegion='{s.IdRegion}' | " +
+                _logger.LogDebug($"   IdRegion='{s.IdRegion}' | " +
                                   $"Typ='{s.TypKsztaltu ?? "NULL"}' | " +
                                   $"Rama={s.CzyElementJestRama} | " +
                                   $"Wierzcholki={s.Wierzcholki?.Count ?? -1} | " +
                                   $"Orientacja={OkreslOrientacjeStanu(s)}");
             }
-            Console.WriteLine($"═══════════════════════════════════════════════");
+            _logger.LogDebug($"═══════════════════════════════════════════════");
 
             // ⭐ Grupuj nowe regiony po TypKsztaltu + orientacja (BEZ IdMaster)
             var noweGrupy = nowe
@@ -1332,10 +1343,10 @@ namespace GEORGE.Client.Pages.Utils
                 })
                 .ToList();
 
-            Console.WriteLine($"🆔 DopasujStareId [{rama}]: " +
+            _logger.LogDebug($"🆔 DopasujStareId [{rama}]: " +
                               $"nowe grupy={noweGrupy.Count}, stare grupy={stareGrupy.Count}");
             foreach (var g in stareGrupy)
-                Console.WriteLine($"   stara grupa: Typ={g.Key.Typ}, Orientacja={g.Key.Orientacja}, Count={g.Count()}");
+                _logger.LogDebug($"   stara grupa: Typ={g.Key.Typ}, Orientacja={g.Key.Orientacja}, Count={g.Count()}");
 
             int dopasowane = 0;
 
@@ -1348,7 +1359,7 @@ namespace GEORGE.Client.Pages.Utils
 
                 if (grupaStara == null)
                 {
-                    Console.WriteLine($"   ⚠️ Brak starych stanów dla: Typ={grupaNowa.Key.Typ}, " +
+                    _logger.LogDebug($"   ⚠️ Brak starych stanów dla: Typ={grupaNowa.Key.Typ}, " +
                                       $"Orientacja={grupaNowa.Key.Orientacja}");
                     continue;
                 }
@@ -1364,7 +1375,7 @@ namespace GEORGE.Client.Pages.Utils
                     .ThenBy(s => SrodekCiezkosciStanu(s).X)
                     .ToList();
 
-                Console.WriteLine($"   📊 Grupa {grupaNowa.Key.Typ}/{grupaNowa.Key.Orientacja}: " +
+                _logger.LogDebug($"   📊 Grupa {grupaNowa.Key.Typ}/{grupaNowa.Key.Orientacja}: " +
                                   $"nowe={nowePosortowane.Count}, stare={starePosortowane.Count}");
 
                 // Dopasuj po kolei
@@ -1378,13 +1389,13 @@ namespace GEORGE.Client.Pages.Utils
                     nowy.IdMaster = stary.IdMaster ?? stary.IdRegion;
                     dopasowane++;
 
-                    Console.WriteLine($"   🆔 {nowy.TypKsztaltu} " +
+                    _logger.LogDebug($"   🆔 {nowy.TypKsztaltu} " +
                                       $"(nowy Y={SrodekCiezkosci(nowy).Y:F0}, stary Y={SrodekCiezkosciStanu(stary).Y:F0}) " +
                                       $"→ '{stary.IdRegion}'");
                 }
             }
 
-            Console.WriteLine($"🆔 DopasujStareId [{rama}]: dopasowano {dopasowane}/{nowe.Count}");
+            _logger.LogDebug($"🆔 DopasujStareId [{rama}]: dopasowano {dopasowane}/{nowe.Count}");
         }
 
 
@@ -1767,14 +1778,14 @@ namespace GEORGE.Client.Pages.Utils
 
             foreach (var line in lines)
             {
-                Console.WriteLine($"🔍 Podział linią {line.ID?.Substring(0, 8)}: " +
+                _logger.LogDebug($"🔍 Podział linią {line.ID?.Substring(0, 8)}: " +
                   $"({line.X1:F0},{line.Y1:F0})→({line.X2:F0},{line.Y2:F0}), " +
                   $"indexLinii={indexLinii}, regionów wejściowych={wynik.Count}");
                 var next = new List<ShapeRegion>();
 
                 foreach (var r in wynik)
                 {
-                    Console.WriteLine($"   region '{r.Id}' " +
+                    _logger.LogDebug($"   region '{r.Id}' " +
                      $"W={r.Wierzcholki?.Count ?? 0}, " +
                      $"CzyLiniaDzieli={CzyLiniaDzieliRegion(r, line)}");
                     // ⭐ Sprawdź, czy linia dzieli ten region
@@ -1790,10 +1801,10 @@ namespace GEORGE.Client.Pages.Utils
                     // ============================================================
                     if (r.TypKsztaltu == "linia" && r.Wierzcholki != null && r.Wierzcholki.Count == 2)
                     {
-                        Console.WriteLine($"🔍 Region LINIA {r.Id}: " +
+                        _logger.LogDebug($"🔍 Region LINIA {r.Id}: " +
                       $"({r.Wierzcholki[0].X:F0},{r.Wierzcholki[0].Y:F0}) → " +
                       $"({r.Wierzcholki[1].X:F0},{r.Wierzcholki[1].Y:F0})");
-                        Console.WriteLine($"   Testuję z linią {line.ID.Substring(0, 8)}: " +
+                        _logger.LogDebug($"   Testuję z linią {line.ID.Substring(0, 8)}: " +
                                           $"({line.X1:F0},{line.Y1:F0}) → ({line.X2:F0},{line.Y2:F0})");
 
                         var p1 = r.Wierzcholki[0];
@@ -1804,10 +1815,10 @@ namespace GEORGE.Client.Pages.Utils
                             CzyPunktWewnatrzOdcinka(pt, p1, p2))
                         {
 
-                            Console.WriteLine($"   Przecięcie w ({pt.X:F1},{pt.Y:F1})");
-                            Console.WriteLine($"   Czy punkt wewnątrz odcinka: {CzyPunktWewnatrzOdcinka(pt, p1, p2)}");
+                            _logger.LogDebug($"   Przecięcie w ({pt.X:F1},{pt.Y:F1})");
+                            _logger.LogDebug($"   Czy punkt wewnątrz odcinka: {CzyPunktWewnatrzOdcinka(pt, p1, p2)}");
 
-                            Console.WriteLine($"   ✂️ Podział LINII {r.Id}: " +
+                            _logger.LogDebug($"   ✂️ Podział LINII {r.Id}: " +
                                               $"({p1.X:F0},{p1.Y:F0})→({p2.X:F0},{p2.Y:F0}) " +
                                               $"w punkcie ({pt.X:F0},{pt.Y:F0})");
 
@@ -1856,7 +1867,7 @@ namespace GEORGE.Client.Pages.Utils
                         else
                         {
                             // Linia nie przecina tego odcinka – zostaw bez zmian
-                            Console.WriteLine($"   ⏭️ Linia {line.ID?.Substring(0, 8)} nie przecina " +
+                            _logger.LogDebug($"   ⏭️ Linia {line.ID?.Substring(0, 8)} nie przecina " +
                                               $"odcinka {r.Id} w środku – zostawiam");
                             next.Add(r);
                             continue;
@@ -1872,7 +1883,7 @@ namespace GEORGE.Client.Pages.Utils
                     // ⭐ Zabezpieczenie przed pustym konturem
                     if (splitFullKontur == null || splitFullKontur.Count == 0)
                     {
-                        Console.WriteLine($"   ⚠️ Podział regionu {r.Id}: splitFullKontur pusty – zostawiam oryginał");
+                        _logger.LogDebug($"   ⚠️ Podział regionu {r.Id}: splitFullKontur pusty – zostawiam oryginał");
                         next.Add(r);
                         continue;
                     }
@@ -1893,7 +1904,7 @@ namespace GEORGE.Client.Pages.Utils
                             // ⭐ Zabezpieczenie: kontur musi mieć co najmniej 1 segment
                             if (kontur == null || kontur.Count == 0)
                             {
-                                Console.WriteLine($"   ⚠️ Region {r.Id} child {i}: pusty kontur – pomijam");
+                                _logger.LogDebug($"   ⚠️ Region {r.Id} child {i}: pusty kontur – pomijam");
                                 continue;
                             }
 
@@ -2049,7 +2060,7 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            // Console.WriteLine($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
+            // _logger.LogDebug($"PodzielKonturPoLinii Znaleziono {uniqueIntersectionPoints.Count} unikalnych punktów przecięcia");
 
             if (uniqueIntersectionPoints.Count < 2)
                 return new List<List<ContourSegment>> { new List<ContourSegment>(contour) };
@@ -2062,7 +2073,7 @@ namespace GEORGE.Client.Pages.Utils
             var p1 = orderedPoints.First();
             var p2 = orderedPoints.Last();
 
-            // Console.WriteLine($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
+            // _logger.LogDebug($"PodzielKonturPoLinii P1: ({p1.X:F2},{p1.Y:F2}), P2: ({p2.X:F2},{p2.Y:F2})");
 
             // Krok 2: Przypisz każdy segment do lewej lub prawej strony
             var leftSegments = new List<ContourSegment>();
@@ -2129,8 +2140,8 @@ namespace GEORGE.Client.Pages.Utils
                 }
             }
 
-            // Console.WriteLine($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
-            // Console.WriteLine($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
+            // _logger.LogDebug($"PodzielKonturPoLinii Lewa strona: {leftSegments.Count} segmentów");
+            // _logger.LogDebug($"PodzielKonturPoLinii Prawa strona: {rightSegments.Count} segmentów");
 
             // Krok 3: Dodaj linię podziału
             if (leftSegments.Count > 0 && rightSegments.Count > 0)
@@ -2206,12 +2217,12 @@ namespace GEORGE.Client.Pages.Utils
                 var punkty = region.Kontur.Select(s => s.Start).ToList();
                 region.Wierzcholki = punkty;
 
-                Console.WriteLine($"🔧 FixAndSynchronizeContour: region {region.Id} ma {region.Kontur.Count} segmentów – pomijam naprawę połączeń");
+                _logger.LogDebug($"🔧 FixAndSynchronizeContour: region {region.Id} ma {region.Kontur.Count} segmentów – pomijam naprawę połączeń");
 
                 if (region.Kontur.Count > 0)
                 {
                     var seg = region.Kontur[0];
-                    Console.WriteLine($"   Segment: ({seg.Start.X:F1},{seg.Start.Y:F1}) → ({seg.End.X:F1},{seg.End.Y:F1})");
+                    _logger.LogDebug($"   Segment: ({seg.Start.X:F1},{seg.Start.Y:F1}) → ({seg.End.X:F1},{seg.End.Y:F1})");
                 }
 
                 return;
@@ -2255,7 +2266,7 @@ namespace GEORGE.Client.Pages.Utils
 
             if (region.Wierzcholki.Count != region.Kontur.Count)
             {
-                Console.WriteLine($"⚠️ Naprawiono: punkty({region.Wierzcholki.Count}) != segmenty({region.Kontur.Count})");
+                _logger.LogDebug($"⚠️ Naprawiono: punkty({region.Wierzcholki.Count}) != segmenty({region.Kontur.Count})");
             }
         }
 
@@ -2264,13 +2275,13 @@ namespace GEORGE.Client.Pages.Utils
             // ⭐ Zabezpieczenie przed pustą listą
             if (segments == null || segments.Count == 0)
             {
-                Console.WriteLine("⚠️ OrderSegmentsForClosedContour: pusta lista – zwracam pustą");
+                _logger.LogDebug("⚠️ OrderSegmentsForClosedContour: pusta lista – zwracam pustą");
                 return new List<ContourSegment>();
             }
 
             if (segments.Count <= 1)
             {
-                Console.WriteLine($"   ⏭️ OrderSegments: 1 segment, zwracam bez zmian");
+                _logger.LogDebug($"   ⏭️ OrderSegments: 1 segment, zwracam bez zmian");
                 return segments;
             }
 
@@ -2317,21 +2328,21 @@ namespace GEORGE.Client.Pages.Utils
                 currentEnd = nextSegment.End;
             }
 
-            Console.WriteLine($"   🔄 OrderSegments: {segments.Count} segmentów, " +
+            _logger.LogDebug($"   🔄 OrderSegments: {segments.Count} segmentów, " +
                              $"po normalizacji: {ordered.Count} segmentów");
 
             ordered = NormalizeContourToCCW(ordered);
 
             if (ordered.Count > 0)
             {
-                Console.WriteLine($"   → po normalizacji: ({ordered[0].Start.X:F0},{ordered[0].Start.Y:F0}) → " +
+                _logger.LogDebug($"   → po normalizacji: ({ordered[0].Start.X:F0},{ordered[0].Start.Y:F0}) → " +
                                   $"({ordered[0].End.X:F0},{ordered[0].End.Y:F0})");
             }
 
             // ⭐ Zabezpieczenie przed pustym wynikiem
             if (ordered == null || ordered.Count == 0)
             {
-                Console.WriteLine("⚠️ OrderSegmentsForClosedContour: ordered puste – zwracam oryginał");
+                _logger.LogDebug("⚠️ OrderSegmentsForClosedContour: ordered puste – zwracam oryginał");
                 return segments;
             }
 
@@ -2906,7 +2917,7 @@ namespace GEORGE.Client.Pages.Utils
                 if (ObliczPrzeciecieOdcinkow(p1, p2, line, out var pt) &&
                     CzyPunktWewnatrzOdcinka(pt, p1, p2))
                 {
-                    Console.WriteLine($"   ✅ CzyLiniaDzieliRegion: TAK (linia) " +
+                    _logger.LogDebug($"   ✅ CzyLiniaDzieliRegion: TAK (linia) " +
                                       $"przecięcie w ({pt.X:F1},{pt.Y:F1})");
                     return true;
                 }
@@ -2943,7 +2954,7 @@ namespace GEORGE.Client.Pages.Utils
 
             if (uniqueIntersections.Count < 2)
             {
-                Console.WriteLine($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
+                _logger.LogDebug($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
                                   $"{uniqueIntersections.Count} przecięć (<2) – FALSE");
                 return false;
             }
@@ -2954,7 +2965,7 @@ namespace GEORGE.Client.Pages.Utils
 
             if (ptsOnLine.Count < 2)
             {
-                Console.WriteLine($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
+                _logger.LogDebug($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
                                   $"{ptsOnLine.Count} punktów na odcinku linii (<2) – FALSE");
                 return false;
             }
@@ -2971,12 +2982,12 @@ namespace GEORGE.Client.Pages.Utils
 
             if (!jakikolwiekWewnatrz)
             {
-                Console.WriteLine($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
+                _logger.LogDebug($"   ❌ CzyLiniaDzieliRegion: region {region.Id} – " +
                                   $"żaden z 3 punktów testowych nie jest wewnątrz – FALSE");
                 return false;
             }
 
-            Console.WriteLine($"   ✅ CzyLiniaDzieliRegion: region {region.Id} – TRUE " +
+            _logger.LogDebug($"   ✅ CzyLiniaDzieliRegion: region {region.Id} – TRUE " +
                               $"({uniqueIntersections.Count} przecięć, {ptsOnLine.Count} na odcinku)");
             return true;
         }

@@ -1,8 +1,8 @@
-﻿using AntDesign;
-using GEORGE.Client;
+﻿using GEORGE.Client;
 using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Okna;
 using GEORGE.Client.Pages.PDF;
+using GEORGE.Client.Pages.Utils;                    // ⭐ dla GeometryUtils
 using GEORGE.Client.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -14,9 +14,12 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
+// ⭐ Konfiguracja logowania (WYMAGA pakietów: Logging.Console + Logging.Configuration)
+builder.Logging.ClearProviders();
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
-
 
 // ✅ Jeden HttpClient – bez AddApiAuthorization
 builder.Services.AddScoped(sp => new HttpClient
@@ -55,5 +58,12 @@ builder.Services.AddHighlightJS();
 // Globalizacja
 AppContext.SetSwitch("System.Globalization.Invariant", true);
 
-// Start
-await builder.Build().RunAsync();
+// ⭐ Build aplikacji (musi być PRZED Initialize)
+var app = builder.Build();
+
+// ⭐ Inicjalizacja static loggera dla GeometryUtils
+var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+GeometryUtils.Initialize(loggerFactory);
+
+// ⭐ Start
+await app.RunAsync();

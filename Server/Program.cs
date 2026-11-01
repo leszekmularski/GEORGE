@@ -1,5 +1,6 @@
 using GEORGE.Client.Pages.Administracja;
 using GEORGE.Server;
+using GEORGE.Shared.Class;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -39,7 +40,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Konfiguracja logowania
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Debug);
+//builder.Logging.SetMinimumLevel(LogLevel.Debug);
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
 // Rejestracja konfiguracji MailSettings z appsettings.json
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
@@ -98,6 +100,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddScoped<ElementLiniowyService>();
+
 var app = builder.Build();
 
 app.UseCors("AllowAll");
@@ -132,6 +136,9 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
+
+var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+GEORGE.Client.Pages.Utils.GeometryUtils.Initialize(loggerFactory);
 
 app.Run();
 
