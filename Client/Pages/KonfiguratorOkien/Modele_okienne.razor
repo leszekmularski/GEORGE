@@ -4058,7 +4058,7 @@
         _logger.LogDebug($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_aktywnaSkala}");
         _logger.LogDebug($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
 
-        mousePosition = $"Wybrałeś: X: {modelX:F0} mm, Y: {modelY:F0} mm (skala: {_aktywnaSkala:F2}) {constWlasciwosciOkna.Szerokosc}x{constWlasciwosciOkna.Wysokosc}";
+        mousePosition = $"Wybrałeś: {SelectedModelType} X: {modelX:F0} mm, Y: {modelY:F0} mm (skala: {_aktywnaSkala:F2}) {constWlasciwosciOkna.Szerokosc}x{constWlasciwosciOkna.Wysokosc}";
 
         bool tylkoRama = false;
 
