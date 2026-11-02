@@ -1,10 +1,22 @@
 ﻿using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GEORGE.Client.Pages.KonfiguratorOkien
 {
+
     public static class LineUtils
     {
+
+        // Domyślnie "nic nie loguje" – nadpisywany przy starcie
+        private static ILogger _logger = NullLogger.Instance;
+
+        // Wywoływane raz przy starcie aplikacji
+        public static void Initialize(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger("GEORGE.Client.Pages.KonfiguratorOkien.LineUtils");
+        }
+
         private const double Tolerance = 0.001;
         private const double MoveTolerance = 0.5;
 
@@ -106,12 +118,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 //    Nie traktuj grupy jako całości – rozciągnij każdą linię OSOBNO.
                 if (lineGroup.Count > 1 && !CzyGrupaJestKoliniowa(lineGroup))
                 {
-                    Console.WriteLine($"⚠️ ExtendLinesToShapes: grupa {lineGroup.First().SplitGroupId} NIEKOLINIOWA " +
+                    _logger.LogDebug($"⚠️ ExtendLinesToShapes: grupa {lineGroup.First().SplitGroupId} NIEKOLINIOWA " +
                                       $"(użytkownik zmienił położenie) – traktuję każdą linię osobno");
 
                     foreach (var line in lineGroup)
                     {
-                        Console.WriteLine($"   Line {line.ID?.Substring(0, 8)}: " +
+                        _logger.LogDebug($"   Line {line.ID?.Substring(0, 8)}: " +
                                           $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1})");
 
                         foreach (var shape in closedShapes)
@@ -402,7 +414,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 // ⭐ Grupa NIEKOLINIOWA – traktuj każdą linię osobno
                 if (lineGroup.Count > 1 && !CzyGrupaJestKoliniowa(lineGroup))
                 {
-                    Console.WriteLine($"⚠️ ShortenLinesInsideShapes: grupa {lineGroup.First().SplitGroupId} NIEKOLINIOWA – traktuję osobno");
+                    _logger.LogDebug($"⚠️ ShortenLinesInsideShapes: grupa {lineGroup.First().SplitGroupId} NIEKOLINIOWA – traktuję osobno");
 
                     foreach (var line in lineGroup)
                     {
@@ -504,13 +516,13 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 if (!wszystkieWDomyslnychPozycjach)
                 {
-                    Console.WriteLine("⏭️ DistributeLines: linie już są rozmieszczone, pomijam");
+                    _logger.LogDebug("⏭️ DistributeLines: linie już są rozmieszczone, pomijam");
                     return;
                 }
             }
             else
             {
-                Console.WriteLine("📏 DistributeLines: WYMUSZAM wyśrodkowanie");
+                _logger.LogDebug("📏 DistributeLines: WYMUSZAM wyśrodkowanie");
             }
 
             // === Grupowanie linii ===
@@ -541,7 +553,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     SetVerticalGroupPosition(group, newX);
                     MoveAttachedPoints(lines, oldX, newX, isVertical: true);
 
-                    Console.WriteLine($"   📏 Pion: {oldX:F3} → {newX:F3} (środek)");
+                    _logger.LogDebug($"   📏 Pion: {oldX:F3} → {newX:F3} (środek)");
                 }
                 else
                 {
@@ -558,7 +570,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                         SetVerticalGroupPosition(lineGroup, x);
                         MoveAttachedPoints(lines, oldX, x, isVertical: true);
 
-                        Console.WriteLine($"   📏 Pion [{i}]: {oldX:F3} → {x:F3}");
+                        _logger.LogDebug($"   📏 Pion [{i}]: {oldX:F3} → {x:F3}");
                         i++;
                     }
                 }
@@ -579,7 +591,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     SetHorizontalGroupPosition(group, newY);
                     MoveAttachedPoints(lines, oldY, newY, isVertical: false);
 
-                    Console.WriteLine($"   📏 Poziom: {oldY:F3} → {newY:F3} (środek)");
+                    _logger.LogDebug($"   📏 Poziom: {oldY:F3} → {newY:F3} (środek)");
                 }
                 else
                 {
@@ -594,7 +606,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                         SetHorizontalGroupPosition(lineGroup, y);
                         MoveAttachedPoints(lines, oldY, y, isVertical: false);
 
-                        Console.WriteLine($"   📏 Poziom [{i}]: {oldY:F3} → {y:F3}");
+                        _logger.LogDebug($"   📏 Poziom [{i}]: {oldY:F3} → {y:F3}");
                         i++;
                     }
                 }
@@ -602,7 +614,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             await Task.CompletedTask;
         }
-     
+
         private static void MoveAttachedPoints(
             List<XLineShape> allLines,
             double oldCoord,
@@ -643,13 +655,13 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 .Select(group => group.ToList())
                 .ToList();
 
-            Console.WriteLine($"🔍 GroupRelatedLines: {lines.Count()} linii → {grupy.Count} grup");
+            _logger.LogDebug($"🔍 GroupRelatedLines: {lines.Count()} linii → {grupy.Count} grup");
             foreach (var g in grupy)
             {
-                Console.WriteLine($"   Grupa {(g.First().SplitGroupId ?? g.First().ID)?.Substring(0, 8) ?? "null"}: {g.Count} linii");
+                _logger.LogDebug($"   Grupa {(g.First().SplitGroupId ?? g.First().ID)?.Substring(0, 8) ?? "null"}: {g.Count} linii");
                 foreach (var l in g)
                 {
-                    Console.WriteLine($"      Line {l.ID?.Substring(0, 8)}: " +
+                    _logger.LogDebug($"      Line {l.ID?.Substring(0, 8)}: " +
                                       $"({l.X1:F1},{l.Y1:F1}) → ({l.X2:F1},{l.Y2:F1})");
                 }
             }
@@ -691,12 +703,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             // ⭐ Walidacja: po ustawieniu endpoints sprawdź, czy grupa nadal jest koliniowa
             if (!CzyGrupaJestKoliniowa(lineGroup))
             {
-                Console.WriteLine($"⚠️ SetGroupOuterEndpoints: grupa NIEKOLINIOWA po ustawieniu! " +
+                _logger.LogDebug($"⚠️ SetGroupOuterEndpoints: grupa NIEKOLINIOWA po ustawieniu! " +
                                   $"SplitGroupId = {lineGroup.First().SplitGroupId}");
 
                 foreach (var line in lineGroup)
                 {
-                    Console.WriteLine($"   Line {line.ID?.Substring(0, 8)}: " +
+                    _logger.LogDebug($"   Line {line.ID?.Substring(0, 8)}: " +
                                       $"({line.X1:F1},{line.Y1:F1}) → ({line.X2:F1},{line.Y2:F1})");
                 }
             }
@@ -1226,7 +1238,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             if (aktualnaSzerokosc < 0.001 || aktualnaWysokosc < 0.001)
             {
-                Console.WriteLine("⚠️ SkalujShapesDoWymiarowZachowujacProporcje: zerowy bbox, pomijam");
+                _logger.LogDebug("⚠️ SkalujShapesDoWymiarowZachowujacProporcje: zerowy bbox, pomijam");
                 return;
             }
 
@@ -1239,7 +1251,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double offsetX = (docelowaSzerokosc - nowaSzerokosc) / 2.0 - minX * skala;
             double offsetY = (docelowaWysokosc - nowaWysokosc) / 2.0 - minY * skala;
 
-            Console.WriteLine($"📐 SkalujShapes (proporcje): {aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
+            _logger.LogDebug($"📐 SkalujShapes (proporcje): {aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
                               $"{nowaSzerokosc:F1}x{nowaWysokosc:F1} " +
                               $"(skala={skala:F4}, offset=({offsetX:F1},{offsetY:F1}))");
 
@@ -1270,7 +1282,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
             if (docelowaSzerokosc <= 0 || docelowaWysokosc <= 0)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     "⚠️ SkalujShapesDoWymiarowRozciagajac: " +
                     "docelowa szerokość lub wysokość jest nieprawidłowa.");
                 return;
@@ -1295,7 +1307,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             if (aktualnaSzerokosc < 0.001 ||
                 aktualnaWysokosc < 0.001)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     "⚠️ SkalujShapesDoWymiarowRozciagajac: zerowy bbox, pomijam");
                 return;
             }
@@ -1306,7 +1318,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double offsetX = -minX * scaleX;
             double offsetY = -minY * scaleY;
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"📐 SkalujShapes (rozciąganie): " +
                 $"{aktualnaSzerokosc:F1}x{aktualnaWysokosc:F1} → " +
                 $"{docelowaSzerokosc:F1}x{docelowaWysokosc:F1} " +
@@ -1320,7 +1332,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             // Nie sortujemy linii ani nie zmieniamy ich ról konstrukcyjnych.
             var shapesWKolejnosci = shapes.ToList();
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"📋 Skalowanie obiektów w pierwotnej kolejności: " +
                 $"{shapesWKolejnosci.Count}");
 
@@ -1328,7 +1340,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             {
                 if (shape is XLineShape line)
                 {
-                    Console.WriteLine(
+                    _logger.LogDebug(
                         $"🔵 PRZED Transform LINE " +
                         $"{line.ID.Substring(0, Math.Min(8, line.ID.Length))}: " +
                         $"({line.X1:F2};{line.Y1:F2}) → " +
@@ -1348,7 +1360,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 if (shape is XLineShape linePo)
                 {
-                    Console.WriteLine(
+                    _logger.LogDebug(
                         $"🔴 PO Transform LINE " +
                         $"{linePo.ID.Substring(0, Math.Min(8, linePo.ID.Length))}: " +
                         $"({linePo.X1:F2},{linePo.Y1:F2}) → " +
@@ -1362,7 +1374,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             // Przywracamy kierunki pionowe i poziome po transformacji.
             PrzywrocKierunkiOsiowe(kierunkiOsiowe);
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 "✅ SkalujShapesDoWymiarowRozciagajac: " +
                 "skalowanie zakończone, kolejność listy zachowana.");
         }
@@ -1427,14 +1439,14 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             if (shapes == null || shapes.Count == 0) return;
             if (staraSzerokosc < 0.001 || staraWysokosc < 0.001)
             {
-                Console.WriteLine("⚠️ SkalujShapesOsiami: zerowa stara szerokość/wysokość, pomijam");
+                _logger.LogDebug("⚠️ SkalujShapesOsiami: zerowa stara szerokość/wysokość, pomijam");
                 return;
             }
 
             double scaleX = nowaSzerokosc / staraSzerokosc;
             double scaleY = nowaWysokosc / staraWysokosc;
 
-            Console.WriteLine($"📐 SkalujShapesOsiami: scaleX={scaleX:F4}, scaleY={scaleY:F4}");
+            _logger.LogDebug($"📐 SkalujShapesOsiami: scaleX={scaleX:F4}, scaleY={scaleY:F4}");
 
             foreach (var shape in shapes)
             {
@@ -1511,7 +1523,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double minY = closedShapes.Min(s => s.GetBoundingBox().Top);
             double maxY = closedShapes.Max(s => s.GetBoundingBox().Bottom);
 
-            Console.WriteLine($"📐 ExtendOrShortenLinesWithTangency: obrys " +
+            _logger.LogDebug($"📐 ExtendOrShortenLinesWithTangency: obrys " +
                               $"X[{minX:F1}..{maxX:F1}] Y[{minY:F1}..{maxY:F1}]");
 
             // ─────────────────────────────────────────────────────────────
@@ -1559,12 +1571,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
 
                 if (yGora >= yDol)
                 {
-                    Console.WriteLine($"   ⚠️ Pionowa {pionowa.ID?.Substring(0, 8)}: " +
+                    _logger.LogDebug($"   ⚠️ Pionowa {pionowa.ID?.Substring(0, 8)}: " +
                                       $"yGora({yGora:F1}) >= yDol({yDol:F1}) — pomijam");
                     continue;
                 }
 
-                Console.WriteLine($"   📏 Pionowa X={x:F1}: Y[{gornyKoniec:F1}..{dolnyKoniec:F1}] → [{yGora:F1}..{yDol:F1}]");
+                _logger.LogDebug($"   📏 Pionowa X={x:F1}: Y[{gornyKoniec:F1}..{dolnyKoniec:F1}] → [{yGora:F1}..{yDol:F1}]");
 
                 pionowa.X1 = x;
                 pionowa.Y1 = yGora;
@@ -1619,12 +1631,12 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 // ⭐ Gdyby się okazało że po korekcie xLewy > xPrawy — rozciągnij do obrysu
                 if (xLewy >= xPrawy)
                 {
-                    Console.WriteLine($"   ⚠️ Pozioma Y={y:F1}: xLewy({xLewy:F1}) >= xPrawy({xPrawy:F1}) — używam obrysu");
+                    _logger.LogDebug($"   ⚠️ Pozioma Y={y:F1}: xLewy({xLewy:F1}) >= xPrawy({xPrawy:F1}) — używam obrysu");
                     xLewy = minX;
                     xPrawy = maxX;
                 }
 
-                Console.WriteLine($"   📏 Pozioma Y={y:F1}: X[{lewyKoniec:F1}..{prawyKoniec:F1}] → [{xLewy:F1}..{xPrawy:F1}]");
+                _logger.LogDebug($"   📏 Pozioma Y={y:F1}: X[{lewyKoniec:F1}..{prawyKoniec:F1}] → [{xLewy:F1}..{xPrawy:F1}]");
 
                 pozioma.X1 = xLewy;
                 pozioma.Y1 = y;
@@ -1657,13 +1669,13 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
         {
             if (shapes == null || !shapes.Any())
             {
-                Console.WriteLine("⚠️ SkalujShapesZeStarymiWymiarami: brak shapes");
+                _logger.LogDebug("⚠️ SkalujShapesZeStarymiWymiarami: brak shapes");
                 return;
             }
 
             if (staraSzerokosc <= 0.01 || staraWysokosc <= 0.01)
             {
-                Console.WriteLine($"⚠️ SkalujShapesZeStarymiWymiarami: nieprawidłowe stare wymiary " +
+                _logger.LogDebug($"⚠️ SkalujShapesZeStarymiWymiarami: nieprawidłowe stare wymiary " +
                                   $"({staraSzerokosc}x{staraWysokosc}) — fallback na aktualne");
                 SkalujShapesDoWymiarowRozciagajac(shapes, nowaSzerokosc, nowaWysokosc);
                 return;
@@ -1672,7 +1684,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             double scaleX = nowaSzerokosc / staraSzerokosc;
             double scaleY = nowaWysokosc / staraWysokosc;
 
-            Console.WriteLine($"📐 SkalujShapesZeStarymiWymiarami: " +
+            _logger.LogDebug($"📐 SkalujShapesZeStarymiWymiarami: " +
                               $"{staraSzerokosc:F1}x{staraWysokosc:F1} → {nowaSzerokosc:F1}x{nowaWysokosc:F1} " +
                               $"(scaleX={scaleX:F4}, scaleY={scaleY:F4})");
 
@@ -1686,7 +1698,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 if (shape is XLineShape line)
                 {
                     // ⭐ Explicit: skaluj X1/Y1/X2/Y2 proporcjonalnie od (0,0)
-                    Console.WriteLine($"   🔵 PRZED LINE {line.ID?.Substring(0, Math.Min(8, line.ID?.Length ?? 0))}: " +
+                    _logger.LogDebug($"   🔵 PRZED LINE {line.ID?.Substring(0, Math.Min(8, line.ID?.Length ?? 0))}: " +
                                       $"({line.X1:F2};{line.Y1:F2}) → ({line.X2:F2};{line.Y2:F2})");
 
                     line.X1 *= scaleX;
@@ -1694,7 +1706,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                     line.X2 *= scaleX;
                     line.Y2 *= scaleY;
 
-                    Console.WriteLine($"   🔴 PO LINE {line.ID?.Substring(0, Math.Min(8, line.ID?.Length ?? 0))}: " +
+                    _logger.LogDebug($"   🔴 PO LINE {line.ID?.Substring(0, Math.Min(8, line.ID?.Length ?? 0))}: " +
                                       $"({line.X1:F2};{line.Y1:F2}) → ({line.X2:F2};{line.Y2:F2})");
 
                     line.Szerokosc = nowaSzerokosc;
@@ -1711,7 +1723,7 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 }
             }
 
-            Console.WriteLine($"✅ SkalujShapesZeStarymiWymiarami: " +
+            _logger.LogDebug($"✅ SkalujShapesZeStarymiWymiarami: " +
                               $"linii={zmienioneLinie}, innych={zmienioneInne}");
         }
 

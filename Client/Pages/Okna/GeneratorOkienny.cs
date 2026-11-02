@@ -2,6 +2,7 @@
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.Models;
 using GEORGE.Shared.ViewModels;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.JSInterop;
 using System.Data;
 
@@ -43,6 +44,15 @@ namespace GEORGE.Client.Pages.Okna
         // ⭐ NOWE POLA – do stabilnego dopasowania po zmianie wymiarów
         public string? IdMaster { get; set; }
         public string? TypKsztaltu { get; set; }
+
+        // Domyślnie "nic nie loguje" – nadpisywany przy starcie
+        private static ILogger _logger = NullLogger.Instance;
+
+        // Wywoływane raz przy starcie aplikacji
+        public static void Initialize(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger("GEORGE.Client.Pages.Okna.Generator");
+        }
 
         // ============================================================
         // KONSTRUKTOR
@@ -126,7 +136,7 @@ namespace GEORGE.Client.Pages.Okna
             punktyRegionuMaster ??= new List<XPoint>();
 
             Guid callId = Guid.NewGuid();
-            Console.WriteLine($"▶ START AddElements: {callId}, regionId={regionId}");
+            _logger.LogDebug($"▶ START AddElements: {callId}, regionId={regionId}");
 
             if (_jsRuntime != null && kasujKonsole)
             {
@@ -148,11 +158,11 @@ namespace GEORGE.Client.Pages.Okna
 
             Region = regionAdd;
 
-            Console.WriteLine($"🔍 AddElements: szukam regionu '{regionId}'");
-            Console.WriteLine($"   regions: {regions.Count}");
+            _logger.LogDebug($"🔍 AddElements: szukam regionu '{regionId}'");
+            _logger.LogDebug($"   regions: {regions.Count}");
             foreach (var r in regions.Take(20))
             {
-                Console.WriteLine($"      Id='{r.Id}' Typ={r.TypKsztaltu} Rama={r.Rama}");
+                _logger.LogDebug($"      Id='{r.Id}' Typ={r.TypKsztaltu} Rama={r.Rama}");
             }
 
             var region = regions.FirstOrDefault(r => r.Id == regionId);
@@ -174,7 +184,7 @@ namespace GEORGE.Client.Pages.Okna
             {
 
                 region = regions.FirstOrDefault(r => r.Id != null);
-                Console.WriteLine($"✅ AddElements Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
+                _logger.LogDebug($"✅ AddElements Region o ID: {regionId} region.Wierzcholki.Count():{region.Wierzcholki.Count()}");
                 punkty = region.Wierzcholki;
                 punktyZLukami = region.Kontur;
             }
@@ -367,7 +377,7 @@ namespace GEORGE.Client.Pages.Okna
             string NazwaObiektu = MVCKonfModelu.KonfSystem.First().Nazwa ?? "";
             string TypObiektu = MVCKonfModelu.KonfSystem.First().Typ ?? "";
 
-            Console.WriteLine($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} " +
+            _logger.LogDebug($"📐Generator ----> region.TypKsztaltu: {region.TypKsztaltu} " +
                 $"profileLeft: {profileLeft}, profileRight: {profileRight}, " +
                 $"profileTop: {profileTop}, profileBottom: {profileBottom} " +
                 $"slruchPoPrawej: {slruchPoPrawej} slruchPoLewej: {slruchPoLewej}");
@@ -389,7 +399,7 @@ namespace GEORGE.Client.Pages.Okna
                 bool liniaPionowa = dx < 0.01 && dy > 0.01;
                 bool liniaPozioma = dy < 0.01 && dx > 0.01;
 
-                Console.WriteLine($"🔷 ElementLiniowy: orientacja = {(liniaPionowa ? "PIONOWA" : liniaPozioma ? "POZIOMA" : "SKOŚNA")}");
+                _logger.LogDebug($"🔷 ElementLiniowy: orientacja = {(liniaPionowa ? "PIONOWA" : liniaPozioma ? "POZIOMA" : "SKOŚNA")}");
 
                 var kandydaci = daneKwadratu
                      .Where(s => s.Przesuniecia != null && s.Przesuniecia.Count > 0 &&
@@ -398,11 +408,11 @@ namespace GEORGE.Client.Pages.Okna
                      .OrderBy(x => x.Odleglosc)
                      .ToList();
 
-                Console.WriteLine($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wpisów z Przesunieciami:");
+                _logger.LogDebug($"🔷 ElementLiniowy: znaleziono {kandydaci.Count} wpisów z Przesunieciami:");
 
                 foreach (var k in kandydaci)
                 {
-                    Console.WriteLine($"🔷   {k.Wpis.RowIdElementu} (strona={k.Wpis.Strona}) odl={k.Odleglosc:F2} region: {k.Wpis.RowIdRegionu}");
+                    _logger.LogDebug($"🔷   {k.Wpis.RowIdElementu} (strona={k.Wpis.Strona}) odl={k.Odleglosc:F2} region: {k.Wpis.RowIdRegionu}");
                 }
 
                 //punktyMasterSlupka = generatorStates.SingleOrDefault(x => x.Value.IdRegion == kandydaci.FirstOrDefault()?.Wpis.RowIdRegionu).Value?.Wierzcholki;
@@ -411,7 +421,7 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (konfPolaczenia == null)
                 {
-                    Console.WriteLine($"🔷 ElementLiniowy: brak kandydatów — fallback");
+                    _logger.LogDebug($"🔷 ElementLiniowy: brak kandydatów — fallback");
 
                     konfPolaczenia = daneKwadratu
                         .Where(s => s.Przesuniecia != null && s.Przesuniecia.Count > 0 &&
@@ -457,13 +467,13 @@ namespace GEORGE.Client.Pages.Okna
                     profileTop = (float)szukPionA;
                     profileBottom = (float)szukPionB;
 
-                    Console.WriteLine($"🔷 ElementLiniowy ({(liniaPionowa ? "PION" : "POZIOM")}) — dopasowane: {konfPolaczenia.Count}, " +
+                    _logger.LogDebug($"🔷 ElementLiniowy ({(liniaPionowa ? "PION" : "POZIOM")}) — dopasowane: {konfPolaczenia.Count}, " +
                         $"L={profileLeft} R={profileRight} T={profileTop} B={profileBottom}");
                 }
                 else
                 {
                     BledySystemowe.Add($"❌ Brak konfiguracji przesunięcia dla elementu liniowego.");
-                    Console.WriteLine($"❌ Brak konfiguracji przesunięcia dla elementu liniowego [AddElemnts]. konfPolaczenia.Count = {konfPolaczenia.Count}");
+                    _logger.LogDebug($"❌ Brak konfiguracji przesunięcia dla elementu liniowego [AddElemnts]. konfPolaczenia.Count = {konfPolaczenia.Count}");
                 }
 
                 wewnetrznyKontur = przeskalowanePunkty;
@@ -473,29 +483,29 @@ namespace GEORGE.Client.Pages.Okna
 
                 // Console.Clear();
 
-                Console.WriteLine($"📋 regionAdd.Count = {regionAdd?.Count ?? 0}");
+                _logger.LogDebug($"📋 regionAdd.Count = {regionAdd?.Count ?? 0}");
                 foreach (var r in regionAdd ?? Enumerable.Empty<ShapeRegion>())
-                    Console.WriteLine($"   '{r.Id}'");
+                    _logger.LogDebug($"   '{r.Id}'");
 
-                Console.WriteLine($"🧩 [WEJŚCIE] regionId = '{regionId}'");
-                Console.WriteLine($"🧩 [WEJŚCIE] regions.Count = {regions?.Count ?? 0}");
+                _logger.LogDebug($"🧩 [WEJŚCIE] regionId = '{regionId}'");
+                _logger.LogDebug($"🧩 [WEJŚCIE] regions.Count = {regions?.Count ?? 0}");
                 foreach (var r in regions ?? Enumerable.Empty<ShapeRegion>())
-                    Console.WriteLine($"🧩 [WEJŚCIE]    regions[i].Id = '{r.Id}'");
+                    _logger.LogDebug($"🧩 [WEJŚCIE]    regions[i].Id = '{r.Id}'");
 
                 //var znaleziony = regionAdd.FirstOrDefault(x => x.Id == regionId);
 
-                //Console.WriteLine($"🔍 regionId            = '{regionId}'");
-                //Console.WriteLine($"🔍 znaleziony          = {(znaleziony == null ? "NULL" : "OK")}");
-                //Console.WriteLine($"🔍 znaleziony?.Id      = '{znaleziony?.Id}'");
-                //Console.WriteLine($"🔍 znaleziony?.IdMaster      = '{znaleziony?.IdMaster}'");
-                //Console.WriteLine($"🔍 znaleziony?.Wierzcholki == null ? {znaleziony?.Wierzcholki == null}");
+                //_logger.LogDebug($"🔍 regionId            = '{regionId}'");
+                //_logger.LogDebug($"🔍 znaleziony          = {(znaleziony == null ? "NULL" : "OK")}");
+                //_logger.LogDebug($"🔍 znaleziony?.Id      = '{znaleziony?.Id}'");
+                //_logger.LogDebug($"🔍 znaleziony?.IdMaster      = '{znaleziony?.IdMaster}'");
+                //_logger.LogDebug($"🔍 znaleziony?.Wierzcholki == null ? {znaleziony?.Wierzcholki == null}");
 
                 //if (znaleziony == null)
                 //{
-                //    Console.WriteLine($"❌ NIE ZNALEZIONO REGIONU — używam starej wartości punktyRegionuMaster filtr: regionId == {regionId}");
-                //    Console.WriteLine("   Dostępne Id w regions:");
+                //    _logger.LogDebug($"❌ NIE ZNALEZIONO REGIONU — używam starej wartości punktyRegionuMaster filtr: regionId == {regionId}");
+                //    _logger.LogDebug("   Dostępne Id w regions:");
                 //    foreach (var r in regions)
-                //        Console.WriteLine($"     - '{r.Id}'");
+                //        _logger.LogDebug($"     - '{r.Id}'");
                 //}
                 //else
                 //{
@@ -503,7 +513,7 @@ namespace GEORGE.Client.Pages.Okna
                 //}
 
 
-                Console.WriteLine($"🔷 ElementLiniowy: punktyRegionuMaster.Count = {punktyRegionuMaster.Count} regionId: {regionId}");
+                _logger.LogDebug($"🔷 ElementLiniowy: punktyRegionuMaster.Count = {punktyRegionuMaster.Count} regionId: {regionId}");
 
                 punktyRegionuMaster = await CalculateOffsetPolygon(
                     punktyRegionuMaster,
@@ -539,19 +549,19 @@ namespace GEORGE.Client.Pages.Okna
 
             if (wewnetrznyKonturZLukami == null)
             {
-                Console.WriteLine($"❌ wewnetrznyKonturZLukami == null dla {regionId}");
+                _logger.LogDebug($"❌ wewnetrznyKonturZLukami == null dla {regionId}");
                 BledySystemowe.Add($"❌ wewnetrznyKonturZLukami == null dla {regionId}");
                 return $"❌ wewnetrznyKonturZLukami == null dla {regionId}";
             }
 
             if (liniaSzkleniaKontur == null)
             {
-                Console.WriteLine($"❌ liniaSzkleniaKontur == null dla {regionId}");
+                _logger.LogDebug($"❌ liniaSzkleniaKontur == null dla {regionId}");
                 BledySystemowe.Add($"❌ liniaSzkleniaKontur == null dla {regionId}");
                 return $"❌ liniaSzkleniaKontur == null dla {regionId}";
             }
 
-            Console.WriteLine($"[AddElements {callId}] PRZED GenerateGenericElementsWithJoins");
+            _logger.LogDebug($"[AddElements {callId}] PRZED GenerateGenericElementsWithJoins");
 
             List<KonfModeleElementy> konfModeleElementy = generatorStates.Values
                 .Where(x => x.MVCKonfModelu?.KonfModeleElementy != null)
@@ -581,8 +591,8 @@ namespace GEORGE.Client.Pages.Okna
                 mouseClik,
                 oryginalnyRegionId);
 
-            Console.WriteLine($"[AddElements {callId}] PO GenerateGenericElementsWithJoins: {okLine}");
-            Console.WriteLine($"◀ KONIEC AddElements: {callId}, regionId={regionId}");
+            _logger.LogDebug($"[AddElements {callId}] PO GenerateGenericElementsWithJoins: {okLine}");
+            _logger.LogDebug($"◀ KONIEC AddElements: {callId}, regionId={regionId}");
 
             if (okLine)
             {
@@ -716,7 +726,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (!wynik.Ok)
                 {
                     if (wynik.Blad != null) BledySystemowe.Add(wynik.Blad);
-                    Console.WriteLine($"❌ Błąd w WyznaczWierzcholkiDlaBoku dla regionu {regionId}: {wynik.Blad}");
+                    _logger.LogDebug($"❌ Błąd w WyznaczWierzcholkiDlaBoku dla regionu {regionId}: {wynik.Blad}");
                     continue;
                 }
 
@@ -1914,12 +1924,12 @@ namespace GEORGE.Client.Pages.Okna
             XPoint mouseClik,
             GeometriaBoku geo)
         {
-            Console.WriteLine($"🔷 T5-T5 case for element {i + 1}. " +
+            _logger.LogDebug($"🔷 T5-T5 case for element {i + 1}. " +
                               $"isAlmostHorizontal:{geo.IsAlmostHorizontal}, " +
                               $"isAlmostVertical:{geo.IsAlmostVertical}, " +
                               $"daneKwadratu.Count:{daneKwadratu?.Count ?? 0}");
 
-            Console.WriteLine($"🔷 T5-T5 ElementLiniowy " +
+            _logger.LogDebug($"🔷 T5-T5 ElementLiniowy " +
                               $"profileLeft: {geo.ProfileLeft}, profileRight: {geo.ProfileRight}, " +
                               $"profileTop: {geo.ProfileTop}, profileBottom: {geo.ProfileBottom}");
 
@@ -1967,7 +1977,7 @@ namespace GEORGE.Client.Pages.Okna
             }
             else
             {
-                Console.WriteLine($"⚠️ T5-T5: Szerokość słupka wynosi: {SzerokoscSlupka} dla rowIdprofileLeft: {geo.RowIdprofileLeft}.");
+                _logger.LogDebug($"⚠️ T5-T5: Szerokość słupka wynosi: {SzerokoscSlupka} dla rowIdprofileLeft: {geo.RowIdprofileLeft}.");
             }
 
             // ============================================================
@@ -2072,7 +2082,7 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             foreach (var punkt in punktyRegionuMaster)
             {
-                Console.WriteLine($"🔷 T5-T5 punktyRegionuMaster: #2 X={punkt.X}, Y={punkt.Y}");
+                _logger.LogDebug($"🔷 T5-T5 punktyRegionuMaster: #2 X={punkt.X}, Y={punkt.Y}");
             }
 
             if (daneKwadratu != null)
@@ -2082,14 +2092,14 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     if (d?.Przesuniecia == null)
                     {
-                        Console.WriteLine($"   Przesuniecia: NULL dla daneKwadratu[{idx}]");
+                        _logger.LogDebug($"   Przesuniecia: NULL dla daneKwadratu[{idx}]");
                     }
                     else
                     {
                         int pIdx = 0;
                         foreach (var p in d.Przesuniecia)
                         {
-                            Console.WriteLine(
+                            _logger.LogDebug(
                                 $"   [{pIdx}] Strona='{p.Strona}', " +
                                 $"PrzesuniecieX={p.PrzesuniecieX}, PrzesuniecieY={p.PrzesuniecieY}, " +
                                 $"PrzesuniecieXStycznej={p.PrzesuniecieXStycznej}, " +
@@ -2143,7 +2153,7 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             List<XPoint> punktyRegionuMasterModyfikowane;
 
-            Console.WriteLine($"🔷 T5-T5: stronaA={stronaA}, stronaB={stronaB}, punktyRegionuMaster.Count={punktyRegionuMaster?.Count ?? 0}");
+            _logger.LogDebug($"🔷 T5-T5: stronaA={stronaA}, stronaB={stronaB}, punktyRegionuMaster.Count={punktyRegionuMaster?.Count ?? 0}");
 
 
             if (!stronaA && !stronaB)
@@ -2170,15 +2180,15 @@ namespace GEORGE.Client.Pages.Okna
             //  PRZECIĘCIA Z KONTUREM (wersja Ex z detekcją znalezienia)
             // ═══════════════════════════════════════════════════════════════════════
 
-            Console.WriteLine("═══════════════════════════════════════════════");
-            Console.WriteLine("🔷 T5-T5: Wyszukiwanie przecięć z konturem");
-            Console.WriteLine($"   TopXT5    = ({TopXT5.X:F1}, {TopXT5.Y:F1})");
-            Console.WriteLine($"   BottomXT5 = ({BottomXT5.X:F1}, {BottomXT5.Y:F1})");
-            Console.WriteLine($"   tmpTopLT5 = ({tmpTopLT5.X:F1}, {tmpTopLT5.Y:F1})");
-            Console.WriteLine($"   tmpTopST5 = ({tmpTopST5.X:F1}, {tmpTopST5.Y:F1})");
-            Console.WriteLine($"   tmpTopRT5 = ({tmpTopRT5.X:F1}, {tmpTopRT5.Y:F1})");
-            Console.WriteLine($"   polygon.Count = {punktyRegionuMasterModyfikowane.Count}");
-            Console.WriteLine("═══════════════════════════════════════════════");
+            _logger.LogDebug("═══════════════════════════════════════════════");
+            _logger.LogDebug("🔷 T5-T5: Wyszukiwanie przecięć z konturem");
+            _logger.LogDebug($"   TopXT5    = ({TopXT5.X:F1}, {TopXT5.Y:F1})");
+            _logger.LogDebug($"   BottomXT5 = ({BottomXT5.X:F1}, {BottomXT5.Y:F1})");
+            _logger.LogDebug($"   tmpTopLT5 = ({tmpTopLT5.X:F1}, {tmpTopLT5.Y:F1})");
+            _logger.LogDebug($"   tmpTopST5 = ({tmpTopST5.X:F1}, {tmpTopST5.Y:F1})");
+            _logger.LogDebug($"   tmpTopRT5 = ({tmpTopRT5.X:F1}, {tmpTopRT5.Y:F1})");
+            _logger.LogDebug($"   polygon.Count = {punktyRegionuMasterModyfikowane.Count}");
+            _logger.LogDebug("═══════════════════════════════════════════════");
 
             // ─── GÓRA (forward: false — w kierunku przeciwnym do osi słupka) ───
             var resLeftTop = FindFirstEdgeIntersectionByVectorEx(
@@ -2209,14 +2219,14 @@ namespace GEORGE.Client.Pages.Okna
             // ═══════════════════════════════════════════════════════════════════════
             //  RAPORT ZBIORCZY
             // ═══════════════════════════════════════════════════════════════════════
-            Console.WriteLine("═══════════════════════════════════════════════");
-            Console.WriteLine("🔷 T5-T5: RAPORT PRZECIĘĆ");
-            Console.WriteLine($"   leftTop       ({resLeftTop.Znaleziono,5}) → ({leftTopIntersection.X:F1}, {leftTopIntersection.Y:F1})");
-            Console.WriteLine($"   midTop        ({resMidTop.Znaleziono,5}) → ({midTopIntersection.X:F1}, {midTopIntersection.Y:F1})");
-            Console.WriteLine($"   rightTop      ({resRightTop.Znaleziono,5}) → ({rightTopIntersection.X:F1}, {rightTopIntersection.Y:F1})");
-            Console.WriteLine($"   leftBottom    ({resLeftBottom.Znaleziono,5}) → ({leftBottomIntersection.X:F1}, {leftBottomIntersection.Y:F1})");
-            Console.WriteLine($"   midBottom     ({resMidBottom.Znaleziono,5}) → ({midBottomIntersection.X:F1}, {midBottomIntersection.Y:F1})");
-            Console.WriteLine($"   rightBottom   ({resRightBottom.Znaleziono,5}) → ({rightBottomIntersection.X:F1}, {rightBottomIntersection.Y:F1})");
+            _logger.LogDebug("═══════════════════════════════════════════════");
+            _logger.LogDebug("🔷 T5-T5: RAPORT PRZECIĘĆ");
+            _logger.LogDebug($"   leftTop       ({resLeftTop.Znaleziono,5}) → ({leftTopIntersection.X:F1}, {leftTopIntersection.Y:F1})");
+            _logger.LogDebug($"   midTop        ({resMidTop.Znaleziono,5}) → ({midTopIntersection.X:F1}, {midTopIntersection.Y:F1})");
+            _logger.LogDebug($"   rightTop      ({resRightTop.Znaleziono,5}) → ({rightTopIntersection.X:F1}, {rightTopIntersection.Y:F1})");
+            _logger.LogDebug($"   leftBottom    ({resLeftBottom.Znaleziono,5}) → ({leftBottomIntersection.X:F1}, {leftBottomIntersection.Y:F1})");
+            _logger.LogDebug($"   midBottom     ({resMidBottom.Znaleziono,5}) → ({midBottomIntersection.X:F1}, {midBottomIntersection.Y:F1})");
+            _logger.LogDebug($"   rightBottom   ({resRightBottom.Znaleziono,5}) → ({rightBottomIntersection.X:F1}, {rightBottomIntersection.Y:F1})");
 
             int liczbaZnalezionych =
                 (resLeftTop.Znaleziono ? 1 : 0) +
@@ -2226,7 +2236,7 @@ namespace GEORGE.Client.Pages.Okna
                 (resMidBottom.Znaleziono ? 1 : 0) +
                 (resRightBottom.Znaleziono ? 1 : 0);
 
-            Console.WriteLine($"   Znaleziono przecięć: {liczbaZnalezionych}/6");
+            _logger.LogDebug($"   Znaleziono przecięć: {liczbaZnalezionych}/6");
 
             // ═══════════════════════════════════════════════════════════════════════
             //  DETEKCJA KLINA (nie wszystkie przecięcia znalezione)
@@ -2236,7 +2246,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (goraJestKlinem || dolJestKlinem)
             {
-                Console.WriteLine($"🔺 T5-T5: WYKRYTO KLIN (gora={goraJestKlinem}, dół={dolJestKlinem})");
+                _logger.LogDebug($"🔺 T5-T5: WYKRYTO KLIN (gora={goraJestKlinem}, dół={dolJestKlinem})");
 
                 // ⭐ GÓRA KLINA — jedna krawędź słupka wychodzi poza obrys → użyj fallbacku obrysu
                 if (goraJestKlinem)
@@ -2252,7 +2262,7 @@ namespace GEORGE.Client.Pages.Okna
                             reference.X - vxT5 * szerokoscSlupka,
                             reference.Y - vyT5 * szerokoscSlupka);
 
-                        Console.WriteLine($"   🔧 leftTop (klin) → ({leftTopIntersection.X:F1}, {leftTopIntersection.Y:F1})");
+                        _logger.LogDebug($"   🔧 leftTop (klin) → ({leftTopIntersection.X:F1}, {leftTopIntersection.Y:F1})");
                     }
 
                     if (!resRightTop.Znaleziono)
@@ -2263,7 +2273,7 @@ namespace GEORGE.Client.Pages.Okna
                             reference.X + vxT5 * szerokoscSlupka,
                             reference.Y + vyT5 * szerokoscSlupka);
 
-                        Console.WriteLine($"   🔧 rightTop (klin) → ({rightTopIntersection.X:F1}, {rightTopIntersection.Y:F1})");
+                        _logger.LogDebug($"   🔧 rightTop (klin) → ({rightTopIntersection.X:F1}, {rightTopIntersection.Y:F1})");
                     }
                 }
 
@@ -2278,7 +2288,7 @@ namespace GEORGE.Client.Pages.Okna
                             reference.X - vxT5 * szerokoscSlupka,
                             reference.Y - vyT5 * szerokoscSlupka);
 
-                        Console.WriteLine($"   🔧 leftBottom (klin) → ({leftBottomIntersection.X:F1}, {leftBottomIntersection.Y:F1})");
+                        _logger.LogDebug($"   🔧 leftBottom (klin) → ({leftBottomIntersection.X:F1}, {leftBottomIntersection.Y:F1})");
                     }
 
                     if (!resRightBottom.Znaleziono)
@@ -2289,7 +2299,7 @@ namespace GEORGE.Client.Pages.Okna
                             reference.X + vxT5 * szerokoscSlupka,
                             reference.Y + vyT5 * szerokoscSlupka);
 
-                        Console.WriteLine($"   🔧 rightBottom (klin) → ({rightBottomIntersection.X:F1}, {rightBottomIntersection.Y:F1})");
+                        _logger.LogDebug($"   🔧 rightBottom (klin) → ({rightBottomIntersection.X:F1}, {rightBottomIntersection.Y:F1})");
                     }
                 }
             }
@@ -2322,11 +2332,11 @@ namespace GEORGE.Client.Pages.Okna
 
             if (podejrzane.Any())
             {
-                Console.WriteLine($"⚠️ T5-T5: PODEJRZANE PUNKTY: {string.Join(", ", podejrzane)}");
-                Console.WriteLine($"   Granice konstrukcji: X[{minX:F0}..{maxX:F0}], Y[{minY:F0}..{maxY:F0}]");
+                _logger.LogDebug($"⚠️ T5-T5: PODEJRZANE PUNKTY: {string.Join(", ", podejrzane)}");
+                _logger.LogDebug($"   Granice konstrukcji: X[{minX:F0}..{maxX:F0}], Y[{minY:F0}..{maxY:F0}]");
             }
 
-            Console.WriteLine("═══════════════════════════════════════════════");
+            _logger.LogDebug("═══════════════════════════════════════════════");
 
             // ─── DALSZE PRZYPISANIE ───
             var TopLT5 = leftTopIntersection;
@@ -2351,7 +2361,7 @@ namespace GEORGE.Client.Pages.Okna
                 BottomRT5
             };
 
-            Console.WriteLine($"🔷 T5-T5 -> czworokąt słupka: {wierzcholki.Count} punktów");
+            _logger.LogDebug($"🔷 T5-T5 -> czworokąt słupka: {wierzcholki.Count} punktów");
 
             return new WynikWierzcholkow
             {
@@ -2415,7 +2425,7 @@ namespace GEORGE.Client.Pages.Okna
             bool czyParzysta = (nk + 1) % 2 == 0;
             bool warunek = false;
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"GetEndT1 DEBUG: strona={stronaWModelu}, nk={nk}, " +
                 $"warunek={warunek}, angle={angleDegrees:F3}, " +
                 $"next={nextangleDegrees:F3}, " +
@@ -2436,7 +2446,7 @@ namespace GEORGE.Client.Pages.Okna
                 warunek = czyParzysta;
             }
 
-            Console.WriteLine($"▶️ GetEndT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
+            _logger.LogDebug($"▶️ GetEndT1: stronaWModelu: {stronaWModelu}, stonaOstanioDodanegoElementu: {stonaOstanioDodanegoElementu}, nk: {nk}, czyParzysta: {czyParzysta} warunek: {warunek}");
 
 
             if (warunek)
@@ -2446,7 +2456,7 @@ namespace GEORGE.Client.Pages.Okna
                     angleDegrees,
                     _outer);
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"GetEndT1 TRUE: przecięcie=({punktPrzeciecia.X:F3}; " +
                     $"{punktPrzeciecia.Y:F3}), outerP=({_outerP.X:F3}; {_outerP.Y:F3})");
 
@@ -2460,7 +2470,7 @@ namespace GEORGE.Client.Pages.Okna
                     nextangleDegrees - 180,
                     _outer);
 
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"GetEndT1 FALSE: kąt={nextangleDegrees - 180:F3}, " +
                     $"przecięcie=({punktPrzeciecia.X:F3}; {punktPrzeciecia.Y:F3}), " +
                     $"innerP=({_innerP.X:F3}; {_innerP.Y:F3})");
@@ -2779,7 +2789,7 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (outer == null || outer.Count < 3)
             {
-                Console.WriteLine("⚠️ FindTriangleEdgeIntersectionByAngle: kontur ma <3 punktów.");
+                _logger.LogDebug("⚠️ FindTriangleEdgeIntersectionByAngle: kontur ma <3 punktów.");
                 return start;
             }
 
@@ -2903,24 +2913,24 @@ namespace GEORGE.Client.Pages.Okna
             // ═══════════════════════════════════════════════════════════
             // LOG WEJŚCIA
             // ═══════════════════════════════════════════════════════════
-            Console.WriteLine("───────────────────────────────────────────────");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
+            _logger.LogDebug("───────────────────────────────────────────────");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   basePoint = ({basePoint.X:F2}, {basePoint.Y:F2})");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   dirStart  = ({dirStart.X:F2}, {dirStart.Y:F2})");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   dirEnd    = ({dirEnd.X:F2}, {dirEnd.Y:F2})");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   forward   = {forward}");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   tolerance = {tolerance}");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   polygon.Count = {polygon?.Count ?? 0}");
 
             if (polygon == null || polygon.Count < 3)
             {
-                Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   ⚠️ polygon ma < 3 punktów — zwracam basePoint, znaleziono=false");
+                _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   ⚠️ polygon ma < 3 punktów — zwracam basePoint, znaleziono=false");
                 return (basePoint, false);
             }
 
-            Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
+            _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx   📍 Punkty w polygon:");
             for (int k = 0; k < polygon.Count; k++)
-                Console.WriteLine($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
+                _logger.LogDebug($"🔎 FindFirstEdgeIntersectionByVectorEx      [{k}] ({polygon[k].X:F2}, {polygon[k].Y:F2})");
 
             // ═══════════════════════════════════════════════════════════
             // KROK 0: SPRAWDŹ CZY basePoint JEST WEWNĄTRZ POLYGONU
@@ -2936,7 +2946,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (!baseWewnatrz)
             {
-                Console.WriteLine($"   ⚠️ basePoint ({basePoint.X:F2}, {basePoint.Y:F2}) POZA polygonem");
+                _logger.LogDebug($"   ⚠️ basePoint ({basePoint.X:F2}, {basePoint.Y:F2}) POZA polygonem");
 
                 double centroidX = polygon.Average(p => p.X);
                 double centroidY = polygon.Average(p => p.Y);
@@ -2950,7 +2960,7 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     // Linia zerowej długości — fallback do centroidu
                     effectiveBase = new XPoint(centroidX, centroidY);
-                    Console.WriteLine($"   🔄 Linia zerowej długości — używam centroidu ({centroidX:F1}, {centroidY:F1})");
+                    _logger.LogDebug($"   🔄 Linia zerowej długości — używam centroidu ({centroidX:F1}, {centroidY:F1})");
                 }
                 else
                 {
@@ -2966,7 +2976,7 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         // ⭐ Linia pionowa: zmień TYLKO Y, zachowaj X
                         candidate = new XPoint(basePoint.X, centroidY);
-                        Console.WriteLine(
+                        _logger.LogDebug(
                             $"   🔄 Linia PIONOWA — przesuwam tylko Y: " +
                             $"({basePoint.X:F1}, {basePoint.Y:F1}) → ({candidate.X:F1}, {candidate.Y:F1})");
                     }
@@ -2974,7 +2984,7 @@ namespace GEORGE.Client.Pages.Okna
                     {
                         // ⭐ Linia pozioma: zmień TYLKO X, zachowaj Y
                         candidate = new XPoint(centroidX, basePoint.Y);
-                        Console.WriteLine(
+                        _logger.LogDebug(
                             $"   🔄 Linia POZIOMA — przesuwam tylko X: " +
                             $"({basePoint.X:F1}, {basePoint.Y:F1}) → ({candidate.X:F1}, {candidate.Y:F1})");
                     }
@@ -2983,7 +2993,7 @@ namespace GEORGE.Client.Pages.Okna
 
                     // ⭐ Informacyjny check: czy po przesunięciu wzdłuż osi jesteśmy wewnątrz?
                     bool poPrzesunieciuWewnatrz = IsPointInPolygon(effectiveBase, polygon);
-                    Console.WriteLine($"   🔍 Po przesunięciu wzdłuż osi: wewnątrz={poPrzesunieciuWewnatrz}");
+                    _logger.LogDebug($"   🔍 Po przesunięciu wzdłuż osi: wewnątrz={poPrzesunieciuWewnatrz}");
 
                     // ⭐ UWAGA: nawet jeśli NIE jesteśmy wewnątrz, NIE przesuwamy prostopadle.
                     //    Zwracamy punkt na osi linii — dalsza logika (promień) nie znajdzie
@@ -2991,11 +3001,11 @@ namespace GEORGE.Client.Pages.Okna
                     //    wyboru polygonu wyżej w pipeline.
                 }
 
-                Console.WriteLine($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
+                _logger.LogDebug($"   ✅ effectiveBase = ({effectiveBase.X:F2}, {effectiveBase.Y:F2})");
             }
             else
             {
-                Console.WriteLine($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
+                _logger.LogDebug($"   ✅ basePoint jest WEWNĄTRZ polygonu — bez zmian");
             }
 
             // ═══════════════════════════════════════════════════════════
@@ -3009,14 +3019,14 @@ namespace GEORGE.Client.Pages.Okna
             {
                 dx = 0;
                 dy = forward ? 1 : -1;
-                Console.WriteLine($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
+                _logger.LogDebug($"   ⚠️ Kierunek zerowy — używam domyślnego: ({dx}, {dy})");
             }
             else
             {
                 dx /= len;
                 dy /= len;
                 if (!forward) { dx = -dx; dy = -dy; }
-                Console.WriteLine($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
+                _logger.LogDebug($"   ➡️ Kierunek jednostkowy: ({dx:F4}, {dy:F4})");
             }
 
             XPoint? closest = null;
@@ -3051,7 +3061,7 @@ namespace GEORGE.Client.Pages.Okna
                             {
                                 minDistSq = distSq;
                                 closest = pt;
-                                Console.WriteLine($"      [{i}] koniec krawędzi: ({pt.X:F2}, {pt.Y:F2}) distSq={distSq:F2}");
+                                _logger.LogDebug($"      [{i}] koniec krawędzi: ({pt.X:F2}, {pt.Y:F2}) distSq={distSq:F2}");
                             }
                         }
                     }
@@ -3063,7 +3073,7 @@ namespace GEORGE.Client.Pages.Okna
                 //// ⭐ KLUCZOWA POPRAWKA: czy punkt leży W SEGMENCIE (nie tylko na prostej)?
                 //if (!IsPointOnSegment(p, polygon[i], polygon[next], tolerance: 0.5))
                 //{
-                //    Console.WriteLine($"      [{i}] ❌ punkt ({p.X:F2}, {p.Y:F2}) poza segmentem " +
+                //    _logger.LogDebug($"      [{i}] ❌ punkt ({p.X:F2}, {p.Y:F2}) poza segmentem " +
                 //                      $"[{polygon[i].X:F1},{polygon[i].Y:F1}]→[{polygon[next].X:F1},{polygon[next].Y:F1}] — odrzucam");
                 //    continue;
                 //}
@@ -3071,7 +3081,7 @@ namespace GEORGE.Client.Pages.Okna
                 double dotInter = (p.X - effectiveBase.X) * dx + (p.Y - effectiveBase.Y) * dy;
                 if (dotInter < -tolerance)
                 {
-                    //Console.WriteLine($"      [{i}] przecięcie za plecami: ({p.X:F2}, {p.Y:F2}) dot={dotInter:F2}");
+                    //_logger.LogDebug($"      [{i}] przecięcie za plecami: ({p.X:F2}, {p.Y:F2}) dot={dotInter:F2}");
                     continue;
                 }
 
@@ -3080,11 +3090,11 @@ namespace GEORGE.Client.Pages.Okna
 
                 if (distSqInter < tolerance)
                 {
-                    Console.WriteLine($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
+                    _logger.LogDebug($"      [{i}] przecięcie zbyt blisko: ({p.X:F2}, {p.Y:F2})");
                     continue;
                 }
 
-                Console.WriteLine($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
+                _logger.LogDebug($"      [{i}] ✅ przecięcie: ({p.X:F2}, {p.Y:F2}) distSq={distSqInter:F2}");
 
                 if (distSqInter < minDistSq)
                 {
@@ -3098,15 +3108,15 @@ namespace GEORGE.Client.Pages.Okna
             // ═══════════════════════════════════════════════════════════
             if (closest.HasValue)
             {
-                Console.WriteLine($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
-                Console.WriteLine("───────────────────────────────────────────────");
+                _logger.LogDebug($"   🎯 WYNIK: ({closest.Value.X:F2}, {closest.Value.Y:F2}) znaleziono=true");
+                _logger.LogDebug("───────────────────────────────────────────────");
                 return (closest.Value, true);
             }
 
             // ═══════════════════════════════════════════════════════════
             // FALLBACK — brak przecięcia
             // ═══════════════════════════════════════════════════════════
-            Console.WriteLine($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
+            _logger.LogDebug($"   ⚠️ Brak przecięcia — fallback (rzut na obrys)");
 
             XPoint? nearest = null;
             double nearestDist = double.MaxValue;
@@ -3130,13 +3140,13 @@ namespace GEORGE.Client.Pages.Okna
 
             if (nearest.HasValue)
             {
-                Console.WriteLine($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
-                Console.WriteLine("───────────────────────────────────────────────");
+                _logger.LogDebug($"   🎯 WYNIK FALLBACK: ({nearest.Value.X:F2}, {nearest.Value.Y:F2}) znaleziono=false");
+                _logger.LogDebug("───────────────────────────────────────────────");
                 return (nearest.Value, false);
             }
 
-            Console.WriteLine($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
-            Console.WriteLine("───────────────────────────────────────────────");
+            _logger.LogDebug($"   ❌ Brak kandydata — zwracam effectiveBase, znaleziono=false");
+            _logger.LogDebug("───────────────────────────────────────────────");
             return (effectiveBase, false);
         }
 
@@ -3347,7 +3357,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (bestPoint.HasValue)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"✅ Przecięcie konturu: " +
                     $"({bestPoint.Value.X:F3};{bestPoint.Value.Y:F3}), " +
                     $"kąt={angleDegrees:F3}, dystans={bestT:F3}");
@@ -3355,7 +3365,7 @@ namespace GEORGE.Client.Pages.Okna
                 return bestPoint.Value;
             }
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"⚠️ Nie znaleziono przecięcia konturu. " +
                 $"Punkt=({point.X:F3};{point.Y:F3}), " +
                 $"kąt={angleDegrees:F3}, maxDistance={maxDistance:F3}");
@@ -3660,11 +3670,11 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     var adjustedVerticesX = new List<XPoint>(wierzcholki);
 
-                    Console.WriteLine(
+                    _logger.LogDebug(
                         $"🔬 LEWA T1/T3: element={numerElemntu}, " +
                         $"kąt={angleDegrees:F3}, rightJoin={rightJoin}");
 
-                    Console.WriteLine(
+                    _logger.LogDebug(
                         $"   Punkt wejściowy V[2]=({adjustedVerticesX[2].X:F3}; " +
                         $"{adjustedVerticesX[2].Y:F3})");
 
@@ -3675,7 +3685,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleDegrees,
                             innerContour);
 
-                        Console.WriteLine(
+                        _logger.LogDebug(
                             $"   Przecięcie T1=({intersection.X:F3}; " +
                             $"{intersection.Y:F3})");
 
@@ -3689,7 +3699,7 @@ namespace GEORGE.Client.Pages.Okna
                             angleDegrees,
                             outerContour);
 
-                        Console.WriteLine(
+                        _logger.LogDebug(
                             $"   Przecięcie T3=({intersection.X:F3}; " +
                             $"{intersection.Y:F3})");
 
@@ -3912,13 +3922,13 @@ namespace GEORGE.Client.Pages.Okna
             // ============================================================
             var adjustedVertices = new List<XPoint>(wierzcholki);
 
-            Console.WriteLine(
+            _logger.LogDebug(
                $"🔍 Build4SegmentContour: element={numerElemntu}, " +
                $"strona={_stronaElementu}, leftJoin={leftJoin}, rightJoin={rightJoin}");
 
             for (int i = 0; i < adjustedVertices.Count; i++)
             {
-                Console.WriteLine(
+                _logger.LogDebug(
                     $"   V[{i}] = ({adjustedVertices[i].X:F3}; " +
                     $"{adjustedVertices[i].Y:F3})");
             }
@@ -3926,12 +3936,12 @@ namespace GEORGE.Client.Pages.Okna
             bool tylkoLinie = CzyObaKonceWspolnyFragmentTylkoLinie(
                 adjustedVertices, outerContour, innerContour, sourceIndex);
 
-            Console.WriteLine(
+            _logger.LogDebug(
                 $"   CzyObaKonceWspolnyFragmentTylkoLinie={tylkoLinie}");
 
             if (CzyObaKonceWspolnyFragmentTylkoLinie(adjustedVertices, outerContour, innerContour, sourceIndex) && adjustedVertices.Count == 4)
             {
-                Console.WriteLine($"🟢 Build4SegmentContour ELEMENT {numerElemntu}: linie.");
+                _logger.LogDebug($"🟢 Build4SegmentContour ELEMENT {numerElemntu}: linie.");
                 return new List<ContourSegment>
                 {
                     new ContourSegment(adjustedVertices[0], adjustedVertices[1]),
@@ -4730,7 +4740,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (count > 0)
             {
-                Console.WriteLine($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} slupekPoStroanieA:{slupekPoStronieA} slupekPoStroanieB:{slupekPoStronieB} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
+                _logger.LogDebug($"🔷CalculateOffsetPolygon Calculating offset polygon for {count} X:{points[0].X} Y:{points[0].Y} slupekPoStroanieA:{slupekPoStronieA} slupekPoStroanieB:{slupekPoStronieB} points with profiles L:{profileLeft}, R:{profileRight}, T:{profileTop}, B:{profileBottom}");
             }
 
             if (count < 2)
@@ -5430,7 +5440,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (wewnatrz)
             {
-                Console.WriteLine($"[ApplyOffsetToPointST] point=({point.X};{point.Y}) wewnątrz obszaru — bez zmian.");
+                _logger.LogDebug($"[ApplyOffsetToPointST] point=({point.X};{point.Y}) wewnątrz obszaru — bez zmian.");
                 return point;
             }
 
@@ -5454,7 +5464,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (rekord == null)
             {
-                Console.WriteLine($"[ApplyOffsetToPointST] Brak rekordu dla Strona='{strona}' — bez zmian.");
+                _logger.LogDebug($"[ApplyOffsetToPointST] Brak rekordu dla Strona='{strona}' — bez zmian.");
                 return point;
             }
 
@@ -5470,7 +5480,7 @@ namespace GEORGE.Client.Pages.Okna
                 case "prawa": shiftX = +styczna; break;
             }
 
-            Console.WriteLine($"[ApplyOffsetToPointST] point=({point.X};{point.Y}), " +
+            _logger.LogDebug($"[ApplyOffsetToPointST] point=({point.X};{point.Y}), " +
                               $"top=({top.X};{top.Y}), bottom=({bottom.X};{bottom.Y}), " +
                               $"isVertical={isVertical}, wewnatrz={wewnatrz}, strona='{strona}', " +
                               $"rekord='{rekord.Strona}', styczna={styczna}, " +
@@ -5498,27 +5508,27 @@ namespace GEORGE.Client.Pages.Okna
         {
             if (source == null || source.Count == 0)
             {
-                if (enableLogs) Console.WriteLine("🟡 PrepareRegionPoints: source == null lub pusty");
+                if (enableLogs) _logger.LogDebug("🟡 PrepareRegionPoints: source == null lub pusty");
                 return new List<XPoint>();
             }
 
             if (!topZmieniony && !bottomZmieniony)
             {
-                if (enableLogs) Console.WriteLine("🟦 PrepareRegionPoints – POMINIĘTE");
+                if (enableLogs) _logger.LogDebug("🟦 PrepareRegionPoints – POMINIĘTE");
                 return source.Select(p => new XPoint(p.X, p.Y)).ToList();
             }
 
             if (enableLogs)
             {
-                Console.WriteLine("═══════════════════════════════════════════════");
-                Console.WriteLine("🟦 PrepareRegionPoints – START");
-                Console.WriteLine($"   top                = ({top.X:F3}, {top.Y:F3})");
-                Console.WriteLine($"   bottom             = ({bottom.X:F3}, {bottom.Y:F3})");
-                Console.WriteLine($"   topZmieniony       = {topZmieniony}");
-                Console.WriteLine($"   bottomZmieniony    = {bottomZmieniony}");
-                Console.WriteLine($"   przesuniecieTop    = {przesuniecieTop:F3}");
-                Console.WriteLine($"   przesuniecieBottom = {przesuniecieBottom:F3}");
-                Console.WriteLine($"   source.Count       = {source.Count}");
+                _logger.LogDebug("═══════════════════════════════════════════════");
+                _logger.LogDebug("🟦 PrepareRegionPoints – START");
+                _logger.LogDebug($"   top                = ({top.X:F3}, {top.Y:F3})");
+                _logger.LogDebug($"   bottom             = ({bottom.X:F3}, {bottom.Y:F3})");
+                _logger.LogDebug($"   topZmieniony       = {topZmieniony}");
+                _logger.LogDebug($"   bottomZmieniony    = {bottomZmieniony}");
+                _logger.LogDebug($"   przesuniecieTop    = {przesuniecieTop:F3}");
+                _logger.LogDebug($"   przesuniecieBottom = {przesuniecieBottom:F3}");
+                _logger.LogDebug($"   source.Count       = {source.Count}");
             }
 
             double ax = bottom.X - top.X;
@@ -5527,7 +5537,7 @@ namespace GEORGE.Client.Pages.Okna
 
             if (alenSq < 1e-12)
             {
-                if (enableLogs) Console.WriteLine("🟠 PrepareRegionPoints: oś zerowej długości");
+                if (enableLogs) _logger.LogDebug("🟠 PrepareRegionPoints: oś zerowej długości");
                 return source.Select(p => new XPoint(p.X, p.Y)).ToList();
             }
 
@@ -5546,7 +5556,7 @@ namespace GEORGE.Client.Pages.Okna
                 double mid = (tMin + tMax) / 2.0;
                 tMin = mid;
                 tMax = mid;
-                if (enableLogs) Console.WriteLine("🟠 PrepareRegionPoints: przesunięcia większe niż długość odcinka");
+                if (enableLogs) _logger.LogDebug("🟠 PrepareRegionPoints: przesunięcia większe niż długość odcinka");
             }
 
             var result = new List<XPoint>(source.Count);
@@ -5684,9 +5694,9 @@ namespace GEORGE.Client.Pages.Okna
                 return 0;
             }
         }
-               
 
-         private async Task<float> ObliczRoznicePoziomowOkucia(KonfSystem? konf, bool slupekStaly)
+
+        private async Task<float> ObliczRoznicePoziomowOkucia(KonfSystem? konf, bool slupekStaly)
         {
             if (konf == null || !konf.CzyMozeBycFix) return 0;
 

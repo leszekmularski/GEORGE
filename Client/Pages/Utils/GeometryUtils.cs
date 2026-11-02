@@ -1,7 +1,6 @@
 ﻿using GEORGE.Client.Pages.KonfiguratorOkien;
 using GEORGE.Client.Pages.Models;
 using GEORGE.Shared.ViewModels;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GEORGE.Client.Pages.Utils
@@ -15,7 +14,6 @@ namespace GEORGE.Client.Pages.Utils
         public static void Initialize(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger("GEORGE.Client.Pages.Utils.GeometryUtils");
-            Console.WriteLine("✅ Initialize wywołane");
         }
         public static async Task<List<ShapeRegion>> GenerujRegionyZPodzialu(List<IShapeDC> shapes, double _szerokosc,
             double _wysokosc, bool rama, Dictionary<string, GeneratorState>? stareStany = null)

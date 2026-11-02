@@ -1,4 +1,4 @@
-using GEORGE.Client.Pages.Administracja;
+Ôªøusing GEORGE.Client.Pages.Administracja;
 using GEORGE.Server;
 using GEORGE.Shared.Class;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,7 +14,7 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Dodanie serwisÛw do kontenera
+// 1. Dodanie serwis√≥w do kontenera
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -39,9 +39,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Konfiguracja logowania
 builder.Logging.ClearProviders();
+
+builder.Logging.AddConfiguration(
+    builder.Configuration.GetSection("Logging"));
+
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
 builder.Logging.AddConsole();
-//builder.Logging.SetMinimumLevel(LogLevel.Debug);
-builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
 // Rejestracja konfiguracji MailSettings z appsettings.json
 builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
@@ -51,7 +55,7 @@ builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileS
 // Rejestracja MailService jako serwis
 builder.Services.AddScoped<IMailService, MailService>();
 
-// Konfiguracja obs≥ugi plikÛw statycznych (obs≥uga specyficznych rozszerzeÒ)
+// Konfiguracja obs≈Çugi plik√≥w statycznych (obs≈Çuga specyficznych rozszerze≈Ñ)
 builder.Services.Configure<StaticFileOptions>(options =>
 {
     options.ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
@@ -76,7 +80,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddHttpClient();
 
-// Klucz do podpisu JWT (moøe byÊ w appsettings.json)
+// Klucz do podpisu JWT (mo≈ºe byƒá w appsettings.json)
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "GEORGEsupersecretkey1234567890!@#$%^&*()";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "GEORGE";
 
@@ -106,8 +110,8 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-// 2. årodkowe oprogramowanie (Middleware)
-// Obs≥uga úrodowiska
+// 2. ≈örodkowe oprogramowanie (Middleware)
+// Obs≈Çuga ≈õrodowiska
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -121,18 +125,18 @@ else
 // Wymuszenie HTTPS
 app.UseHttpsRedirection();
 
-// Obs≥uga plikÛw statycznych
+// Obs≈Çuga plik√≥w statycznych
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 // Routing
 app.UseRouting();
 
-// Obs≥uga autoryzacji
+// Obs≈Çuga autoryzacji
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapowanie endpointÛw
+// Mapowanie endpoint√≥w
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
@@ -141,107 +145,3 @@ var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 GEORGE.Client.Pages.Utils.GeometryUtils.Initialize(loggerFactory);
 
 app.Run();
-
-
-//using GEORGE.Client.Pages.Administracja;
-//using GEORGE.Server;
-//using Microsoft.AspNetCore.Authentication.JwtBearer;
-//using Microsoft.EntityFrameworkCore;
-//using Microsoft.IdentityModel.Tokens;
-//using ReservationBookingSystem.Services;
-//using System.Globalization;
-//using System.Text;
-
-//var culture = new CultureInfo("pl-PL");
-//CultureInfo.DefaultThreadCurrentCulture = culture;
-//CultureInfo.DefaultThreadCurrentUICulture = culture;
-
-//var builder = WebApplication.CreateBuilder(args);
-
-//// 1. Serwisy
-//builder.Services.AddControllersWithViews();
-//builder.Services.AddRazorPages();
-
-//// Konfiguracja Entity Framework z SQL Server
-//builder.Services.AddDbContext<ApplicationDbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
-//);
-
-//// Logowanie
-//builder.Logging.ClearProviders();
-//builder.Logging.AddConsole();
-//builder.Logging.SetMinimumLevel(LogLevel.Debug);
-
-//// Mail i pliki ñ konfiguracja z appsettings.json
-//builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
-//builder.Services.Configure<FileSettings>(builder.Configuration.GetSection("FileSettings"));
-//builder.Services.AddScoped<IMailService, MailService>();
-
-//// Pliki statyczne ñ rozszerzenia
-//builder.Services.Configure<StaticFileOptions>(options =>
-//{
-//    options.ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
-//    {
-//        Mappings =
-//        {
-//            [".dwg"] = "application/acad",
-//            [".dxf"] = "application/acad",
-//            [".sat"] = "application/acad",
-//            [".p"] = "text/plain",
-//        }
-//    };
-//});
-
-//// CORS
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAll",
-//        builder => builder.AllowAnyOrigin()
-//                          .AllowAnyMethod()
-//                          .AllowAnyHeader());
-//});
-
-//builder.Services.AddHttpClient();
-
-//var app = builder.Build();
-
-//app.UseCors("AllowAll");
-
-//// årodowisko ñ bez HSTS
-//if (app.Environment.IsDevelopment())
-//{
-//    app.UseWebAssemblyDebugging();
-//}
-//else
-//{
-//    app.UseExceptionHandler("/Error");
-//    // app.UseHsts(); ñ usuniÍte, nie wymuszamy HTTPS
-//}
-
-
-
-//// Pliki statyczne
-//app.UseBlazorFrameworkFiles();
-//app.UseStaticFiles();
-
-//app.UseRouting();
-
-//// Brak autoryzacji ñ jeúli potrzebujesz JWT, przywrÛÊ poniøsze linie i zainstaluj pakiety
-//app.UseAuthentication();
-//app.UseAuthorization();
-
-//app.MapRazorPages();
-//app.MapControllers();
-//app.MapFallbackToFile("index.html");
-
-//app.Run();
-
-
-
-
-
-
-
-
-
-
