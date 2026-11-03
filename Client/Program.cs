@@ -27,6 +27,10 @@ builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 builder.Logging.AddFilter("AntDesign", LogLevel.Warning);
 
+builder.Logging.AddFilter("Microsoft.AspNetCore.Components", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Components.RenderTree", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
+
 // Logi własnego projektu
 builder.Logging.AddFilter("GEORGE", LogLevel.Debug);
 

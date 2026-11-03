@@ -177,8 +177,46 @@ namespace GEORGE.Client.Pages.Okna
             }
             else if (region != null && !ElementLiniowy)
             {
-                punkty = region.Wierzcholki;
-                punktyZLukami = region.Kontur;
+                var punktyBase = region.Wierzcholki;
+                var konturBase = region.Kontur;
+                bool toSkrzydlo = !region.Rama;
+
+                if (toSkrzydlo && daneKwadratu != null && daneKwadratu.Count > 0)
+                {
+                    var offsety = daneKwadratu.LastOrDefault();
+                    if (offsety != null &&
+                        (Math.Abs(offsety.OffsetLeft) > 0.01 || Math.Abs(offsety.OffsetRight) > 0.01 ||
+                         Math.Abs(offsety.OffsetTop) > 0.01 || Math.Abs(offsety.OffsetBottom) > 0.01))
+                    {
+                        _logger.LogDebug(
+                            $"🔷 AddElements: offsety skrzydła " +
+                            $"L={offsety.OffsetLeft:F1} P={offsety.OffsetRight:F1} " +
+                            $"G={offsety.OffsetTop:F1} D={offsety.OffsetBottom:F1}");
+
+                        punkty = PrzesunPunktyDoSrodka(punktyBase,
+                            offsety.OffsetLeft, offsety.OffsetRight,
+                            offsety.OffsetTop, offsety.OffsetBottom);
+
+                        punktyZLukami = PrzesunKonturDoSrodka(konturBase,
+                            offsety.OffsetLeft, offsety.OffsetRight,
+                            offsety.OffsetTop, offsety.OffsetBottom);
+
+                        _logger.LogDebug(
+                            $"   Wierzcholki po offsetach: " +
+                            $"({punkty[0].X:F1},{punkty[0].Y:F1}) → " +
+                            $"({punkty[punkty.Count - 1].X:F1},{punkty[punkty.Count - 1].Y:F1})");
+                    }
+                    else
+                    {
+                        punkty = punktyBase;
+                        punktyZLukami = konturBase;
+                    }
+                }
+                else
+                {
+                    punkty = punktyBase;
+                    punktyZLukami = konturBase;
+                }
             }
             else if (ElementLiniowy)
             {
@@ -604,6 +642,73 @@ namespace GEORGE.Client.Pages.Okna
                 BledySystemowe.Add($"❌ Generowanie elementów niepowiodło się dla regionu {regionId}");
                 return $"❌ Generowanie elementów niepowiodło się dla regionu {regionId}";
             }
+        }
+
+        /// <summary>
+        /// Przesuwa wierzchołki prostokąta do środka o offsety konstrukcyjne (L/P/G/D).
+        /// Offsety są STAŁE (nie skalują się z wymiarem okna).
+        /// Lewa krawędź → +offsetLewo, prawa → -offsetPrawo,
+        /// góra → +offsetGora, dół → -offsetDol.
+        /// </summary>
+        private static List<XPoint> PrzesunPunktyDoSrodka(
+            List<XPoint> punkty, double offsetLewo, double offsetPrawo,
+            double offsetGora, double offsetDol)
+        {
+            if (punkty == null || punkty.Count < 3) return punkty;
+            if (Math.Abs(offsetLewo) < 0.01 && Math.Abs(offsetPrawo) < 0.01 &&
+                Math.Abs(offsetGora) < 0.01 && Math.Abs(offsetDol) < 0.01) return punkty;
+
+            double minX = punkty.Min(p => p.X);
+            double maxX = punkty.Max(p => p.X);
+            double minY = punkty.Min(p => p.Y);
+            double maxY = punkty.Max(p => p.Y);
+
+            const double tol = 0.5;
+            var result = new List<XPoint>(punkty.Count);
+            foreach (var p in punkty)
+            {
+                double nx = p.X, ny = p.Y;
+                if (Math.Abs(p.X - minX) < tol) nx += offsetLewo;
+                if (Math.Abs(p.X - maxX) < tol) nx -= offsetPrawo;
+                if (Math.Abs(p.Y - minY) < tol) ny += offsetGora;
+                if (Math.Abs(p.Y - maxY) < tol) ny -= offsetDol;
+                result.Add(new XPoint(nx, ny));
+            }
+            return result;
+        }
+
+        private static List<ContourSegment> PrzesunKonturDoSrodka(
+            List<ContourSegment> kontur, double offsetLewo, double offsetPrawo,
+            double offsetGora, double offsetDol)
+        {
+            if (kontur == null || kontur.Count == 0) return kontur;
+            if (Math.Abs(offsetLewo) < 0.01 && Math.Abs(offsetPrawo) < 0.01 &&
+                Math.Abs(offsetGora) < 0.01 && Math.Abs(offsetDol) < 0.01) return kontur;
+
+            var wszystkie = kontur.SelectMany(s => new[] { s.Start, s.End }).ToList();
+            var przesuniete = PrzesunPunktyDoSrodka(wszystkie, offsetLewo, offsetPrawo, offsetGora, offsetDol);
+
+            var result = new List<ContourSegment>(kontur.Count);
+            int idx = 0;
+            foreach (var seg in kontur)
+            {
+                var ns = przesuniete[idx++];
+                var ne = przesuniete[idx++];
+
+                if (seg.Type == SegmentType.Line)
+                    result.Add(new ContourSegment(ns, ne) { Informacja = seg.Informacja });
+                else if (seg.Center.HasValue)
+                {
+                    var nc = PrzesunPunktyDoSrodka(
+                        new List<XPoint> { seg.Center.Value },
+                        offsetLewo, offsetPrawo, offsetGora, offsetDol).First();
+                    result.Add(new ContourSegment(ns, ne, nc, seg.Radius, seg.CounterClockwise)
+                    { Informacja = seg.Informacja });
+                }
+                else
+                    result.Add(new ContourSegment(ns, ne) { Informacja = seg.Informacja });
+            }
+            return result;
         }
 
         // ============================================================

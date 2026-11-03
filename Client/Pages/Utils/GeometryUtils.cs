@@ -1038,7 +1038,7 @@ namespace GEORGE.Client.Pages.Utils
             // ============================================================
             if (stareStany != null && stareStany.Count > 0)
             {
-                DopasujIdPoTozsamosci(regions, stareStany, rama);  // ← nowa metoda
+                DopasujIdPoTozsamosci(regions, stareStany, rama);   // ⭐ NOWA metoda
             }
             else
             {
@@ -1102,6 +1102,7 @@ namespace GEORGE.Client.Pages.Utils
             // ─────────────────────────────────────────────────
             foreach (var nowy in nowe.Where(r => r.Wierzcholki?.Count == 2))
             {
+
                 var stary = starePasujace
                     .FirstOrDefault(s => !uzyteStany.Contains(s.IdRegion!)
                                       && s.IdMaster == nowy.IdMaster
@@ -1129,8 +1130,19 @@ namespace GEORGE.Client.Pages.Utils
                 if (!string.IsNullOrEmpty(nowy.Id) && uzyteStany.Contains(nowy.Id))
                     continue; // już dopasowane w pre-match
 
+                // ⭐ Na początku (po preMatchLinii):
+                bool TenSamKsztalt(GeneratorState stary, ShapeRegion nowy)
+                {
+                    int staryCount = stary.Wierzcholki?.Count ?? 0;
+                    int nowyCount = nowy.Wierzcholki?.Count ?? 0;
+                    bool staryLinia = staryCount == 2;
+                    bool nowyLinia = nowyCount == 2;
+                    return staryLinia == nowyLinia;   // oba linie albo oba wielokąty
+                }
+
                 var pasujace = starePasujace
                     .Where(s => !uzyteStany.Contains(s.IdRegion!))
+                    .Where(s => TenSamKsztalt(s, nowy))
                     .Where(s => CzySrodekStanuWewnatrzRegionu(s, nowy))
                     .OrderBy(s => kolejnoscWStanie.TryGetValue(s.IdRegion!, out var k) ? k : int.MaxValue)
                     .ToList();
