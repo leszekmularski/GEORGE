@@ -32,24 +32,6 @@ namespace GEORGE.Client.Pages.Utils
 
             if (!shapesDoRegionow.Any()) return regions;
 
-            //double minX = shapesDoRegionow.Min(s => s.GetBoundingBox().X);
-            //double minY = shapesDoRegionow.Min(s => s.GetBoundingBox().Y);
-            //double maxX = shapesDoRegionow.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-            //double maxY = shapesDoRegionow.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
-
-            //double scaleX = (double)_szerokosc / (maxX - minX);
-            //double scaleY = (double)_wysokosc / (maxY - minY);
-            //double offsetX = -minX * scaleX;
-            //double offsetY = -minY * scaleY;
-
-            //foreach (var shape in shapes)
-            //{
-            //    shape.Transform(scaleX, scaleY, offsetX, offsetY);
-            //    shape.Szerokosc = _szerokosc;
-            //    shape.Wysokosc = _wysokosc;
-            //}
-
-
             foreach (var shape in shapes)
             {
                 List<XPoint>? pts = shape switch

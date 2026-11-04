@@ -10286,31 +10286,6 @@
         }
     }
 
-    // private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
-    // {
-    //     float grLewo = 82;
-    //     float grPrawo = 82;
-    //     float grGora = 82;
-    //     float grDol = 92;
-
-    //     return grupa switch
-    //     {
-    //         "Lewo" => (grLewo, 0, 0, 0),
-    //         "Lewa" => (grLewo, 0, 0, 0),
-
-    //         "Prawo" => (0, grPrawo, 0, 0),
-    //         "Prawa" => (0, grPrawo, 0, 0),
-
-    //         "Gora" => (0, 0, grGora, 0),
-    //         "Góra" => (0, 0, grGora, 0),
-
-    //         "Dol" => (0, 0, 0, grDol),
-    //         "Dół" => (0, 0, 0, grDol),
-
-    //         _ => (grLewo, grPrawo, grGora, grDol)
-    //     };
-    // }
-
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
     {
         if (outerPoints == null || outerPoints.Count < 2 || boolNieGenerujPojedynczych) return;
