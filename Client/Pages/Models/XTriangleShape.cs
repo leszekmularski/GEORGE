@@ -304,6 +304,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
             Move(offsetX, offsetY);
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            Transform(scaleX, scaleY, offsetX, offsetY);
+        }
+
         // ---------------------------------------------------------
         // Nowe metody zgodne z IShapeDC
         // ---------------------------------------------------------

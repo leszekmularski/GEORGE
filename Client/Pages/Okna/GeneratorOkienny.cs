@@ -197,9 +197,10 @@ namespace GEORGE.Client.Pages.Okna
                             offsety.OffsetLeft, offsety.OffsetRight,
                             offsety.OffsetTop, offsety.OffsetBottom);
 
-                        punktyZLukami = PrzesunKonturDoSrodka(konturBase,
-                            offsety.OffsetLeft, offsety.OffsetRight,
-                            offsety.OffsetTop, offsety.OffsetBottom);
+                        //punktyZLukami = PrzesunKonturDoSrodka(konturBase,
+                        //    offsety.OffsetLeft, offsety.OffsetRight,
+                        //    offsety.OffsetTop, offsety.OffsetBottom);
+                        punktyZLukami = konturBase;
 
                         _logger.LogDebug(
                             $"   Wierzcholki po offsetach: " +
@@ -562,8 +563,16 @@ namespace GEORGE.Client.Pages.Okna
                 wewnetrznyKontur = await CalculateOffsetPolygon(
                     przeskalowanePunkty, profileLeft, profileRight, profileTop, profileBottom);
 
+                //wewnetrznyKonturZLukami = await CalculateOffsetPolygonKontur(
+                //    przeskalowanePunktyZLukami, profileLeft, profileRight, profileTop, profileBottom);
+                // Suma: offsety skrzydła (jeśli są) + profile ramy
+                double sumaLeft = (daneKwadratu?.LastOrDefault()?.OffsetLeft ?? 0) + profileLeft;
+                double sumaRight = (daneKwadratu?.LastOrDefault()?.OffsetRight ?? 0) + profileRight;
+                double sumaTop = (daneKwadratu?.LastOrDefault()?.OffsetTop ?? 0) + profileTop;
+                double sumaBottom = (daneKwadratu?.LastOrDefault()?.OffsetBottom ?? 0) + profileBottom;
+
                 wewnetrznyKonturZLukami = await CalculateOffsetPolygonKontur(
-                    przeskalowanePunktyZLukami, profileLeft, profileRight, profileTop, profileBottom);
+                    przeskalowanePunktyZLukami, (float)sumaLeft, (float)sumaRight, (float)sumaTop, (float)sumaBottom);
 
                 liniaSzkleniaKontur = await CalculateOffsetPolygon(
                     przeskalowanePunkty, offsetGlassLeft, offsetGlassRight, offsetGlassTop, offsetGlassBottom);
@@ -645,69 +654,92 @@ namespace GEORGE.Client.Pages.Okna
         }
 
         /// <summary>
-        /// Przesuwa wierzchołki prostokąta do środka o offsety konstrukcyjne (L/P/G/D).
-        /// Offsety są STAŁE (nie skalują się z wymiarem okna).
-        /// Lewa krawędź → +offsetLewo, prawa → -offsetPrawo,
-        /// góra → +offsetGora, dół → -offsetDol.
+        /// Przesuwa wierzchołki wielokąta do środka o offsety konstrukcyjne.
+        /// Offset prostopadły do każdej krawędzi — działa poprawnie dla dowolnego
+        /// wielokąta (prostokąt, domek, trapezoid, wielokąt z łukami).
+        /// Zachowuje liczbę punktów i kolejność.
         /// </summary>
         private static List<XPoint> PrzesunPunktyDoSrodka(
-            List<XPoint> punkty, double offsetLewo, double offsetPrawo,
-            double offsetGora, double offsetDol)
+    List<XPoint> punkty, double offsetLewo, double offsetPrawo,
+    double offsetGora, double offsetDol)
         {
             if (punkty == null || punkty.Count < 3) return punkty;
             if (Math.Abs(offsetLewo) < 0.01 && Math.Abs(offsetPrawo) < 0.01 &&
-                Math.Abs(offsetGora) < 0.01 && Math.Abs(offsetDol) < 0.01) return punkty;
+                Math.Abs(offsetGora) < 0.01 && Math.Abs(offsetDol) < 0.01)
+                return punkty;
 
-            double minX = punkty.Min(p => p.X);
-            double maxX = punkty.Max(p => p.X);
-            double minY = punkty.Min(p => p.Y);
-            double maxY = punkty.Max(p => p.Y);
+            int n = punkty.Count;
 
-            const double tol = 0.5;
-            var result = new List<XPoint>(punkty.Count);
-            foreach (var p in punkty)
+            // Winding
+            double signedArea = 0;
+            for (int i = 0; i < n; i++)
             {
-                double nx = p.X, ny = p.Y;
-                if (Math.Abs(p.X - minX) < tol) nx += offsetLewo;
-                if (Math.Abs(p.X - maxX) < tol) nx -= offsetPrawo;
-                if (Math.Abs(p.Y - minY) < tol) ny += offsetGora;
-                if (Math.Abs(p.Y - maxY) < tol) ny -= offsetDol;
-                result.Add(new XPoint(nx, ny));
+                var p1 = punkty[i];
+                var p2 = punkty[(i + 1) % n];
+                signedArea += p1.X * p2.Y - p2.X * p1.Y;
             }
-            return result;
-        }
+            bool isCW = signedArea > 0;
 
-        private static List<ContourSegment> PrzesunKonturDoSrodka(
-            List<ContourSegment> kontur, double offsetLewo, double offsetPrawo,
-            double offsetGora, double offsetDol)
-        {
-            if (kontur == null || kontur.Count == 0) return kontur;
-            if (Math.Abs(offsetLewo) < 0.01 && Math.Abs(offsetPrawo) < 0.01 &&
-                Math.Abs(offsetGora) < 0.01 && Math.Abs(offsetDol) < 0.01) return kontur;
+            var offsetEdges = new (double ax, double ay, double bx, double by)[n];
 
-            var wszystkie = kontur.SelectMany(s => new[] { s.Start, s.End }).ToList();
-            var przesuniete = PrzesunPunktyDoSrodka(wszystkie, offsetLewo, offsetPrawo, offsetGora, offsetDol);
-
-            var result = new List<ContourSegment>(kontur.Count);
-            int idx = 0;
-            foreach (var seg in kontur)
+            for (int i = 0; i < n; i++)
             {
-                var ns = przesuniete[idx++];
-                var ne = przesuniete[idx++];
+                var p1 = punkty[i];
+                var p2 = punkty[(i + 1) % n];
+                double dx = p2.X - p1.X, dy = p2.Y - p1.Y;
+                double len = Math.Sqrt(dx * dx + dy * dy);
 
-                if (seg.Type == SegmentType.Line)
-                    result.Add(new ContourSegment(ns, ne) { Informacja = seg.Informacja });
-                else if (seg.Center.HasValue)
+                if (len < 1e-9)
                 {
-                    var nc = PrzesunPunktyDoSrodka(
-                        new List<XPoint> { seg.Center.Value },
-                        offsetLewo, offsetPrawo, offsetGora, offsetDol).First();
-                    result.Add(new ContourSegment(ns, ne, nc, seg.Radius, seg.CounterClockwise)
-                    { Informacja = seg.Informacja });
+                    offsetEdges[i] = (p1.X, p1.Y, p2.X, p2.Y);
+                    continue;
                 }
-                else
-                    result.Add(new ContourSegment(ns, ne) { Informacja = seg.Informacja });
+
+                double ang = Math.Atan2(dy, dx) * 180.0 / Math.PI;
+                if (ang < 0) ang += 360;
+
+                // ⭐ Klasyfikacja przez helper – z indeksem i (używa midpointu krawędzi + bbox)
+                string side = StronaOknaHelper.OkreslStrone((float)ang, i, punkty);
+
+                double d = side switch
+                {
+                    "Góra" => offsetGora,
+                    "Dół" => offsetDol,
+                    "Lewa" => offsetLewo,
+                    "Prawa" => offsetPrawo,
+                    _ => 0
+                };
+
+                double nx = dy / len;
+                double ny = -dx / len;
+                double sign = isCW ? -1.0 : 1.0;
+                double ox = nx * d * sign;
+                double oy = ny * d * sign;
+
+                offsetEdges[i] = (p1.X + ox, p1.Y + oy, p2.X + ox, p2.Y + oy);
             }
+
+            // Nowe wierzchołki = przecięcie offsetów sąsiednich krawędzi
+            var result = new List<XPoint>(n);
+            for (int i = 0; i < n; i++)
+            {
+                var e1 = offsetEdges[(i - 1 + n) % n];
+                var e2 = offsetEdges[i];
+
+                double dx1 = e1.bx - e1.ax, dy1 = e1.by - e1.ay;
+                double dx2 = e2.bx - e2.ax, dy2 = e2.by - e2.ay;
+                double det = dx1 * dy2 - dy1 * dx2;
+
+                if (Math.Abs(det) < 1e-9)
+                {
+                    result.Add(new XPoint(e2.ax, e2.ay));
+                    continue;
+                }
+
+                double t = ((e2.ax - e1.ax) * dy2 - (e2.ay - e1.ay) * dx2) / det;
+                result.Add(new XPoint(e1.ax + t * dx1, e1.ay + t * dy1));
+            }
+
             return result;
         }
 
@@ -4551,20 +4583,24 @@ namespace GEORGE.Client.Pages.Okna
             double fy = p1.Y - center.Y;
 
             double a = dx * dx + dy * dy;
+            if (a < 1e-12) return result;
+
             double b = 2 * (fx * dx + fy * dy);
             double c = fx * fx + fy * fy - radius * radius;
-
             double discriminant = b * b - 4 * a * c;
-            if (discriminant < -1e-9) return result;
 
+            if (discriminant < -1e-9) return result;
             discriminant = Math.Max(0, discriminant);
             double sqrtD = Math.Sqrt(discriminant);
 
             double t1 = (-b + sqrtD) / (2 * a);
             double t2 = (-b - sqrtD) / (2 * a);
 
-            if (t1 >= 0 && t1 <= 1) result.Add(new XPoint(p1.X + t1 * dx, p1.Y + t1 * dy));
-            if (t2 >= 0 && t2 <= 1 && Math.Abs(t1 - t2) > 0.0001) result.Add(new XPoint(p1.X + t2 * dx, p1.Y + t2 * dy));
+            // ⭐ Bez ograniczenia t ∈ [0,1] — używamy pełnej prostej,
+            //    wybór właściwego kandydata robi ChooseClosestTo.
+            result.Add(new XPoint(p1.X + t1 * dx, p1.Y + t1 * dy));
+            if (Math.Abs(t1 - t2) > 0.0001)
+                result.Add(new XPoint(p1.X + t2 * dx, p1.Y + t2 * dy));
 
             return result;
         }
@@ -4975,7 +5011,25 @@ namespace GEORGE.Client.Pages.Okna
                 float angleDegrees = (float)(Math.Atan2(dy, dx) * 180.0 / Math.PI);
                 if (angleDegrees < 0) angleDegrees += 360f;
 
-                string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, null);
+                float angleDoKlasyfikacji = angleDegrees;
+
+                if (seg.Type == SegmentType.Arc && seg.Center != null)
+                {
+                    var c = seg.Center.Value;
+                    double sa = Math.Atan2(seg.Start.Y - c.Y, seg.Start.X - c.X);
+                    double ea = Math.Atan2(seg.End.Y - c.Y, seg.End.X - c.X);
+                    double sweep = ea - sa;
+                    while (sweep < 0) sweep += 2 * Math.PI;
+
+                    double midAng = seg.CounterClockwise ? sa + sweep / 2 : sa - (2 * Math.PI - sweep) / 2;
+                    double tangentAng = seg.CounterClockwise ? midAng + Math.PI / 2 : midAng - Math.PI / 2;
+                    angleDoKlasyfikacji = (float)(tangentAng * 180.0 / Math.PI);
+                    if (angleDoKlasyfikacji < 0) angleDoKlasyfikacji += 360f;
+                }
+
+                string side = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(angleDoKlasyfikacji);
+
+               // string side = StronaOknaHelper.OkreslStrone(angleDegrees, i, null);
 
                 float offsetValue = side switch
                 {
@@ -5053,60 +5107,73 @@ namespace GEORGE.Client.Pages.Okna
 
             for (int i = 0; i < offsetSegments.Count; i++)
             {
+                int prevIndex = (i - 1 + offsetSegments.Count) % offsetSegments.Count;
+
                 var current = offsetSegments[i];
-                var previous = offsetSegments[(i - 1 + offsetSegments.Count) % offsetSegments.Count];
+                var previous = offsetSegments[prevIndex];
+
+                // ⭐ Punkt odniesienia: ORYGINALNY, nieprzesunięty start bieżącego segmentu.
+                //    Dzięki temu ChooseClosestTo nie faworyzuje kandydata blisko
+                //    "przesuniętego" startu, który może być po złej stronie okręgu.
+                XPoint refStart = segments[i].Start;
 
                 XPoint? intersection = null;
 
                 if (current.Type == SegmentType.Line && previous.Type == SegmentType.Line)
-                    intersection = GetLinesIntersectionK(previous.Start, previous.End, current.Start, current.End);
-                else if (previous.Type == SegmentType.Line && current.Type == SegmentType.Arc && current.Center != null)
                 {
-                    var pts = GetLineCircleIntersections(previous.Start, previous.End, current.Center.Value, current.Radius);
-                    intersection = ChooseClosestTo(pts, current.Start);
+                    intersection = GetLinesIntersectionK(
+                        previous.Start, previous.End,
+                        current.Start, current.End);
                 }
-                else if (previous.Type == SegmentType.Arc && previous.Center != null && current.Type == SegmentType.Line)
+                else if (previous.Type == SegmentType.Line && current.Type == SegmentType.Arc && current.Center.HasValue)
                 {
-                    var pts = GetLineCircleIntersections(current.Start, current.End, previous.Center.Value, previous.Radius);
-                    intersection = ChooseClosestTo(pts, current.Start);
+                    var pts = GetLineCircleIntersections(
+                        previous.Start, previous.End,
+                        current.Center.Value, current.Radius);
+                    intersection = ChooseClosestTo(pts, refStart);
+                }
+                else if (previous.Type == SegmentType.Arc && previous.Center.HasValue && current.Type == SegmentType.Line)
+                {
+                    var pts = GetLineCircleIntersections(
+                        current.Start, current.End,
+                        previous.Center.Value, previous.Radius);
+                    intersection = ChooseClosestTo(pts, refStart);
                 }
                 else if (previous.Type == SegmentType.Arc && current.Type == SegmentType.Arc &&
-                         previous.Center != null && current.Center != null)
+                         previous.Center.HasValue && current.Center.HasValue)
                 {
-                    var pts = GetCircleCircleIntersections(previous.Center.Value, previous.Radius, current.Center.Value, current.Radius);
-                    intersection = ChooseClosestTo(pts, current.Start);
+                    var pts = GetCircleCircleIntersections(
+                        previous.Center.Value, previous.Radius,
+                        current.Center.Value, current.Radius);
+                    intersection = ChooseClosestTo(pts, refStart);
                 }
 
-                if (intersection != null && !double.IsNaN(intersection.Value.X))
+                if (intersection.HasValue && !double.IsNaN(intersection.Value.X))
                 {
                     if (result.Count > 0)
                         result[^1].End = intersection.Value;
 
-                    if (current.Type == SegmentType.Arc && current.Center != null)
+                    // Odtwórz bieżący segment z nowym Start (zachowaj typ i łuk)
+                    if (current.Type == SegmentType.Arc && current.Center.HasValue)
                     {
-                        result.Add(new ContourSegment(intersection.Value, current.End, current.Center, current.Radius, true)
-                        {
-                            Informacja = current.Informacja
-                        });
+                        result.Add(new ContourSegment(
+                            intersection.Value, current.End,
+                            current.Center, current.Radius,
+                            current.CounterClockwise)         // ⭐ było `true` na sztywno — błąd!
+                        { Informacja = current.Informacja });
                     }
                     else
                     {
                         result.Add(new ContourSegment(intersection.Value, current.End)
-                        {
-                            Informacja = current.Informacja
-                        });
+                        { Informacja = current.Informacja });
                     }
                 }
                 else
                 {
+                    // ⭐ Brak przecięcia — zachowaj przesunięty segment, tylko dosuń sąsiada
                     if (result.Count > 0)
-                    {
-                        var srodek = new XPoint(
-                            (result[^1].End.X + current.Start.X) / 2.0,
-                            (result[^1].End.Y + current.Start.Y) / 2.0);
-                        result[^1].End = srodek;
-                        current.Start = srodek;
-                    }
+                        result[^1].End = current.Start;
+
                     result.Add(current);
                 }
             }

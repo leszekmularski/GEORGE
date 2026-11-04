@@ -1752,9 +1752,12 @@
                                                 @if (!prop.IsReadOnly)
                                                 {
                                                     <input class="property-input" type="number"
-                                                           @bind="prop.Value"
-                                                           @bind:event="onchange"
-                                                           @bind:after="async () => await ZmienWymiaryOknaRecznie()" />
+                                                       @bind="prop.Value"
+                                                       @bind:event="onchange"
+                                                       @bind:after="async () => 
+                                                       { 
+                                                           await ZmienWymiaryOknaRecznie(); 
+                                                       }" />
                                                 }
                                                 else
                                                 {
@@ -3136,6 +3139,8 @@
             return;
         }
 
+        czekajGlobalnie = true;
+
         _constWlasciwosciOkna = false;
 
         try
@@ -3148,12 +3153,13 @@
 
             _logger.LogDebug("🔵 HandleZapis: ZmienWymiaryOknaRecznie");
             await ZmienWymiaryOknaRecznie(strukturaZmieniona: false);
-
+            await ZmienWymiaryOknaRecznie(strukturaZmieniona: false);
             _logger.LogDebug("🔵 HandleZapis: OnlyRestrykcje");
             await OnlyRestrykcje();
 
             _logger.LogDebug("✅ HandleZapis: KONIEC");
-        }
+
+            }
         catch (Exception ex)
         {
             _logger.LogDebug($"🔥 HandleZapis: {ex.Message}");
@@ -3166,7 +3172,10 @@
             // Zmiana wymiarów aktualizuje dane, lecz OnlyRestrykcje nie rysuje
             // canvasa. Odświeżamy dopiero po zwolnieniu flagi, bo RenderFrame
             // celowo nic nie robi, gdy _czekajNaZmianeRozmiaru == true.
+            czekajGlobalnie = false;
+
             await ApplyZoom();
+ 
         }
     }
 
@@ -3610,71 +3619,6 @@
                 $"🔥 Błąd podczas zoomowania: {ex.Message}");
         }
     }
-    // private async Task ApplyZoom(double newScale = -1)
-    // {
-    //     if (CanvasWidth == 0 || CanvasHeight == 0 || CanvasRef == null)
-    //     {
-    //         _logger.LogDebug("⚠️ Canvas nie jest gotowy do zoomu");
-    //         return;
-    //     }
-
-    //     try
-    //     {
-
-    //         if (newScale == -1)
-    //         {
-    //             // 1. Oblicz bounding box kształtów
-    //             double minX = ShapeService.Shapes.Min(s => s.GetBoundingBox().X);
-    //             double minY = ShapeService.Shapes.Min(s => s.GetBoundingBox().Y);
-    //             double maxX = ShapeService.Shapes.Max(s => s.GetBoundingBox().X + s.GetBoundingBox().Width);
-    //             double maxY = ShapeService.Shapes.Max(s => s.GetBoundingBox().Y + s.GetBoundingBox().Height);
-
-    //             double shapesWidth = maxX - minX;
-    //             double shapesHeight = maxY - minY;
-
-    //             // _logger.LogDebug($"📐 Kształty: szerokość={shapesWidth:F0}, wysokość={shapesHeight:F0}");
-    //             //  _logger.LogDebug($"📐 Bounding box: X[{minX:F0}-{maxX:F0}], Y[{minY:F0}-{maxY:F0}]");
-
-    //             // 2. Oblicz skalę z marginesem 5% (zmniejszono z 10% dla lepszego dopasowania)
-    //             double scaleX = CanvasWidth / shapesWidth;
-    //             double scaleY = CanvasHeight / shapesHeight;
-    //             double scale = Math.Min(scaleX, scaleY) * 0.95; // 5% marginesu
-
-    //             _aktywnaSkala = scale;
-    //         }
-    //         else
-    //         {
-    //             _aktywnaSkala = newScale;
-    //         }
-
-    //         // _logger.LogDebug($"🔍 ZOOM: nowa skala = {newScale:F2}, aktualna skala = {_aktywnaSkala:F2}");
-
-
-    //         if (_context == null)
-    //         {
-    //             //   _logger.LogDebug("♻️ Odtwarzam kontekst Canvas...");
-    //             _context = await CanvasRef.CreateCanvas2DAsync();
-    //         }
-
-    //         // 1. Zresetuj transformacje
-    //         await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
-
-    //         await ClearCanvas();
-
-    //         await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
-
-    //         // 4. Narysuj wszystkie elementy
-    //         await DrawAllCanvasElements();
-
-    //         //StateHasChanged();
-
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         _logger.LogDebug($"🔥 Błąd podczas zoomowania: {ex.Message}");
-    //     }
-
-    // }
 
     private async Task FitToCanvas(IShapeDC targetShape, string idRegion, bool skalaAutomatyczna, List<XPoint> Wierzcholki,
         List<XPoint> _wierzcholkiST, double klikX, double klikY)
@@ -4136,7 +4080,7 @@
         await Task.Delay(50);
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, regionOnlyline?.Wierzcholki, modelX, modelY);
-
+        
         WybranyModel = null;
 
         UstawDomyslnyTypModeli();
@@ -4149,7 +4093,6 @@
         _czekajNaZaladowanie = false;
 
         _logger.LogDebug($"✅ Zakończono dopasowanie modelu do regionu {region.Id}");
-
 
     }
 
@@ -8240,152 +8183,107 @@
         // 🔹 Pobierz przesunięcia z boków
         foreach (var bok in state.ListaKwadratow)
         {
-            // bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
+            // ────────────────────────────────────────────────
+            // 1) Ustal Stronę — zawsze, niezależnie od połączeń
+            // ────────────────────────────────────────────────
+            string strona = !string.IsNullOrWhiteSpace(bok.Strona)
+                ? bok.Strona.Trim().ToLowerInvariant()
+                : StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii)
+                    .Trim().ToLowerInvariant();
 
-            _logger.LogDebug($"WyliczObszarSkrzydla   ✅ 📦 Sprawdzam bok: Element={bok.RowIdElementu}, Sąsiad={bok.RowIdSasiada}, Strona='{bok.Strona}' KatLinii: {bok.KatLinii}");
+            bok.Strona = strona;   // normalizacja — DB i switch używają tej samej formy
 
+            // ────────────────────────────────────────────────
+            // 2) Znajdź rekord połączenia (jeśli jest)
+            // ────────────────────────────────────────────────
             List<PrzesuniecieDto> polaczenieWartosci;
 
-            if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
+            if (polaczenieWartosciAllSystem.Count == 0)
             {
-                polaczenieWartosci = await PobierzPolaczenia(bok.RowIdSasiada, bok.RowIdElementu, bok.Strona ?? "NaN");
+                polaczenieWartosci = await PobierzPolaczenia(
+                    bok.RowIdSasiada, bok.RowIdElementu, bok.Strona);
 
-                if (polaczenieWartosciAllSystem == null || polaczenieWartosciAllSystem.Count == 0)
-                    generator.BledySystemowe.Add($"⚠️ WyliczObszarSkrzydla   ✅ -> Nie znaleziono połączenia dla strony '{bok.Strona}' - Dane pobieram rekord po rekordzie");
-                _logger.LogDebug($"✅ WyliczObszarSkrzydla Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów - wolne działanie strona po stronie");
+                _logger.LogDebug($"   → Pobrano rekord-po-rekordzie: {polaczenieWartosci.Count}");
             }
             else
             {
+                polaczenieWartosci = polaczenieWartosciAllSystem
+                    .Where(x => string.Equals(x.Strona, strona, StringComparison.OrdinalIgnoreCase)
+                                && x.ElementZewnetrznyId == bok.RowIdSasiada
+                                && x.ElementWewnetrznyId == bok.RowIdElementu)
+                    .ToList();
 
-                polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase)
-                && x.ElementZewnetrznyId == bok.RowIdSasiada && x.ElementWewnetrznyId == bok.RowIdElementu).ToList();
-                _logger.LogDebug($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
                 if (polaczenieWartosci.Count == 0)
                 {
-                    //Próbuje wyszukać odwrotnie
-                    polaczenieWartosci = polaczenieWartosciAllSystem.Where(x => string.Equals(x.Strona, bok.Strona, StringComparison.OrdinalIgnoreCase)
-                    && x.ElementZewnetrznyId == bok.RowIdElementu && x.ElementWewnetrznyId == bok.RowIdSasiada).ToList();
-                    _logger.LogDebug($"✅ WyliczObszarSkrzydla   ✅ Dane o połączeniach w systemie: {polaczenieWartosciAllSystem.Count} rekordów pasujące: {polaczenieWartosci.Count} - wszytkie z systemu");
-                }
+                    polaczenieWartosci = polaczenieWartosciAllSystem
+                        .Where(x => string.Equals(x.Strona, strona, StringComparison.OrdinalIgnoreCase)
+                                    && x.ElementZewnetrznyId == bok.RowIdElementu
+                                    && x.ElementWewnetrznyId == bok.RowIdSasiada)
+                        .ToList();
 
-                // generator.BledySystemowe.Add($"x.ElementZewnetrznyId == {bok.RowIdSasiada} && x.ElementWewnetrznyId == {bok.RowIdElementu} polaczenieWartosci wyszukano: {polaczenieWartosci.Count()}");
+                    if (polaczenieWartosci.Count > 0)
+                        _logger.LogDebug($"   → Dopasowanie odwrotne: {polaczenieWartosci.Count}");
+                }
             }
 
             var s_polaczenieStrona = polaczenieWartosci.FirstOrDefault();
 
-            if (string.IsNullOrEmpty(s_polaczenieStrona?.Strona) && s_polaczenieStrona != null)
-            {
-                bok.Strona = StronaOknaHelper.OkreslStroneNaPodstawieKataLinii(bok.KatLinii); //Popraw stronę elementu!
-                s_polaczenieStrona.Strona = bok.Strona;
-                _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono ponownie stronę na: {bok.Strona} !!!!!!");
-            }
-
+            // ────────────────────────────────────────────────
+            // 3) Wyznacz przesunięcie: rekord → fallback z configu
+            // ────────────────────────────────────────────────
             double przesY = 0;
+            bool fromFallback = false;
 
             if (s_polaczenieStrona != null)
             {
-                // przesY = Math.Abs(s_polaczenieStrona.PrzesuniecieY);
                 przesY = s_polaczenieStrona.PrzesuniecieY;
-                _logger.LogDebug($"WyliczObszarSkrzydla   Znaleziono połączenie: PrzesuniecieY={s_polaczenieStrona.PrzesuniecieY}, |Y|={przesY}, Strona='{s_polaczenieStrona.Strona}'");
+                _logger.LogDebug($"   ✓ Rekord: Y={przesY} strona='{strona}'");
             }
-            else
+            else if (bok.RowIdSasiada == Guid.Empty)
             {
-                _logger.LogDebug($"WyliczObszarSkrzydla   Nie znaleziono połączenia dla strony '{bok.Strona}'");
-                generator.Komunikaty.Add($"WyliczObszarSkrzydla  -> Nie znaleziono połączenia dla strony '{bok.Strona}' bok.RowIdSasiada:{bok.RowIdSasiada} bok.RowIdElementu:{bok.RowIdElementu}");
-            }
-
-            //string stronaNormalized = bok.Strona?.ToLower().Trim() ?? "";
-
-
-            _logger.LogDebug($"WyliczObszarSkrzydla   Znormalizowana strona: '{s_polaczenieStrona?.Strona}'");
-
-            switch (s_polaczenieStrona?.Strona)
-            {
-                case "lewa":
-                    przesLewo = przesY;
-                    ustawionoLewa = true;
-                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesLewo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
-                    break;
-                case "prawa":
-                    przesPrawo = przesY;
-                    ustawionoPrawa = true;
-                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesPrawo = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
-                    break;
-                case "góra":
-                case "gora":
-                    przesGora = przesY;
-                    ustawionoGora = true;
-                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesGora = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
-                    break;
-                case "dół":
-                case "dol":
-                    przesDol = przesY;
-                    ustawionoDol = true;
-                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ✅ Ustawiono przesDol = {przesY} s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
-                    break;
-                default:
-                    _logger.LogDebug($"WyliczObszarSkrzydla  bok.KatLinii: {bok.KatLinii}  ⚠️ Nieznana strona: '{bok.Strona}' s_polaczenieStrona: {s_polaczenieStrona?.Strona}");
-                    break;
-            }
-
-            // fallback tylko gdy brak sąsiada
-            if (bok.RowIdSasiada == Guid.Empty)
-            {
-                //_logger.LogDebug($"WyliczObszarSkrzydla   ⚠️ Brak sąsiada (RowIdSasiada = Guid.Empty)");
-
                 var konf = generator.KonfiguracjeSystemu
                     .FirstOrDefault(s => s.RowId == bok.RowIdElementu);
 
                 if (konf != null)
                 {
-                    double fallback = -((konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0));
-                    _logger.LogDebug($"WyliczObszarSkrzydla   Konfiguracja znaleziona: PoziomDol={konf.PoziomDol}, PoziomOsSymetrii={konf.PoziomOsSymetrii}");
-                    _logger.LogDebug($"WyliczObszarSkrzydla   Fallback value: {fallback}");
-
-
-                    switch (s_polaczenieStrona?.Strona)
+                    // ⚠️ Sprawdź znak per strona — poniżej przykład z odwróceniem dla góry/dół
+                    double baseOffset = (konf.PoziomDol ?? 0) - (konf.PoziomOsSymetrii ?? 0);
+                    przesY = strona switch
                     {
-                        case "lewa":
-                            if (stronaLewa)
-                            {
-                                przesLewo = fallback;
-                                ustawionoLewa = true;
-                                _logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla lewej: {fallback}");
-                            }
-                            break;
-                        case "prawa":
-                            if (stronaPrawa)
-                            {
-                                przesPrawo = fallback;
-                                ustawionoPrawa = true;
-                                _logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla prawej: {fallback}");
-                            }
-                            break;
-                        case "góra":
-                        case "gora":
-                            przesGora = fallback;
-                            ustawionoGora = true;
-                            _logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla góry: {fallback}");
-                            break;
-                        case "dół":
-                        case "dol":
-                            przesDol = fallback;
-                            ustawionoDol = true;
-                            _logger.LogDebug($"WyliczObszarSkrzydla   🔄 Ustawiono fallback dla dołu: {fallback}");
-                            break;
-                    }
+                        "góra" or "gora" => -baseOffset,
+                        "dół" or "dol" => baseOffset,
+                        _ => -baseOffset,
+                    };
+                    fromFallback = true;
+                    _logger.LogDebug($"   ↻ Fallback: Y={przesY} (baza={baseOffset}) strona='{strona}'");
                 }
                 else
                 {
-                    _logger.LogDebug($"WyliczObszarSkrzydla   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
-                    generator.Komunikaty.Add($"WyliczObszarSkrzydla   ❌ Nie znaleziono konfiguracji dla RowIdElementu={bok.RowIdElementu}");
+                    _logger.LogDebug($"   ⚠️ Brak configu dla elementu {bok.RowIdElementu}");
                 }
             }
-            // else
-            // {
-            //     //_logger.LogDebug($"WyliczObszarSkrzydla   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
-            //     generator.Komunikaty.Add($"WyliczObszarSkrzydla   ✅ Sąsiad istnieje: {bok.RowIdSasiada}");
-            // }
+            else
+            {
+                _logger.LogDebug($"   ⚠️ Brak połączenia dla strony '{strona}' (sąsiad: {bok.RowIdSasiada})");
+                generator.Komunikaty.Add(
+                    $"Brak połączenia: strona '{strona}', sąsiad {bok.RowIdSasiada}");
+            }
+
+            // ────────────────────────────────────────────────
+            // 4) Przypisz do właściwego offsetu — na podstawie bok.Strona
+            // ────────────────────────────────────────────────
+            switch (strona)
+            {
+                case "lewa": przesLewo = przesY; ustawionoLewa = true; break;
+                case "prawa": przesPrawo = przesY; ustawionoPrawa = true; break;
+                case "góra":
+                case "gora": przesGora = przesY; ustawionoGora = true; break;
+                case "dół":
+                case "dol": przesDol = przesY; ustawionoDol = true; break;
+                default:
+                    _logger.LogDebug($"   ⚠️ Nierozpoznana strona: '{strona}'");
+                    break;
+            }
         }
 
         // 🔹 Podsumowanie ustawionych przesunięć
@@ -10194,12 +10092,14 @@
         return (b.X - a.X) * (c.Y - a.Y) - (b.Y - a.Y) * (c.X - a.X);
     }
 
+    bool czekajGlobalnie = false;
+
     private async Task RenderFrame(bool calculate = true)
     {
 
         try
         {
-            if (_context == null || _disposed || _czekajNaZmianeRozmiaru)
+            if (_context == null || _disposed || _czekajNaZmianeRozmiaru || czekajGlobalnie)
                 return;
 
             if (ksztalty == null || !ksztalty.Any())

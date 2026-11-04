@@ -57,6 +57,11 @@ namespace GEORGE.Client.Pages.KonfiguratorOkien
                 .ToList();
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            Transform(scaleX, scaleY, offsetX, offsetY);
+        }
+
         // ---------------------------------------------------------
         // Bounding box
         // ---------------------------------------------------------

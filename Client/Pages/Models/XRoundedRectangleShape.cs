@@ -291,6 +291,16 @@ namespace GEORGE.Client.Pages.Models
             Points = GeneratePoints();
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = X * scaleX + offsetX;
+            Y = Y * scaleY + offsetY;
+            Width *= scaleX;
+            Height *= scaleY;
+            //Radius *= (scaleX + scaleY) / 2.0;
+            Points = GeneratePoints();
+        }
+
         // --------------------------------------------------------------------
         // BOUNDING BOX
         // --------------------------------------------------------------------

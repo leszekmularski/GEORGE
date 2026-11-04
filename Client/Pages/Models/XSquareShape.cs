@@ -185,6 +185,11 @@ namespace GEORGE.Client.Pages.Models
             Points = GeneratePoints();
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            Transform(scaleX, scaleY, offsetX, offsetY);
+        }
+
         // --------------------------------------------------------------------
         public List<XPoint> GetCorners() => GeneratePoints();
         public List<XPoint> GetVertices() => GeneratePoints();

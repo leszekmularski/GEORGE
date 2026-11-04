@@ -1892,56 +1892,56 @@ else
     }
 
     private async Task DeleteRecordOnlyAsync(long id, string nazwaPliku, string rowIdZlecenia)
-{
-    try
     {
-        var resp = await Http.DeleteAsync($"api/FileUploadZlec/delete-record/{id}");
-
-        if (!resp.IsSuccessStatusCode)
+        try
         {
-            var err = await resp.Content.ReadAsStringAsync();
-            await _notice.Error(new()
+            var resp = await Http.DeleteAsync($"api/FileUploadZlec/delete-record/{id}");
+
+            if (!resp.IsSuccessStatusCode)
             {
-                Message = "Błąd usuwania wpisu.",
-                Description = string.IsNullOrWhiteSpace(err)
-                    ? $"HTTP {(int)resp.StatusCode}"
-                    : err,
+                var err = await resp.Content.ReadAsStringAsync();
+                await _notice.Error(new()
+                {
+                    Message = "Błąd usuwania wpisu.",
+                    Description = string.IsNullOrWhiteSpace(err)
+                        ? $"HTTP {(int)resp.StatusCode}"
+                        : err,
+                    Placement = NotificationPlacement.BottomLeft
+                });
+                return;
+            }
+
+            await _notice.Success(new()
+            {
+                Message = "Wpis usunięty.",
+                Description = $"Plik {nazwaPliku} usunięty z tego zlecenia (pozostał na dysku).",
                 Placement = NotificationPlacement.BottomLeft
             });
-            return;
+
+                try
+                {
+                    // pobierz na nowo pliki dla bieżącego zlecenia
+                    var nowe = await Http.GetFromJsonAsync<List<PlikiZlecenProdukcyjnych>>(
+                        $"api/FileUploadZlec/files/{zlecenie.RowId}");
+
+                    pliki = nowe ?? new List<PlikiZlecenProdukcyjnych>();
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[PARENT] Błąd odświeżania plików: {ex.Message}");
+                }
         }
-
-        await _notice.Success(new()
+        catch (Exception ex)
         {
-            Message = "Wpis usunięty.",
-            Description = $"Plik {nazwaPliku} usunięty z tego zlecenia (pozostał na dysku).",
-            Placement = NotificationPlacement.BottomLeft
-        });
-
-            try
+            await _notice.Error(new()
             {
-                // pobierz na nowo pliki dla bieżącego zlecenia
-                var nowe = await Http.GetFromJsonAsync<List<PlikiZlecenProdukcyjnych>>(
-                    $"api/FileUploadZlec/files/{zlecenie.RowId}");
-
-                pliki = nowe ?? new List<PlikiZlecenProdukcyjnych>();
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PARENT] Błąd odświeżania plików: {ex.Message}");
-            }
+                Message = "Błąd.",
+                Description = ex.Message,
+                Placement = NotificationPlacement.BottomLeft
+            });
+        }
     }
-    catch (Exception ex)
-    {
-        await _notice.Error(new()
-        {
-            Message = "Błąd.",
-            Description = ex.Message,
-            Placement = NotificationPlacement.BottomLeft
-        });
-    }
-}
 
     private async Task CopyToClipboard(string text)
     {

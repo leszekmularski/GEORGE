@@ -497,6 +497,21 @@ namespace GEORGE.Client.Pages.Models
             CalculatePointsFromProperties();
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            double scale = (scaleX + scaleY) / 2.0;
+            X = X * scale + offsetX;
+            Y = Y * scale + offsetY;
+            Width = Math.Max(100, Width * scale);
+            Height = Math.Max(100, Height * scale);
+            //_arcHeight = Math.Clamp(_arcHeight, 25, GetMaximumArcHeight());
+            //Radius = CalculateRadiusFromArcGeometry(_width, _arcHeight);
+           // ArcHeight = _arcHeight;
+
+            MarkGeometryDirty();
+            CalculatePointsFromProperties();
+        }
+
         public IShapeDC Clone()
         {
             return new XRoundedTopRectangleShapeFixed(X, Y, Width, Height, Radius, ArcHeight, _scaleFactor)

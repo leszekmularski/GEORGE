@@ -317,6 +317,27 @@ namespace GEORGE.Client.Pages.Models
             UpdatePoints();
         }
 
+        /// <summary>
+        /// Skalowanie obrysu linii — X1/Y1/X2/Y2 proporcjonalnie.
+        /// Linia nie ma offsetów ani niezależnych wymiarów, więc skaluje wszystko.
+        /// </summary>
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X1 = (X1 * scaleX) + offsetX;
+            Y1 = (Y1 * scaleY) + offsetY;
+            X2 = (X2 * scaleX) + offsetX;
+            Y2 = (Y2 * scaleY) + offsetY;
+
+            Szerokosc = Math.Abs(X2 - X1);
+            Wysokosc = Math.Abs(Y2 - Y1);
+
+            UpdatePoints(new List<XPoint>
+            {
+                new(X1, Y1),
+                new(X2, Y2)
+            });
+        }
+
         public BoundingBox GetBoundingBox()
         {
             return new BoundingBox(

@@ -215,6 +215,11 @@ namespace GEORGE.Client.Pages.Models
             _scaleFactor *= scale;
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            Transform(scaleX, scaleY, offsetX, offsetY);
+        }
+
         public void Transform(double scaleX, double scaleY, double offsetX, double offsetY)
         {
             X = (X * scaleX) + offsetX;

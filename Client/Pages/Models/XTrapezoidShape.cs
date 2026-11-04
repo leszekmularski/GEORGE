@@ -353,6 +353,15 @@ namespace GEORGE.Client.Pages.Models
             Height *= scaleY;
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            BaseWidth *= scaleX;
+            //TopWidth *= scaleX;
+            Height *= scaleY;
+        }
+
         private List<XPoint> GeneratePoints()
         {
             var baseLeft = X;

@@ -259,6 +259,15 @@ namespace GEORGE.Client.Pages.Models
             UpdatePoints();
         }
 
+        public void TransformObrys(double scaleX, double scaleY, double offsetX, double offsetY)
+        {
+            X = (X * scaleX) + offsetX;
+            Y = (Y * scaleY) + offsetY;
+            Width *= scaleX;
+            Height *= scaleY;
+            UpdatePoints();
+        }
+
         public (List<(XPoint Start, XPoint End)> RoofEdges, List<(XPoint Start, XPoint End)> BaseEdges) GetEdgesDel()
         {
             double roofHeight = Height * 0.5;

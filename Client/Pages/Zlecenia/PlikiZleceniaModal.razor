@@ -220,6 +220,7 @@
                     <TabPane Key="pdf" Tab="@($"PDF ({CountByExt("pdf")})")" />
                     <TabPane Key="nc" Tab="@($"NC ({CountByExt("nc")})")" />
                     <TabPane Key="txt" Tab="@($"TXT ({CountByExt("txt")})")" />
+                    <TabPane Key="jpg" Tab="@($"JPG ({CountByExt("jpg")})")" />
                 </Tabs>
 
                 <div class="pliki-table">
@@ -507,6 +508,7 @@
         "pdf" => Pliki.Where(p => MatchesExt(p, "pdf")),
         "nc" => Pliki.Where(p => MatchesExt(p, "nc")),
         "txt" => Pliki.Where(p => MatchesExt(p, "txt")),
+        "jpg" => Pliki.Where(p => MatchesExt(p, "jpg")),
         _ => Pliki
     };
 

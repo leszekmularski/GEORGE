@@ -16,7 +16,7 @@ CultureInfo.DefaultThreadCurrentUICulture = culture;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // ⭐ Konfiguracja logowania (WYMAGA pakietów: Logging.Console + Logging.Configuration)
-// ⭐ Konfiguracja logowania Blazor WebAssembly
+// ⭐ Konfiguracja logowania Blazor WebAssembly - przed wysłanie na serwer to zakomentuj ---->
 builder.Logging.SetMinimumLevel(LogLevel.Debug);
 
 builder.Logging.AddConfiguration(
@@ -33,6 +33,8 @@ builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
 
 // Logi własnego projektu
 builder.Logging.AddFilter("GEORGE", LogLevel.Debug);
+
+// < -------
 
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
