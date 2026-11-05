@@ -3194,6 +3194,130 @@
         // Zwolnij URL po chwili, aby nie zajmować pamięci
         setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 10000);
     }
+
+        // ============================================================
+    // ZAPAMIĘTANIE I PRZYWRACANIE TRANSFORMACJI MODELI
+    // ============================================================
+
+    window.svgHelper.getModelsGroupTransform = function () {
+        try {
+            const group = window.svgHelper.ensureModelsGroup();
+
+            if (!group) {
+                console.error("[getModelsGroupTransform] Brak #models-group");
+                return null;
+            }
+
+            return group.getAttribute("transform") || "";
+        }
+        catch (e) {
+            console.error("[getModelsGroupTransform]", e);
+            return null;
+        }
+    };
+
+
+    // Przywrócenie dokładnie takiej transformacji, jaka była zapamiętana
+    window.svgHelper.setModelsGroupTransform = function (transform) {
+        try {
+            const group = window.svgHelper.ensureModelsGroup();
+
+            if (!group) {
+                console.error("[setModelsGroupTransform] Brak #models-group");
+                return false;
+            }
+
+            if (transform && transform.trim() !== "") {
+                group.setAttribute("transform", transform);
+            } else {
+                group.removeAttribute("transform");
+            }
+
+            return true;
+        }
+        catch (e) {
+            console.error("[setModelsGroupTransform]", e);
+            return false;
+        }
+    };
+
+
+    // ============================================================
+    // USTAWIENIE WIDOKU WZGLĘDEM ZAPISANEJ TRANSFORMACJI BAZOWEJ
+    // ============================================================
+    //
+    // rotationDelta - obrót względem widoku bazowego
+    // mirror        - czy wykonać odbicie lustrzane
+    //
+    // Funkcja nie kumuluje transformacji.
+    // Za każdym razem bazowa transformacja jest przekazywana
+    // osobno i stanowi punkt wyjścia.
+    // ============================================================
+
+    window.svgHelper.applyModelsViewTransform = function (
+        baseTransform,
+        rotationDelta,
+        mirror
+    ) {
+        try {
+            const group = window.svgHelper.ensureModelsGroup();
+
+            if (!group) {
+                console.error("[applyModelsViewTransform] Brak #models-group");
+                return false;
+            }
+
+            const bbox = group.getBBox();
+
+            const cx = bbox.x + bbox.width / 2;
+            const cy = bbox.y + bbox.height / 2;
+
+            const transforms = [];
+
+            // Zachowaj oryginalną transformację bazową
+            if (baseTransform && baseTransform.trim() !== "") {
+                transforms.push(baseTransform);
+            }
+
+            // Obrót względem środka grupy modeli
+            const angle = ((Number(rotationDelta) % 360) + 360) % 360;
+
+            if (angle !== 0) {
+                transforms.push(`rotate(${angle}, ${cx}, ${cy})`);
+            }
+
+            // Odbicie względem poziomej osi przechodzącej
+            // przez środek grupy modeli
+            if (mirror === true) {
+                transforms.push(
+                    `translate(0, ${2 * cy}) scale(1, -1)`
+                );
+            }
+
+            const finalTransform = transforms.join(" ");
+
+            if (finalTransform) {
+                group.setAttribute("transform", finalTransform);
+            } else {
+                group.removeAttribute("transform");
+            }
+
+            console.log(
+                "[applyModelsViewTransform]",
+                {
+                    rotationDelta: angle,
+                    mirror: mirror,
+                    transform: finalTransform
+                }
+            );
+
+            return true;
+        }
+        catch (e) {
+            console.error("[applyModelsViewTransform]", e);
+            return false;
+        }
+    };
 </script>
 
 <div class="container-fluid mt-3">
@@ -3974,6 +4098,18 @@
                             {
                                 <span>Połączono: <strong>@pierwszyModel.Nazwa</strong> z <strong>@drugiModel.Nazwa</strong></span>
                             }
+                            <div class="ms-auto d-flex align-items-center gap-2">
+                                <span class="fw-bold text-nowrap">
+                                    Model budowany w widoku z:
+                                </span>
+
+                                <RadioGroup @bind-Value="@wybranyKierunekBudowy" ButtonStyle="RadioButtonStyle.Solid">
+                                    <Radio Value="@("lewej")">Lewej</Radio>
+                                    <Radio Value="@("prawej")">Prawej</Radio>
+                                    <Radio Value="@("góry")">Góry</Radio>
+                                    <Radio Value="@("dołu")">Dołu</Radio>
+                                </RadioGroup>
+                            </div>
                         </div>
                     }
 
@@ -4735,80 +4871,202 @@
     }
 
     bool czekajNaZapisAll = false;
+
     private async Task SaveAllPosition()
     {
-        if (string.IsNullOrEmpty(SelectedSystemId) || pierwszyModel == null || drugiModel == null)
+        if (string.IsNullOrEmpty(SelectedSystemId) ||
+            pierwszyModel == null ||
+            drugiModel == null)
         {
-            await _message.Error("❌ Brak wybranego systemu lub modeli do zapisania");
+            await _message.Error(
+                "❌ Brak wybranego systemu lub modeli do zapisania");
+
             return;
         }
 
-        if (string.IsNullOrEmpty(wybranyKierunekBudowy))
+        if (string.IsNullOrWhiteSpace(wybranyKierunekBudowy))
         {
             await _message.Error("❌ Wybierz kierunek budowy");
             return;
         }
 
-        string statusZapisu = "";
+        if (czekajNaZapisAll)
+            return;
 
-        if (czekajNaZapisAll) return;
+        // Lista widoków, które mają zostać zapisane.
+        // Kat i odbicie określają ich docelową orientację.
+        var stronyDoZapisu = new List<(string Strona, int Kat, bool Odbicie)>();
+
+        if (selGora || selPrawaStyczne)
+            stronyDoZapisu.Add(("góra", 270, false));
+
+        if (selDol || selLewaStyczne)
+            stronyDoZapisu.Add(("dół", 90, false));
+
+        if (selPrawa || selGoraStyczne)
+            stronyDoZapisu.Add(("prawa", 0, false));
+
+        if (selLewa || selDolStyczne)
+            stronyDoZapisu.Add(("lewa", 0, true));
+
+        if (stronyDoZapisu.Count == 0)
+        {
+            await _message.Warning("❗ Zaznacz przynajmniej jeden widok do zapisania");
+            return;
+        }
 
         czekajNaZapisAll = true;
 
-        if (selGora && wybranyKierunekBudowy == "prawej")
+        string statusZapisu = "";
+
+        // Zapamiętujemy aktualny kąt ustawienia modelu.
+        int katBazowy = katUstawienia;
+
+        try
         {
+            // Orientacja widoku, w którym aktualnie budowany jest model.
+            var orientacjaBazowa =
+                PobierzOrientacjeWidoku(wybranyKierunekBudowy);
 
-            await RotateObjAll();
-            await InvokeAsync(StateHasChanged);
-            await RotateObjAll();
-            await InvokeAsync(StateHasChanged);
-            await RotateObjAll();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(100); // Daj czas na zakończenie operacji w JS
-            await Task.Yield(); // Upewnij się, że JS zakończył operacje
-            await InvokeAsync(StateHasChanged);
-            statusZapisu = await SavePosition("góra");
+            int katWidokuBazowego = orientacjaBazowa.Kat;
+            bool odbicieWidokuBazowego = orientacjaBazowa.Odbicie;
 
+            // Zapamiętaj dokładną transformację całej grupy modeli.
+            string? transformacjaBazowa =
+                await JSRuntime.InvokeAsync<string?>(
+                    "svgHelper.getModelsGroupTransform");
+
+            if (transformacjaBazowa == null)
+            {
+                await _message.Error(
+                    "❌ Nie udało się odczytać transformacji modeli SVG.");
+
+                return;
+            }
+
+            Console.WriteLine(
+                $"[SaveAllPosition] Kierunek bazowy: {wybranyKierunekBudowy}");
+
+            Console.WriteLine(
+                $"[SaveAllPosition] Kąt bazowy: {katBazowy}");
+
+            Console.WriteLine(
+                $"[SaveAllPosition] Transformacja bazowa: {transformacjaBazowa}");
+
+            var wynikiZapisu = new List<string>();
+
+            try
+            {
+                foreach (var strona in stronyDoZapisu)
+                {
+                    // Przywróć dokładnie ten sam stan początkowy
+                    // przed przygotowaniem każdego kolejnego widoku.
+                    bool przywrocono = await JSRuntime.InvokeAsync<bool>(
+                        "svgHelper.setModelsGroupTransform",
+                        transformacjaBazowa);
+
+                    if (!przywrocono)
+                    {
+                        wynikiZapisu.Add(
+                            $"❌ {strona.Strona}: nie udało się przywrócić transformacji bazowej.");
+
+                        continue;
+                    }
+
+                    // Oblicz różnicę pomiędzy widokiem docelowym
+                    // a aktualnym widokiem budowania.
+                    int katObrotu =
+                        NormalizujKat(strona.Kat - katWidokuBazowego);
+
+                    // Odbicie wykonujemy tylko wtedy, gdy orientacje
+                    // bazowa i docelowa różnią się rodzajem odbicia.
+                    bool odbicie =
+                        strona.Odbicie != odbicieWidokuBazowego;
+
+                    Console.WriteLine(
+                        $"[SaveAllPosition] Strona: {strona.Strona}, " +
+                        $"obrót: {katObrotu}°, odbicie: {odbicie}");
+
+                    // Ustaw orientację docelową względem bazy.
+                    bool zastosowano = await JSRuntime.InvokeAsync<bool>(
+                        "svgHelper.applyModelsViewTransform",
+                        transformacjaBazowa,
+                        katObrotu,
+                        odbicie);
+
+                    if (!zastosowano)
+                    {
+                        wynikiZapisu.Add(
+                            $"❌ {strona.Strona}: nie udało się ustawić widoku.");
+
+                        continue;
+                    }
+
+                    // Aktualizuj kąt zapisywany w rekordzie.
+                    katUstawienia = NormalizujKat(katBazowy + katObrotu);
+
+                    await InvokeAsync(StateHasChanged);
+
+                    // Poczekaj na zakończenie operacji SVG.
+                    await Task.Delay(100);
+                    await Task.Yield();
+
+                    // Zapisz konkretny widok.
+                    string wynik = await SavePosition(
+                        strona.Strona,
+                        katUstawienia);
+
+                    wynikiZapisu.Add(wynik);
+
+                    Console.WriteLine(
+                        $"[SaveAllPosition] Zakończono zapis: {strona.Strona}");
+                }
+            }
+            finally
+            {
+                // Bez względu na wynik zapisu przywracamy
+                // oryginalny widok, w którym użytkownik budował model.
+                await JSRuntime.InvokeVoidAsync(
+                    "svgHelper.setModelsGroupTransform",
+                    transformacjaBazowa);
+
+                katUstawienia = katBazowy;
+
+                await InvokeAsync(StateHasChanged);
+            }
+
+            statusZapisu = string.Join("<br>", wynikiZapisu);
         }
-        if (selDol && wybranyKierunekBudowy == "prawej")
+        catch (Exception ex)
         {
+            Console.Error.WriteLine(
+                $"[SaveAllPosition] Błąd: {ex}");
 
-            await RotateObjAll();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(100); // Daj czas na zakończenie operacji w JS
-            await Task.Yield(); // Upewnij się, że JS zakończył operacje
-            await InvokeAsync(StateHasChanged);
-            statusZapisu = await SavePosition("dół");
-
+            await _message.Error(
+                $"❌ Wystąpił błąd podczas zapisywania widoków: {ex.Message}");
         }
-        if (selPrawa && wybranyKierunekBudowy == "prawej")
+        finally
         {
+            katUstawienia = katBazowy;
+
+            czekajNaZapisAll = false;
+
+            activeKey = "0";
+
             await InvokeAsync(StateHasChanged);
-            statusZapisu = await SavePosition("prawa");
         }
-        if (selLewa && wybranyKierunekBudowy == "prawej")
+
+        if (!string.IsNullOrWhiteSpace(statusZapisu))
         {
-            await MirrorObjAll();
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(100); // Daj czas na zakończenie operacji w JS
-            await Task.Yield(); // Upewnij się, że JS zakończył operacje
-            await InvokeAsync(StateHasChanged);
-            statusZapisu = await SavePosition("lewa");
-
+            await _message.Success(statusZapisu, 5);
         }
-      
-        czekajNaZapisAll = false;
-
-        await _message.Success(statusZapisu, 2);
-
-        activeKey = "0";
-
-        await InvokeAsync(StateHasChanged);
-
     }
 
-    private async Task<string> SavePosition(string strona)
+    private async Task<string> SavePosition(
+    string strona,
+    int? katZapisywany = null)
     {
+        int katDoZapisu = katZapisywany ?? katUstawienia;
         // Pobierz wynik przesunięcia
         var result = await PobierzWynikPrzesuniecia();
 
@@ -4991,6 +5249,37 @@
 
         return statusZapisu;
 
+    }
+
+    private static (int Kat, bool Odbicie) PobierzOrientacjeWidoku(string kierunek)
+    {
+        string kierunekNormalizowany = (kierunek ?? "")
+            .Trim()
+            .ToLowerInvariant();
+
+        return kierunekNormalizowany switch
+        {
+            "prawa" or "prawej" or "prawy" or "prawo"
+                => (0, false),
+
+            "góra" or "gora" or "górna" or "gorna" or "górnej" or "gorne"
+                => (270, false),
+
+            "dół" or "dol" or "dolna" or "dolnej"
+                => (90, false),
+
+            "lewa" or "lewej" or "lewy" or "lewo"
+                => (0, true),
+
+            _ => throw new ArgumentException(
+                $"Nieznany kierunek budowy: {kierunek}")
+        };
+    }
+
+
+    private static int NormalizujKat(int kat)
+    {
+        return ((kat % 360) + 360) % 360;
     }
 
     private async Task<GuideDisplacementResult> PobierzWynikPrzesuniecia()
