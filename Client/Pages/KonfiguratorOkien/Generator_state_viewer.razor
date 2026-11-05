@@ -231,22 +231,83 @@
             }
         }
 
-        // --- Etykiety segmentów ---
+        // --- Etykiety segmentów (z długością i prefixami zewn/wewn) ---
         if (options.showLabels !== false) {
             ctx.font = '11px Consolas, monospace';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            for (let i = 0; i < all.length; i++) {
-                const seg = all[i];
-                const mx = (seg.start.x + seg.end.x) / 2;
-                const my = (seg.start.y + seg.end.y) / 2;
+
+            // Funkcja pomocnicza - rysuje jedną etykietę segmentu (z długością lub bez)
+            function drawSegLabel(seg, index, linePrefix, arcPrefix, color) {
+                const isArc = seg.type === 'Arc' && seg.center && seg.radius > 0;
+
+                let length = 0;
+                let mx, my; // punkt zaczepienia etykiety
+
+                if (isArc) {
+                    const cx = seg.center.x, cy = seg.center.y, r = seg.radius;
+                    const startAngle = Math.atan2(seg.start.y - cy, seg.start.x - cx);
+                    const endAngle   = Math.atan2(seg.end.y - cy, seg.end.x - cx);
+
+                    let sweep;
+                    if (seg.counterClockwise) {
+                        sweep = endAngle - startAngle;
+                        while (sweep < 0) sweep += 2 * Math.PI;
+                    } else {
+                        sweep = endAngle - startAngle;
+                        while (sweep > 0) sweep -= 2 * Math.PI;
+                    }
+                    length = Math.abs(r * sweep);
+
+                    // Środek łuku liczony po łuku, nie po cięciwie – etykieta ładnie leży na łuku
+                    const midAngle = startAngle + sweep / 2;
+                    mx = cx + r * Math.cos(midAngle);
+                    my = cy + r * Math.sin(midAngle);
+                } else {
+                    // środek linii
+                    mx = (seg.start.x + seg.end.x) / 2;
+                    my = (seg.start.y + seg.end.y) / 2;
+                    length = Math.hypot(seg.end.x - seg.start.x, seg.end.y - seg.start.y);
+                }
+
                 const sx = tx(mx), sy = ty(my);
-                const label = (seg.type === 'Arc' ? 'A' : 'L') + i;
-                const textW = ctx.measureText(label).width + 6;
-                ctx.fillStyle = 'rgba(0,0,0,0.65)';
-                ctx.fillRect(sx - textW / 2, sy - 8, textW, 16);
-                ctx.fillStyle = '#fff';
-                ctx.fillText(label, sx, sy);
+
+                // Treść etykiety
+                const base = isArc ? arcPrefix : linePrefix;
+                const label = (options.showLengthInLabel !== false)
+                    ? `${base}${index}=${length.toFixed(1)}`
+                    : `${base}${index}`;
+
+                const textW = ctx.measureText(label).width + 8;
+                const textH = 14;
+
+                // Tło
+                ctx.fillStyle = 'rgba(0,0,0,0.78)';
+                ctx.fillRect(sx - textW / 2, sy - textH / 2, textW, textH);
+
+                // Obramowanie w kolorze konturu
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(sx - textW / 2 + 0.5, sy - textH / 2 + 0.5, textW - 1, textH - 1);
+
+                // Tekst
+                ctx.fillStyle = color;
+                ctx.fillText(label, sx, sy + 0.5);
+            }
+
+            // --- Zewnętrzne: prefix L / A, kolor jasno-niebieski (żeby odcinał się od tła) ---
+            if (outerSegments && outerSegments.length > 0) {
+                for (let i = 0; i < outerSegments.length; i++) {
+                    drawSegLabel(outerSegments[i], i, 'L', 'A', '#8ecaff');
+                }
+            }
+
+            // --- Wewnętrzne: prefix np. IL/IA, SL/SA, OL/OA, kolor innerColor ---
+            if (innerSegments && innerSegments.length > 0) {
+                const lp = options.innerLabelPrefix || 'I';
+                for (let i = 0; i < innerSegments.length; i++) {
+                    drawSegLabel(innerSegments[i], i, lp + 'L', lp + 'A', innerColor);
+                }
             }
         }
 
@@ -262,6 +323,62 @@
                 10, 28);
         }
     };
+
+        function drawSegLabel(seg, index, linePrefix, arcPrefix, color) {
+        const isArc = seg.type === 'Arc' && seg.center && seg.radius > 0;
+
+        // Oblicz długość i pozycję etykiety
+        let length = 0;
+        let mx, my;
+
+        if (isArc) {
+            const cx = seg.center.x, cy = seg.center.y, r = seg.radius;
+            const startAngle = Math.atan2(seg.start.y - cy, seg.start.x - cx);
+            const endAngle = Math.atan2(seg.end.y - cy, seg.end.x - cx);
+
+            let sweep;
+            if (seg.counterClockwise) {
+                sweep = endAngle - startAngle;
+                while (sweep < 0) sweep += 2 * Math.PI;
+            } else {
+                sweep = endAngle - startAngle;
+                while (sweep > 0) sweep -= 2 * Math.PI;
+            }
+
+            length = Math.abs(r * sweep);
+
+            // Punkt na środku łuku
+            const midAngle = startAngle + sweep / 2;
+            mx = cx + r * Math.cos(midAngle);
+            my = cy + r * Math.sin(midAngle);
+        } else {
+            mx = (seg.start.x + seg.end.x) / 2;
+            my = (seg.start.y + seg.end.y) / 2;
+            length = Math.hypot(seg.end.x - seg.start.x, seg.end.y - seg.start.y);
+        }
+
+        const sx = tx(mx), sy = ty(my);
+        const base = isArc ? arcPrefix : linePrefix;
+        const label = (options.showLengthInLabel !== false)
+            ? `${base}${index}=${length.toFixed(1)}`
+            : `${base}${index}`;
+
+        const textW = ctx.measureText(label).width + 8;
+        const textH = 14;
+
+        // Tło etykiety
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(sx - textW / 2, sy - textH / 2, textW, textH);
+
+        // Obramowanie
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(sx - textW / 2 + 0.5, sy - textH / 2 + 0.5, textW - 1, textH - 1);
+
+        // Tekst
+        ctx.fillStyle = color;
+        ctx.fillText(label, sx, sy + 0.5);
+    }
 </script>
 
 <style>
@@ -517,6 +634,141 @@
         font-variant-numeric: tabular-nums;
         font-weight: 600;
     }
+
+    /* ============ LEGENDA JAKO OVERLAY ============ */
+    .canvas-container {
+        position: relative; /* niezbędne dla position:absolute wewnątrz */
+    }
+
+    .segment-legend-overlay {
+        position: absolute;
+        width: 340px;
+        max-height: 40%;
+        display: flex;
+        flex-direction: column;
+        border-radius: 8px;
+        z-index: 20;
+        font-size: 11px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 1px solid rgba(255,255,255,0.15);
+        overflow: hidden;
+    }
+
+    .legend-top-right {
+        top: 12px;
+        right: 12px;
+    }
+
+    .legend-bottom-right {
+        bottom: 12px;
+        right: 12px;
+    }
+
+    .legend-dark {
+        background: rgba(30,30,30,0.78);
+        color: #e9ecef;
+    }
+
+    .legend-light {
+        background: rgba(255,255,255,0.88);
+        color: #212529;
+        border-color: rgba(0,0,0,0.15);
+    }
+
+    .legend-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        font-weight: 600;
+        border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .legend-light .legend-header {
+        border-bottom-color: rgba(0,0,0,0.12);
+    }
+
+    .legend-count {
+        padding: 0 6px;
+        border-radius: 10px;
+        font-size: 10px;
+        background: rgba(255,255,255,0.15);
+    }
+
+    .legend-light .legend-count {
+        background: rgba(0,0,0,0.1);
+    }
+
+    .legend-body {
+        overflow-y: auto;
+        padding: 4px;
+        flex: 1;
+    }
+
+    .legend-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+    }
+
+        .legend-table th {
+            text-align: left;
+            padding: 4px 6px;
+            font-weight: 600;
+            opacity: 0.75;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            backdrop-filter: blur(6px);
+        }
+
+    .legend-dark .legend-table th {
+        background: rgba(30,30,30,0.92);
+    }
+
+    .legend-light .legend-table th {
+        background: rgba(255,255,255,0.95);
+    }
+
+    .legend-table td {
+        padding: 3px 6px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .legend-light .legend-table td {
+        border-top-color: rgba(0,0,0,0.06);
+    }
+
+    .legend-table tr:hover td {
+        background: rgba(255,255,255,0.06);
+    }
+
+    .legend-light .legend-table tr:hover td {
+        background: rgba(0,0,0,0.05);
+    }
+
+    /* pasek checkboxów nad canvasem */
+    .canvas-toggles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        padding: 6px 10px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        background: rgba(0,0,0,0.20);
+    }
+
+        .canvas-toggles label {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            font-size: 13px;
+        }
 </style>
 
 
@@ -1863,20 +2115,27 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div id="tab1" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+
+                                <div class="canvas-toggles" style="color: aquamarine;">
+                                    <label><input type="checkbox" @bind="pokazWartosciPunktow" /> Pokaż wartości punktów</label>
+                                    <label><input type="checkbox" @bind="pokazLegende" /> Pokaż legendę</label>
+                                </div>
+
+                                <div id="tab1" class="canvas-container"
+                                     style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-5"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
                                        border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                    @if (pokazLegende)
+                                    {
+                                        @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
+                                    }
                                 </div>
                             </div>
                         }
                         else if (aktywnaZakladka == 6 && wybranyStan?.Kontur != null)
                         {
                             <!-- ==================== ZAKŁADKA 6: RYSUNEK ZEWN + WEWN + ZOOM ==================== -->
-                            <div class="mb-3" style="color: aquamarine;">
-                                <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty6" />
-                                <label for="pokazPunkty6">Pokaż wartości punktów</label>
-                            </div>
                             <div class="canvas-view">
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                     <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
@@ -1904,6 +2163,7 @@
                                         </button>
                                     </div>
                                 </div>
+
                                 <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
                                     <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
                                     @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
@@ -1915,20 +2175,31 @@
                                         <span class="badge ms-2 bg-secondary">Brak konturu wewnętrznego</span>
                                     }
                                 </div>
-                                <div id="tab2" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+
+                                <div class="canvas-toggles" style="color: aquamarine;">
+                                    <label><input type="checkbox" @bind="pokazWartosciPunktow" /> Pokaż wartości punktów</label>
+                                    <label><input type="checkbox" @bind="pokazLegende" /> Pokaż legendę</label>
+                                </div>
+
+                                <div id="tab2" class="canvas-container"
+                                     style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-6"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
                                        border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                    @if (pokazLegende)
+                                    {
+                                        @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
+                                        @if (wybranyStan.KonturInner != null && wybranyStan.KonturInner.Count > 0)
+                                        {
+                                            @RenderSegmentLegend(wybranyStan.KonturInner, "Kontur wewnętrzny", "#28a745", "I", position: "bottom-right")
+                                        }
+                                    }
                                 </div>
                             </div>
                         }
                         else if (aktywnaZakladka == 7 && wybranyStan?.Kontur != null)
                         {
                             <!-- ==================== ZAKŁADKA 7: RYSUNEK + SZYBY + ZOOM ==================== -->
-                            <div class="mb-3" style="color: aquamarine;">
-                                <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty7" />
-                                <label for="pokazPunkty7">Pokaż wartości punktów</label>
-                            </div>
                             <div class="canvas-view">
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                     <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
@@ -1956,6 +2227,7 @@
                                         </button>
                                     </div>
                                 </div>
+
                                 <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
                                     <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
                                     @if (wybranyStan.KonturSzyby != null && wybranyStan.KonturSzyby.Count > 0)
@@ -1967,20 +2239,31 @@
                                         <span class="badge ms-2 bg-secondary">Brak konturu szyby</span>
                                     }
                                 </div>
-                                <div id="tab3" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+
+                                <div class="canvas-toggles" style="color: aquamarine;">
+                                    <label><input type="checkbox" @bind="pokazWartosciPunktow" /> Pokaż wartości punktów</label>
+                                    <label><input type="checkbox" @bind="pokazLegende" /> Pokaż legendę</label>
+                                </div>
+
+                                <div id="tab3" class="canvas-container"
+                                     style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-7"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
                                        border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                    @if (pokazLegende)
+                                    {
+                                        @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
+                                        @if (wybranyStan.KonturSzyby != null && wybranyStan.KonturSzyby.Count > 0)
+                                        {
+                                            @RenderSegmentLegend(wybranyStan.KonturSzyby, "Kontur szyby", "#ffc107", "S", position: "bottom-right")
+                                        }
+                                    }
                                 </div>
                             </div>
                         }
                         else if (aktywnaZakladka == 8 && wybranyStan?.Kontur != null)
                         {
                             <!-- ==================== ZAKŁADKA 8: RYSUNEK + OKUCIA + ZOOM ==================== -->
-                            <div class="mb-3" style="color: aquamarine;">
-                                <input type="checkbox" @bind="pokazWartosciPunktow" id="pokazPunkty8" />
-                                <label for="pokazPunkty8">Pokaż wartości punktów</label>
-                            </div>
                             <div class="canvas-view">
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                     <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
@@ -2008,6 +2291,7 @@
                                         </button>
                                     </div>
                                 </div>
+
                                 <div class="mb-2 small @(ciemnyMotyw ? "text-light" : "text-dark")">
                                     <span class="badge" style="background:#0d6efd;">■ Zewnętrzny</span>
                                     @if (wybranyStan.KonturOkucia != null && wybranyStan.KonturOkucia.Count > 0)
@@ -2019,10 +2303,25 @@
                                         <span class="badge ms-2 bg-secondary">Brak konturu okucia</span>
                                     }
                                 </div>
-                                <div id="tab4" class="canvas-container" style="padding:0;background-color: transparent;border: 0; will-change: transform; transform: translateZ(0)">
+
+                                <div class="canvas-toggles" style="color: aquamarine;">
+                                    <label><input type="checkbox" @bind="pokazWartosciPunktow" /> Pokaż wartości punktów</label>
+                                    <label><input type="checkbox" @bind="pokazLegende" /> Pokaż legendę</label>
+                                </div>
+
+                                <div id="tab4" class="canvas-container"
+                                     style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-8"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
                                        border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                    @if (pokazLegende)
+                                    {
+                                        @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
+                                        @if (wybranyStan.KonturOkucia != null && wybranyStan.KonturOkucia.Count > 0)
+                                        {
+                                            @RenderSegmentLegend(wybranyStan.KonturOkucia, "Kontur okucia", "#ffd700", "O", position: "bottom-right")
+                                        }
+                                    }
                                 </div>
                             </div>
                         }
@@ -2121,7 +2420,8 @@
     private int _lastRenderedTab = -1;
     private string? _lastRenderedStanId = null;
 
-    bool pokazWartosciPunktow = true;
+    private bool pokazWartosciPunktow = true;
+    private bool pokazLegende = true;
 
     // ========== NOWE: per-zakładka zoom dla canvasów ==========
     private readonly Dictionary<int, double> tabZoom = new();
@@ -2858,6 +3158,14 @@
             _ => "#0d6efd"
         };
 
+        string innerPrefix = tabIndex switch
+        {
+            6 => "I",
+            7 => "S",
+            8 => "O",
+            _ => "I"
+        };
+
         var outer = Project(wybranyStan.Kontur);
         var inner = (tabIndex == 6) ? Project(wybranyStan.KonturInner) : null;
         if (tabIndex == 7) inner = Project(wybranyStan.KonturSzyby);
@@ -2881,7 +3189,9 @@
                     showLabels = true,
                     showDimensions = true,
                     showPointLabels = pokazWartosciPunktow,
-                    zoom = GetZoom(tabIndex)   // <-- NOWE
+                    zoom = GetZoom(tabIndex),
+                    showLengthInLabel = true,
+                    innerLabelPrefix = innerPrefix
                 });
         }
         catch (Exception ex)
@@ -2913,6 +3223,53 @@
         }
     }
 
+    private RenderFragment RenderSegmentLegend(
+    List<ContourSegment>? segments,
+    string title,
+    string color,
+    string prefixInner = "",
+    string position = "top-right")
+=> @<div class="segment-legend-overlay legend-@position @(ciemnyMotyw ? "legend-dark" : "legend-light")">
+    <div class="legend-header">
+        <span><i class="bi bi-list-ol me-2" style="color:@color;"></i>@title</span>
+        <span class="legend-count">@(segments?.Count ?? 0)</span>
+    </div>
+    <div class="legend-body">
+        @if (segments == null || segments.Count == 0)
+                {
+        <div class="text-center text-muted py-2 small">Brak segmentów</div>
+                }
+                else
+                {
+        <table class="legend-table">
+            <thead>
+                <tr>
+                    <th>Etykieta</th>
+                    <th>Typ</th>
+                    <th>Długość</th>
+                    <th>Info</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i<segments.Count; i++)
+                                {
+                                var seg = segments[i];
+                    bool isArc = seg.Type == SegmentType.Arc;
+                    double length = isArc ? CalculateArcLength(seg) : CalculateLineLength(seg);
+                    string prefix = prefixInner + (isArc ? "A" : "L");
+                    <tr>
+                        <td><code class="fw-bold" style="color:@color;">@prefix@i</code></td>
+                        <td><span class="badge @(isArc ? "bg-info" : "bg-success")">@(isArc ? "Łuk" : "Linia")</span></td>
+                        <td><code>@length.ToString("F2")</code></td>
+                        <td class="small">@seg.Informacja</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+                }
+    </div>
+</div>;
+  
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine("GeneratorStateViewer initialized.");

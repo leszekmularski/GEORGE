@@ -749,7 +749,7 @@
             "rounded_rect_right" => new XRoundedRectangleShapeRight(left, top, width, height, height / 2, _scaleFactor),
             "house" => new XHouseShape(left, top, width, height, height * 0.5, height * 0.5, _scaleFactor),
             "rounded_top_rect" => new XRoundedTopRectangleShape(xR, yR, widthR, heightR, radius, arcHeight, _scaleFactor),
-            "rounded_top_rect_fixed" => new XRoundedTopRectangleShapeFixed(left, top, width, height, radius, arcHeight, _scaleFactor),
+            "rounded_top_rect_fixed" => new XRoundedTopRectangleShapeFixed(left, top, width, height, radius, arcHeight / 2, _scaleFactor),
 
             _ => throw new NotImplementedException()
         };

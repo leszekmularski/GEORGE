@@ -887,8 +887,8 @@
                                          @onclick="@(() => WybierzModel(model))"
                                          @ondragstart="@(e => JS.InvokeVoidAsync(
                                          "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             model.RowId))"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          model.Typ,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          model.RowId))"
                              @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
                              draggable="true"
                              class="model-thumbnail @(model == WybranyModel ? "selected" : "")" />
@@ -1080,7 +1080,7 @@
                                     <strong>Typ połączenia strona Lewa / Prawa:</strong> @ksztalt.PolaczenieStronaA / @ksztalt.PolaczenieStronaB<br />
                                     <strong>RowIdElementu [Indeks]:</strong> @ksztalt.RowIdElementu &nbsp; [@ksztalt.IndeksElementu]<br />
                                     <strong>Kąt:</strong> @ksztalt.Kat <label style="color:red;"> <b>[@ksztalt.Strona] [@ksztalt.NrPozWModelu]</b></label>
-                                    <strong>Offesty:</strong> L:@ksztalt.OffsetLewa G:@ksztalt.OffsetGora P:@ksztalt.OffsetPrawa D:@ksztalt.OffsetDol &nbsp; [@ksztalt.RodzajpolaczenAiB]
+                                    <strong>Typ połączenia:</strong> [@ksztalt.RodzajpolaczenAiB]
                                     <br />
                                     <strong>IdRegion:</strong> @ksztalt.IdRegion
                                 </div>
@@ -1095,8 +1095,6 @@
                                         <label>Typ kształtu</label>
                                         <input class="form-control" @bind="ksztalt.TypKsztaltu" />
                                     </div>
-                                    <!-- Pozostałe inputy jak wcześniej... -->
-
                                     <div class="mb-2">
                                         <label><strong>Wierzchołki (X, Y):</strong></label>
                                         @for (int i = 0; i < ksztalt.Wierzcholki.Count; i++)
@@ -1752,12 +1750,12 @@
                                                 @if (!prop.IsReadOnly)
                                                 {
                                                     <input class="property-input" type="number"
-                                                       @bind="prop.Value"
-                                                       @bind:event="onchange"
-                                                       @bind:after="async () => 
-                                                       { 
-                                                           await ZmienWymiaryOknaRecznie(); 
-                                                       }" />
+                                                           @bind="prop.Value"
+                                                           @bind:event="onchange"
+                                                           @bind:after="async () =>
+                                                           {
+                                                               await ZmienWymiaryOknaRecznie();
+                                                           }" />
                                                 }
                                                 else
                                                 {
@@ -3159,7 +3157,7 @@
 
             _logger.LogDebug("✅ HandleZapis: KONIEC");
 
-            }
+        }
         catch (Exception ex)
         {
             _logger.LogDebug($"🔥 HandleZapis: {ex.Message}");
@@ -3175,7 +3173,7 @@
             czekajGlobalnie = false;
 
             await ApplyZoom();
- 
+
         }
     }
 
@@ -4080,7 +4078,7 @@
         await Task.Delay(50);
 
         await FitToCanvas(shape, region.Id, false, region.Wierzcholki, regionOnlyline?.Wierzcholki, modelX, modelY);
-        
+
         WybranyModel = null;
 
         UstawDomyslnyTypModeli();
@@ -5470,7 +5468,7 @@
     }
 
     private bool _zmienWymiaryWToku = false;
-   
+
     private async Task ZmienWymiaryOkna(
     bool strukturaZmieniona = true,
     bool wymusWysrodkowanie = true,
@@ -5698,7 +5696,7 @@
                         generator.Wysokosc = (float)(maxY - minY);
                         generator.Zindeks = typModelu == "Skrzydło z słupkiem ruchomym" ? 2 : 3;
 
-                        double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
+                        double przesLewo = 110, przesPrawo = 110, przesGora = 110, przesDol = 110;
 
                         _logger.LogDebug(
                             $"📐 WyliczObszarSkrzydla dla {cleanId}: " +
@@ -8342,7 +8340,7 @@
             }
         }
 
-       // ⭐ W opcji A region pozostaje BASE — offsety aplikowane w AddElements
+        // ⭐ W opcji A region pozostaje BASE — offsety aplikowane w AddElements
         // Usuwamy CAŁKOWICIE mutację regionu.
         // Zapisz offsety do ListaKwadratow ZAWSZE (nawet jeśli puste — utwórz wpis).
 
@@ -8421,7 +8419,7 @@
             _logger.LogDebug($"⚠️ WyliczObszarSkrzydla  Ostrzeżenie: brak ustawienia dolnej strony");
         }
 
-        await Task.WhenAll(); // czekaj na wszystkie operacje asynchroniczne (jeśli jest ich więcej)
+        await Task.Yield(); // placeholder dla ewentualnych operacji asynchronicznych
         await Task.Delay(10); // krótkie opóźnienie dla stabilności krótszy czas jest problem z pobieraniem danych z systemu, dłuższy czas powoduje lagi w interfejsie przy dużej ilości danych o połączeniach
 
         _logger.LogDebug($"✅ WyliczObszarSkrzydla KONIEC");
@@ -10285,6 +10283,31 @@
             _logger.LogDebug($"❌ Błąd w DrawShapeWithVariableOffset: {ex.Message}");
         }
     }
+
+    // private (float left, float right, float top, float bottom) GetOffsetsForGroup(string grupa)
+    // {
+    //     float grLewo = 82;
+    //     float grPrawo = 82;
+    //     float grGora = 82;
+    //     float grDol = 92;
+
+    //     return grupa switch
+    //     {
+    //         "Lewo" => (grLewo, 0, 0, 0),
+    //         "Lewa" => (grLewo, 0, 0, 0),
+
+    //         "Prawo" => (0, grPrawo, 0, 0),
+    //         "Prawa" => (0, grPrawo, 0, 0),
+
+    //         "Gora" => (0, 0, grGora, 0),
+    //         "Góra" => (0, 0, grGora, 0),
+
+    //         "Dol" => (0, 0, 0, grDol),
+    //         "Dół" => (0, 0, 0, grDol),
+
+    //         _ => (grLewo, grPrawo, grGora, grDol)
+    //     };
+    // }
 
     private async Task DrawSingleContour(Canvas2DContext context, List<XPoint> outerPoints)
     {

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace GEORGE.Shared.Models
 {
@@ -32,7 +27,7 @@ namespace GEORGE.Shared.Models
         // Opcjonalne warunki połączenia
         public int? KatOd { get; set; } = 0;
         public int? KatDo { get; set; } = 0;
-        public string? DodatkowyWarunek { get; set; } 
+        public string? DodatkowyWarunek { get; set; }
         public string? OpisPolaczenia { get; set; }
         public string? Uwagi { get; set; }
         public byte[] RysunekPrzekroju { get; set; } = Array.Empty<byte>();
@@ -45,6 +40,7 @@ namespace GEORGE.Shared.Models
         public double? Model2PozycjaY { get; set; }
         public string? ZoomTransform { get; set; }
         public double? ZoomLevel { get; set; }
+        public string? KierunekBudowy { get; set; }
 
         // Opcjonalnie - pozycja całej grupy modeli
         public string? ModelsGroupTransform { get; set; }
@@ -54,6 +50,7 @@ namespace GEORGE.Shared.Models
 
         [NotMapped]
         public KonfSystem? ElementZewnetrzny { get; set; }
+
     }
 
 }

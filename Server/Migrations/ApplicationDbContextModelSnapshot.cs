@@ -448,6 +448,9 @@ namespace GEORGE.Server.Migrations
                     b.Property<int?>("KatOd")
                         .HasColumnType("int");
 
+                    b.Property<string>("KierunekBudowy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("KonfiguracjaSVG")
                         .HasColumnType("nvarchar(max)");
 

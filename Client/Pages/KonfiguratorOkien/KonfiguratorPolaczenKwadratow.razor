@@ -3455,6 +3455,7 @@
                                 <Tooltip Title="Zapisz ustawienia">
                                     <Button Icon="@IconType.Fill.Save"
                                             OnClick="SaveAllPosition"
+                                            Loading="czekajNaZapisAll"
                                             Class="connection-save-button">
                                         Zapisz
                                     </Button>
@@ -3716,32 +3717,46 @@
 
                     </div>
 
-
                     <!-- ========================================================= -->
                     <!-- STATUS MODELI                                             -->
                     <!-- ========================================================= -->
                     @if (pierwszyModel != null || drugiModel != null)
                     {
-                        <div class="status-message">
+                        <div class="status-message flex-wrap gap-2">
 
-                            @if (pierwszyModel != null && drugiModel == null)
-                            {
-                                <span>
-                                    <i class="bi bi-1-circle-fill me-1"></i>
-                                    Pierwszy model wybrany:
-                                    <strong>@pierwszyModel.Nazwa</strong>
+                            <div>
+                                @if (pierwszyModel != null && drugiModel == null)
+                                {
+                                    <span>
+                                        <i class="bi bi-1-circle-fill me-1"></i>
+                                        Pierwszy model wybrany:
+                                        <strong>@pierwszyModel.Nazwa</strong>
+                                    </span>
+                                }
+                                else if (pierwszyModel != null && drugiModel != null)
+                                {
+                                    <span>
+                                        <i class="bi bi-link-45deg me-1"></i>
+                                        Połączono:
+                                        <strong>@pierwszyModel.Nazwa</strong>
+                                        <span class="mx-1">→</span>
+                                        <strong>@drugiModel.Nazwa</strong>
+                                    </span>
+                                }
+                            </div>
+
+                            <div class="ms-auto d-flex align-items-center gap-2">
+                                <span class="fw-bold text-nowrap">
+                                    Model budowany w widoku z:
                                 </span>
-                            }
-                            else if (pierwszyModel != null && drugiModel != null)
-                            {
-                                <span>
-                                    <i class="bi bi-link-45deg me-1"></i>
-                                    Połączono:
-                                    <strong>@pierwszyModel.Nazwa</strong>
-                                    <span class="mx-1">→</span>
-                                    <strong>@drugiModel.Nazwa</strong>
-                                </span>
-                            }
+
+                                <RadioGroup @bind-Value="@wybranyKierunekBudowy" ButtonStyle="RadioButtonStyle.Solid">
+                                    <Radio Value="@("lewej")">Lewej</Radio>
+                                    <Radio Value="@("prawej")">Prawej</Radio>
+                                    <Radio Value="@("góry")">Góry</Radio>
+                                    <Radio Value="@("dołu")">Dołu</Radio>
+                                </RadioGroup>
+                            </div>
 
                         </div>
                     }
@@ -3881,7 +3896,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <Tooltip Title="Zapisz ustawienia">
-                                    <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Class="btn btn-primary me-2">
+                                    <Button Icon="@IconType.Fill.Save" OnClick="SaveAllPosition" Loading="czekajNaZapisAll" Class="btn btn-primary me-2">
                                         Zapisz
                                     </Button>
                                 </Tooltip>
@@ -4161,6 +4176,9 @@
     private bool czekajNaZaladowanieDanych = true;
 
     private string filtrPolaczen = "WSZYSTKIE";
+
+    // Kierunek budowy modelu — wybór jednokrotny (lewa / prawa / góra / dół)
+    private string? wybranyKierunekBudowy;
 
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
@@ -4494,7 +4512,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-                {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -4541,7 +4559,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -4716,14 +4734,87 @@
         StateHasChanged();
     }
 
+    bool czekajNaZapisAll = false;
     private async Task SaveAllPosition()
+    {
+        if (string.IsNullOrEmpty(SelectedSystemId) || pierwszyModel == null || drugiModel == null)
+        {
+            await _message.Error("❌ Brak wybranego systemu lub modeli do zapisania");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(wybranyKierunekBudowy))
+        {
+            await _message.Error("❌ Wybierz kierunek budowy");
+            return;
+        }
+
+        string statusZapisu = "";
+
+        if (czekajNaZapisAll) return;
+
+        czekajNaZapisAll = true;
+
+        if (selGora && wybranyKierunekBudowy == "prawej")
+        {
+
+            await RotateObjAll();
+            await InvokeAsync(StateHasChanged);
+            await RotateObjAll();
+            await InvokeAsync(StateHasChanged);
+            await RotateObjAll();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100); // Daj czas na zakończenie operacji w JS
+            await Task.Yield(); // Upewnij się, że JS zakończył operacje
+            await InvokeAsync(StateHasChanged);
+            statusZapisu = await SavePosition("góra");
+
+        }
+        if (selDol && wybranyKierunekBudowy == "prawej")
+        {
+
+            await RotateObjAll();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100); // Daj czas na zakończenie operacji w JS
+            await Task.Yield(); // Upewnij się, że JS zakończył operacje
+            await InvokeAsync(StateHasChanged);
+            statusZapisu = await SavePosition("dół");
+
+        }
+        if (selPrawa && wybranyKierunekBudowy == "prawej")
+        {
+            await InvokeAsync(StateHasChanged);
+            statusZapisu = await SavePosition("prawa");
+        }
+        if (selLewa && wybranyKierunekBudowy == "prawej")
+        {
+            await MirrorObjAll();
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(100); // Daj czas na zakończenie operacji w JS
+            await Task.Yield(); // Upewnij się, że JS zakończył operacje
+            await InvokeAsync(StateHasChanged);
+            statusZapisu = await SavePosition("lewa");
+
+        }
+      
+        czekajNaZapisAll = false;
+
+        await _message.Success(statusZapisu, 2);
+
+        activeKey = "0";
+
+        await InvokeAsync(StateHasChanged);
+
+    }
+
+    private async Task<string> SavePosition(string strona)
     {
         // Pobierz wynik przesunięcia
         var result = await PobierzWynikPrzesuniecia();
 
         if (result == null)
         {
-            return; // Błąd został już obsłużony w funkcji PobierzWynikPrzesuniecia
+            return "Brak danych o przesunięciu. Nie zapisano."; 
         }
 
         double przesuniecieX = result.przesuniecieX;
@@ -4738,14 +4829,14 @@
         var aktualnySvg = await JSRuntime.InvokeAsync<string>("svgHelper.getCurrentSvgState");
 
         // 🔹 Lista stron do zapisania (lewa/prawa/góra/dół)
-        var strony = WyliczStronyPolaczenia();
+       //var strony = WyliczStronyPolaczenia();
 
-        Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strony: {strony.Count()} svg: {svg.Length} png: {png.Length}");
+        Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strona: {strona} svg: {svg.Length} png: {png.Length}");
 
         string statusZapisu = "";
 
-        foreach (var strona in strony)
-        {
+        //foreach (var strona in strony)
+        //{
 
             var polaczenie = new KonfPolaczenie
             {
@@ -4761,6 +4852,7 @@
                 DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE",
                 ElementZewnetrznyToSlupek = pierwszyModel.Typ.Contains("Słupek stały"),
                 ElementWewnetrznyToSlupek = drugiModel.Typ.Contains("Słupek stały"),
+                KierunekBudowy = wybranyKierunekBudowy
             };
 
             polaczenie.RysunekPrzekrojuStyczny = Array.Empty<byte>();
@@ -4781,13 +4873,13 @@
                 else if (responseS.StatusCode != HttpStatusCode.NotFound)
                 {
                     await _message.Error($"❌ Błąd sprawdzania strony: {strona}");
-                    continue;
+                    return string.Empty;
                 }
             }
             catch (Exception ex)
             {
                 await _message.Error($"❌ Błąd komunikacji z API dla strony {strona}: {ex.Message}");
-                continue;
+                return string.Empty;
             }
 
             // 🔸 Uzupełnij dane zależnie od zakładki
@@ -4854,7 +4946,7 @@
             if (response.IsSuccessStatusCode)
             {
                 var zakladka = boolStyczny ? "styczna" : "przekrój";
-                statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katUstawienia}°\n";
+                statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katUstawienia}°\r\n<br>";
             }
             else
             {
@@ -4895,13 +4987,9 @@
                 listaPolaczen = new();
             }
 
-        }
+       // }
 
-        await _message.Success(statusZapisu, 2);
-
-        activeKey = "0";
-
-        await InvokeAsync(StateHasChanged);
+        return statusZapisu;
 
     }
 
