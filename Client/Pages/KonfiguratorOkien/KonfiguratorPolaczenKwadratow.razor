@@ -586,6 +586,37 @@
             }
         };
 
+        // 🔁 Lustrzane odbicie wszystkich modeli w pionie (lewo ↔ prawo)
+        window.svgHelper.flipAllModelsVertically = function () {
+        try {
+            const group = window.svgHelper.ensureModelsGroup();
+            if (!group) {
+                console.warn("[flipAllModelsVertically] Nie można uzyskać #models-group");
+                return;
+            }
+
+            const svg = document.querySelector(".scaled-svg svg");
+            if (!svg) {
+                console.warn("[flipAllModelsVertically] Nie znaleziono <svg>");
+                return;
+            }
+
+            const viewBox = svg.viewBox.baseVal;
+            const centerX = viewBox.x + viewBox.width / 2;
+
+            const currentTransform = group.getAttribute("transform") || "";
+
+            // Odbicie względem PIONOWEJ osi SVG (x = centerX)
+            // x' = 2*centerX - x
+            const flipTransform = `translate(${2 * centerX}, 0) scale(-1, 1)`;
+
+            group.setAttribute("transform", `${currentTransform} ${flipTransform}`);
+
+            console.log(`[flipAllModelsVertically] Odbito względem pionowej osi SVG przy x=${centerX}`);
+        } catch (e) {
+            console.error("[flipAllModelsVertically] błąd:", e);
+        }
+    };
 
        // 📌 Przesuń - ZACHOWUJE ODBICIE LUSTRZANE
        window.svgHelper.move = function(dx, dy) {
@@ -3254,10 +3285,11 @@
     // osobno i stanowi punkt wyjścia.
     // ============================================================
 
-    window.svgHelper.applyModelsViewTransform = function (
+        window.svgHelper.applyModelsViewTransform = function (
         baseTransform,
         rotationDelta,
-        mirror
+        mirror,          // odbicie poziome (góra ↔ dół) — stara nazwa, zachowana dla zgodności
+        mirrorVertical   // odbicie pionowe (lewo ↔ prawo) — NOWY, opcjonalny
     ) {
         try {
             const group = window.svgHelper.ensureModelsGroup();
@@ -3268,30 +3300,30 @@
             }
 
             const bbox = group.getBBox();
-
             const cx = bbox.x + bbox.width / 2;
             const cy = bbox.y + bbox.height / 2;
 
             const transforms = [];
 
-            // Zachowaj oryginalną transformację bazową
+            // 1. Bazowa transformacja (zachowuje oryginalny układ modeli)
             if (baseTransform && baseTransform.trim() !== "") {
                 transforms.push(baseTransform);
             }
 
-            // Obrót względem środka grupy modeli
+            // 2. Obrót względem środka grupy modeli
             const angle = ((Number(rotationDelta) % 360) + 360) % 360;
-
             if (angle !== 0) {
                 transforms.push(`rotate(${angle}, ${cx}, ${cy})`);
             }
 
-            // Odbicie względem poziomej osi przechodzącej
-            // przez środek grupy modeli
+            // 3. Odbicie POZIOME (góra ↔ dół) — oś pozioma y = cy
             if (mirror === true) {
-                transforms.push(
-                    `translate(0, ${2 * cy}) scale(1, -1)`
-                );
+                transforms.push(`translate(0, ${2 * cy}) scale(1, -1)`);
+            }
+
+            // 4. Odbicie PIONOWE (lewo ↔ prawo) — oś pionowa x = cx
+            if (mirrorVertical === true) {
+                transforms.push(`translate(${2 * cx}, 0) scale(-1, 1)`);
             }
 
             const finalTransform = transforms.join(" ");
@@ -3302,14 +3334,12 @@
                 group.removeAttribute("transform");
             }
 
-            console.log(
-                "[applyModelsViewTransform]",
-                {
-                    rotationDelta: angle,
-                    mirror: mirror,
-                    transform: finalTransform
-                }
-            );
+            console.log("[applyModelsViewTransform]", {
+                rotationDelta: angle,
+                mirror: mirror,
+                mirrorVertical: mirrorVertical,
+                transform: finalTransform
+            });
 
             return true;
         }
@@ -3535,21 +3565,42 @@
                                 <tbody>
                                     @foreach (var model in ListaModeli)
                                     {
-                                        <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa, false, selSlStaly, selSlRuchomy)">
-                                            <td>@model.NazwaKonfiguracji</td>
-                                            <td>@model.Typ</td>
-                                            <td>
-                                                @if (model.Rysunek?.Length > 0)
-                                                {
-                                                    <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                                         width="60" height="60" />
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">Brak</span>
-                                                }
-                                            </td>
-                                        </tr>
+                                        @if (pierwszyModel == null)
+                                        {
+                                            <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa, false, selSlStaly, selSlRuchomy)">
+                                                <td>@model.NazwaKonfiguracji</td>
+                                                <td>@model.Typ</td>
+                                                <td>
+                                                    @if (model.Rysunek?.Length > 0)
+                                                    {
+                                                        <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" width="60" height="60" />
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <span class="text-muted">Brak</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        else if (CzyMozliwePolaczenie(pierwszyModel, model))
+                                        {
+                                            <tr @onclick="() => WybierzModel(model, selDol, selGora, selLewa, selPrawa, false, selSlStaly, selSlRuchomy)">
+                                                <td>@model.NazwaKonfiguracji</td>
+                                                <td>@model.Typ</td>
+                                                <td>
+                                                    @if (model.Rysunek?.Length > 0)
+                                                    {
+                                                        <img src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)" width="60" height="60" />
+                                                    }
+                                                    else
+                                                    {
+
+                                                        <span class="text-muted">Brak</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
                                     }
                                 </tbody>
                             </table>
@@ -4032,6 +4083,9 @@
                                 <Tooltip Title="Lustro elementów. Odbicie w poziome">
                                     <Button Icon="@IconType.Outline.Swap" OnClick="MirrorObjAll" Class="btn-sm btn-move" />
                                 </Tooltip>
+                                <Tooltip Title="Lustro elementów. Odbicie w pionie">
+                                    <Button Icon="@IconType.Outline.Swap" OnClick="MirrorObjAllVertically" Class="btn-sm btn-move" />
+                                </Tooltip>
                                 <Tooltip Title="Obróć wszystko">
                                     <Button Icon="@IconType.Outline.Undo" OnClick="RotateObjAll" Class="btn-sm btn-move" />
                                 </Tooltip>
@@ -4331,6 +4385,45 @@
 
     }
 
+    /// <summary>
+    /// Czy dopuszczalne jest połączenie "pierwszyModel" z kandydatem "model"?
+    /// Reguły:
+    ///   Rama          → Skrzydło lub Słupek  (NIE Rama)
+    ///   Skrzydło      → tylko Skrzydło       (NIE Słupek, NIE Rama)
+    ///   Słupek (oba)  → tylko Skrzydło       (NIE Słupek, NIE Rama)
+    ///   brak pierwszego → wszystko dozwolone
+    /// </summary>
+    private static bool CzyMozliwePolaczenie(KonfSystem? pierwszy, KonfModele? kandydat)
+    {
+        if (pierwszy == null) return true;      // pierwszy jeszcze nie wybrany → pokaż wszystko
+        if (kandydat == null) return false;
+
+        var t1 = pierwszy.Typ ?? "";
+        var t2 = kandydat.Typ ?? "";
+
+        bool p1Rama = t1.Contains("Rama");
+        bool p1Skrzydlo = t1.Contains("Skrzydło");
+        bool p1Slupek = t1.Contains("Słupek");   // obejmuje stały i ruchomy
+
+        bool p2Rama = t2.Contains("Rama");
+        bool p2Skrzydlo = t2.Contains("Skrzydło");
+        bool p2Slupek = t2.Contains("Słupek");
+
+        // Pierwszy = Rama → drugi: Skrzydło lub Słupek (nie Rama)
+        if (p1Rama)
+            return (p2Skrzydlo || p2Slupek) && !p2Rama;
+
+        // Pierwszy = Skrzydło → drugi: tylko Skrzydło
+        if (p1Skrzydlo)
+            return p2Skrzydlo;
+
+        // Pierwszy = Słupek (stały lub ruchomy) → drugi: tylko Skrzydło
+        if (p1Slupek)
+            return p2Skrzydlo;
+
+        return false;
+    }
+
     // Obsługa wyboru systemu
     private async Task OnSystemSelected(ChangeEventArgs e)
     {
@@ -4490,12 +4583,24 @@
         if (!selDol && !selGora && !selLewa && !selPrawa && !selDolStyczne && !selGoraStyczne && !selLewaStyczne && !selPrawaStyczne)
         {
             BladKonfiguracji = "Wybierz co najmniej jedną stronę (Dół, Góra, Lewa, Prawa).";
+            _ = _notice.Warning(new()
+            {
+                Message = BladKonfiguracji,
+                Description = "Uwaga!",
+                Placement = NotificationPlacement.BottomLeft
+            });
             return;
         }
 
         if (model == null)
         {
             BladKonfiguracji = "Wybierz co najmniej jedną stronę wybrany - model jest pusty.";
+            _ = _notice.Warning(new()
+            {
+                Message = BladKonfiguracji,
+                Description = "Uwaga!",
+                Placement = NotificationPlacement.BottomLeft
+            });
             return;
         }
 
@@ -4648,7 +4753,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -4695,7 +4800,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -4704,7 +4809,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-    {string.Join("", svgParts)}
+            {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -4831,6 +4936,11 @@
         await JSRuntime.InvokeVoidAsync("svgHelper.flipAllModelsHorizontally");
     }
 
+    private async Task MirrorObjAllVertically()
+    {
+        await JSRuntime.InvokeVoidAsync("svgHelper.flipAllModelsVertically");
+    }
+
     private async Task RotateObjAll()
     {
 
@@ -4895,19 +5005,37 @@
 
         // Lista widoków, które mają zostać zapisane.
         // Kat i odbicie określają ich docelową orientację.
-        var stronyDoZapisu = new List<(string Strona, int Kat, bool Odbicie)>();
+        var stronyDoZapisu = new List<(string Strona, int Kat, bool Odbicie,  int KatZapis)>();
 
-        if (selGora || selPrawaStyczne)
-            stronyDoZapisu.Add(("góra", 270, false));
+        if(boolStyczny)
+        {
 
-        if (selDol || selLewaStyczne)
-            stronyDoZapisu.Add(("dół", 90, false));
+            if (selGoraStyczne)
+                stronyDoZapisu.Add(("góra", 0, false , 0));
 
-        if (selPrawa || selGoraStyczne)
-            stronyDoZapisu.Add(("prawa", 0, false));
+            if (selDolStyczne)
+                stronyDoZapisu.Add(("dół", 180, false, 180));
 
-        if (selLewa || selDolStyczne)
-            stronyDoZapisu.Add(("lewa", 0, true));
+            if (selPrawaStyczne)
+                stronyDoZapisu.Add(("prawa", 270, true, 90));
+
+            if (selLewaStyczne)
+                stronyDoZapisu.Add(("lewa", 270, false, 270));
+        }
+        else
+        {
+            if (selGora)
+                stronyDoZapisu.Add(("góra", 0, false ,0));
+
+            if (selDol)
+                stronyDoZapisu.Add(("dół", 180, false, 180));
+
+            if (selPrawa)
+                stronyDoZapisu.Add(("prawa", 270, true, 90));
+
+            if (selLewa)
+                stronyDoZapisu.Add(("lewa", 270, false, 270));
+        }
 
         if (stronyDoZapisu.Count == 0)
         {
@@ -4977,6 +5105,8 @@
                     // a aktualnym widokiem budowania.
                     int katObrotu =
                         NormalizujKat(strona.Kat - katWidokuBazowego);
+                    int katObrotuZapisz =
+                    NormalizujKat(strona.KatZapis - katWidokuBazowego);
 
                     // Odbicie wykonujemy tylko wtedy, gdy orientacje
                     // bazowa i docelowa różnią się rodzajem odbicia.
@@ -5003,7 +5133,7 @@
                     }
 
                     // Aktualizuj kąt zapisywany w rekordzie.
-                    katUstawienia = NormalizujKat(katBazowy + katObrotu);
+                    katUstawienia = NormalizujKat(katBazowy + katObrotuZapisz);
 
                     await InvokeAsync(StateHasChanged);
 
@@ -5014,7 +5144,7 @@
                     // Zapisz konkretny widok.
                     string wynik = await SavePosition(
                         strona.Strona,
-                        katUstawienia);
+                        strona.KatZapis);
 
                     wynikiZapisu.Add(wynik);
 
@@ -5063,217 +5193,195 @@
     }
 
     private async Task<string> SavePosition(
-    string strona,
-    int? katZapisywany = null)
+     string strona,
+     int? katZapisywany = null)
     {
         int katDoZapisu = katZapisywany ?? katUstawienia;
+
         // Pobierz wynik przesunięcia
         var result = await PobierzWynikPrzesuniecia();
-
         if (result == null)
-        {
-            return "Brak danych o przesunięciu. Nie zapisano."; 
-        }
+            return "Brak danych o przesunięciu. Nie zapisano.";
 
         double przesuniecieX = result.przesuniecieX;
         double przesuniecieY = result.przesuniecieY;
 
+        // 🔄 WIDOKI PIONOWE (KatZapis 90/270): swap X↔Y.
+        //    Pomiar jest w bazowym widoku (base), a zapisujemy do strony,
+        //    której kanoniczna orientacja ma X/Y zamienione.
+        bool swapXY = (katDoZapisu == 90 || katDoZapisu == 270);
+        if (swapXY)
+        {
+            (przesuniecieX, przesuniecieY) = (przesuniecieY, przesuniecieX);
+            Console.WriteLine($"[SavePosition] {strona}: swap X↔Y (KatZapis={katDoZapisu}) → X={przesuniecieX}, Y={przesuniecieY}");
+        }
 
         // 🔹 Rysunek aktualnej zakładki
         var png = await GenerujPngBezProwadnic();
-
         var svg = await GenerujSvgBezProwadnic();
-
         var aktualnySvg = await JSRuntime.InvokeAsync<string>("svgHelper.getCurrentSvgState");
 
-        // 🔹 Lista stron do zapisania (lewa/prawa/góra/dół)
-       //var strony = WyliczStronyPolaczenia();
-
-        Console.WriteLine($"Rozpoczynam pętle foreach (var strona in strony) Strona: {strona} svg: {svg.Length} png: {png.Length}");
+        Console.WriteLine($"Rozpoczynam zapis. Strona: {strona}, svg: {svg.Length}, png: {png.Length}");
 
         string statusZapisu = "";
 
-        //foreach (var strona in strony)
-        //{
+        var polaczenie = new KonfPolaczenie
+        {
+            ElementZewnetrznyId = pierwszyModel.RowId,
+            ElementWewnetrznyId = drugiModel.RowId,
+            StronaPolaczenia = strona,
+            RowIdSystem = Guid.Parse(SelectedSystemId),
+            RowIdModelu = Guid.Parse(SelectedModelPierwszyId),
+            RowIdModeluDrugi = Guid.Parse(SelectedModelDrugiId),
+            ZapisanyKat = katDoZapisu,   // ← używamy parametru, nie katUstawienia
+            OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}",
+            Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]",
+            DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE",
+            ElementZewnetrznyToSlupek = pierwszyModel.Typ.Contains("Słupek stały"),
+            ElementWewnetrznyToSlupek = drugiModel.Typ.Contains("Słupek stały"),
+            KierunekBudowy = wybranyKierunekBudowy,
+        };
 
-            var polaczenie = new KonfPolaczenie
+        polaczenie.RysunekPrzekrojuStyczny = Array.Empty<byte>();
+        polaczenie.RysunekPrzekroju = Array.Empty<byte>();
+
+        // 🔍 Sprawdź, czy istnieje już połączenie
+        KonfPolaczenie? existing = null;
+        try
+        {
+            var responseS = await Http.GetAsync(
+                $"api/KonfPolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}/{strona}");
+
+            if (responseS.IsSuccessStatusCode)
             {
-                ElementZewnetrznyId = pierwszyModel.RowId,
-                ElementWewnetrznyId = drugiModel.RowId,
-                StronaPolaczenia = strona,
-                RowIdSystem = Guid.Parse(SelectedSystemId),
-                RowIdModelu = Guid.Parse(SelectedModelPierwszyId),
-                RowIdModeluDrugi = Guid.Parse(SelectedModelDrugiId),
-                ZapisanyKat = katUstawienia,
-                OpisPolaczenia = $"Połączono: {pierwszyModel.Nazwa ?? "Model 1 ?"} z {drugiModel.Nazwa ?? "Model 2 ?"}",
-                Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}]",
-                DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE",
-                ElementZewnetrznyToSlupek = pierwszyModel.Typ.Contains("Słupek stały"),
-                ElementWewnetrznyToSlupek = drugiModel.Typ.Contains("Słupek stały"),
-                KierunekBudowy = wybranyKierunekBudowy
-            };
-
-            polaczenie.RysunekPrzekrojuStyczny = Array.Empty<byte>();
-            polaczenie.RysunekPrzekroju = Array.Empty<byte>();
-
-            // 🔍 Sprawdź, czy istnieje już połączenie
-            KonfPolaczenie? existing = null;
-
-            try
-            {
-                var responseS = await Http.GetAsync(
-                    $"api/KonfPolaczenie/find-by-elements/{polaczenie.ElementZewnetrznyId}/{polaczenie.ElementWewnetrznyId}/{strona}");
-
-                if (responseS.IsSuccessStatusCode)
-                {
-                    existing = await responseS.Content.ReadFromJsonAsync<KonfPolaczenie>();
-                }
-                else if (responseS.StatusCode != HttpStatusCode.NotFound)
-                {
-                    await _message.Error($"❌ Błąd sprawdzania strony: {strona}");
-                    return string.Empty;
-                }
+                existing = await responseS.Content.ReadFromJsonAsync<KonfPolaczenie>();
             }
-            catch (Exception ex)
+            else if (responseS.StatusCode != HttpStatusCode.NotFound)
             {
-                await _message.Error($"❌ Błąd komunikacji z API dla strony {strona}: {ex.Message}");
+                await _message.Error($"❌ Błąd sprawdzania strony: {strona}");
                 return string.Empty;
             }
+        }
+        catch (Exception ex)
+        {
+            await _message.Error($"❌ Błąd komunikacji z API dla strony {strona}: {ex.Message}");
+            return string.Empty;
+        }
 
-            // 🔸 Uzupełnij dane zależnie od zakładki
-            if (boolStyczny)
-            {
-                // --- DANE DLA ZAKŁADKI "STYCZNE" ---
-                polaczenie.PrzesuniecieXStycznej = przesuniecieX - 3.05;
-                polaczenie.PrzesuniecieYStycznej = przesuniecieY - 8.99;// awatar modelu
-                polaczenie.RysunekPrzekrojuStyczny = png;
-
-                if (existing != null)
-                {
-                    // zachowaj dane przekrojów, nadpisz tylko styczne
-                    polaczenie.Id = existing.Id;
-                    polaczenie.RowId = existing.RowId;
-                    polaczenie.PrzesuniecieX = Math.Round(existing.PrzesuniecieX, precyzjaZapisu);
-                    polaczenie.PrzesuniecieY = Math.Round(existing.PrzesuniecieY, precyzjaZapisu);
-                    //polaczenie.RysunekPrzekrojuStyczny = existing.RysunekPrzekrojuStyczny;
-                }
-            }
-            else
-            {
-                // --- DANE DLA ZAKŁADKI "PRZEKROJE" ---
-                polaczenie.PrzesuniecieX = Math.Round(przesuniecieX, precyzjaZapisu);
-                polaczenie.PrzesuniecieY = Math.Round(przesuniecieY, precyzjaZapisu);
-                polaczenie.RysunekPrzekroju = png;
-
-                if (existing != null)
-                {
-                    // zachowaj dane styczne, nadpisz tylko przekroje
-                    polaczenie.Id = existing.Id;
-                    polaczenie.RowId = existing.RowId;
-                    polaczenie.PrzesuniecieXStycznej = Math.Round(existing.PrzesuniecieXStycznej, precyzjaZapisu);
-                    polaczenie.PrzesuniecieYStycznej = Math.Round(existing.PrzesuniecieYStycznej, precyzjaZapisu);
-                    //polaczenie.RysunekPrzekroju = existing.RysunekPrzekroju;
-                }
-            }
-
-            polaczenie.PrzesuniecieXStycznej = Math.Round(polaczenie.PrzesuniecieXStycznej, precyzjaZapisu);
-            polaczenie.PrzesuniecieYStycznej = Math.Round(polaczenie.PrzesuniecieYStycznej, precyzjaZapisu);
-
-            //Zapis rysunków do bazy
-
-            polaczenie.SVG = svg;
-            polaczenie.KonfiguracjaSVG = aktualnySvg;
-
-            Console.WriteLine($"Zapis połączenia: boolStyczny:{boolStyczny} -> {polaczenie.ElementZewnetrznyId} + {polaczenie.ElementWewnetrznyId} Strona: {strona} X={przesuniecieX} Y={przesuniecieY} Kat={katUstawienia}");
-
-            // 🔹 Zapisz lub aktualizuj w bazie
-            HttpResponseMessage response;
+        // 🔸 Uzupełnij dane zależnie od zakładki
+        if (boolStyczny)
+        {
+            // --- ZAKŁADKA "STYCZNE" ---
+            polaczenie.PrzesuniecieXStycznej = przesuniecieX - 3.05;
+            polaczenie.PrzesuniecieYStycznej = przesuniecieY - 8.99;
+            polaczenie.RysunekPrzekrojuStyczny = png;
 
             if (existing != null)
             {
-                response = await Http.PutAsJsonAsync("api/KonfPolaczenie", polaczenie);
-                Console.WriteLine($"Aktualizacja połączenia: {response.StatusCode}");
+                polaczenie.Id = existing.Id;
+                polaczenie.RowId = existing.RowId;
+                polaczenie.PrzesuniecieX = Math.Round(existing.PrzesuniecieX, precyzjaZapisu);
+                polaczenie.PrzesuniecieY = Math.Round(existing.PrzesuniecieY, precyzjaZapisu);
             }
-            else
+        }
+        else
+        {
+            // --- ZAKŁADKA "PRZEKROJE" ---
+            polaczenie.PrzesuniecieX = Math.Round(przesuniecieX, precyzjaZapisu);
+            polaczenie.PrzesuniecieY = Math.Round(przesuniecieY, precyzjaZapisu);
+            polaczenie.RysunekPrzekroju = png;
+
+            if (existing != null)
             {
-                response = await Http.PostAsJsonAsync("api/KonfPolaczenie", polaczenie);
-                Console.WriteLine($"Nowe połączenie: {response.StatusCode}");
+                polaczenie.Id = existing.Id;
+                polaczenie.RowId = existing.RowId;
+                polaczenie.PrzesuniecieXStycznej = Math.Round(existing.PrzesuniecieXStycznej, precyzjaZapisu);
+                polaczenie.PrzesuniecieYStycznej = Math.Round(existing.PrzesuniecieYStycznej, precyzjaZapisu);
             }
+        }
 
-            // 🔸 Feedback użytkownikowi
-            if (response.IsSuccessStatusCode)
-            {
-                var zakladka = boolStyczny ? "styczna" : "przekrój";
-                statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katUstawienia}°\r\n<br>";
-            }
-            else
-            {
-                _message.Error($"❌ Błąd zapisu strona: {strona}");
-            }
+        polaczenie.PrzesuniecieXStycznej = Math.Round(polaczenie.PrzesuniecieXStycznej, precyzjaZapisu);
+        polaczenie.PrzesuniecieYStycznej = Math.Round(polaczenie.PrzesuniecieYStycznej, precyzjaZapisu);
 
-            KonfiguracjeSystemu = null;
-            listaPolaczen = null;
+        polaczenie.SVG = svg;
+        polaczenie.KonfiguracjaSVG = aktualnySvg;
 
-            await Task.Delay(10);
+        Console.WriteLine($"Zapis: boolStyczny={boolStyczny}, {polaczenie.ElementZewnetrznyId}+{polaczenie.ElementWewnetrznyId}, Strona={strona}, X={przesuniecieX}, Y={przesuniecieY}, Kat={katDoZapisu}");
 
-            KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
+        HttpResponseMessage response;
+        if (existing != null)
+        {
+            response = await Http.PutAsJsonAsync("api/KonfPolaczenie", polaczenie);
+            Console.WriteLine($"Aktualizacja: {response.StatusCode}");
+        }
+        else
+        {
+            response = await Http.PostAsJsonAsync("api/KonfPolaczenie", polaczenie);
+            Console.WriteLine($"Nowe: {response.StatusCode}");
+        }
 
-            try
-            {
-                var responselp = await Http.GetAsync($"api/KonfPolaczenie/row-id-system/{SelectedSystemId}");
+        if (response.IsSuccessStatusCode)
+        {
+            var zakladka = boolStyczny ? "styczna" : "przekrój";
+            statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katDoZapisu}° \r\n";
+        }
+        else
+        {
+            _message.Error($"❌ Błąd zapisu strona: {strona}");
+        }
 
-                if (responselp.IsSuccessStatusCode)
-                {
-                    listaPolaczen = await responselp.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
-                }
-                else if (responselp.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    // 👇 Obsłuż błąd NotFound — nie ma rekordów, to nie błąd techniczny
-                    listaPolaczen = new();
-                    Console.WriteLine("Brak połączeń dla danego systemu.");
-                }
-                else
-                {
-                    // 👇 Inne błędy — np. 500
-                    Console.Error.WriteLine($"Błąd HTTP {responselp.StatusCode}");
-                    listaPolaczen = new();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Błąd ładowania połączeń: {ex.Message}");
+        // Odśwież listę
+        KonfiguracjeSystemu = null;
+        listaPolaczen = null;
+        await Task.Delay(10);
+
+        KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>(
+            $"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}") ?? new();
+
+        try
+        {
+            var responselp = await Http.GetAsync($"api/KonfPolaczenie/row-id-system/{SelectedSystemId}");
+
+            if (responselp.IsSuccessStatusCode)
+                listaPolaczen = await responselp.Content.ReadFromJsonAsync<List<KonfPolaczenie>>() ?? new();
+            else if (responselp.StatusCode == HttpStatusCode.NotFound)
                 listaPolaczen = new();
-            }
-
-       // }
+            else
+                listaPolaczen = new();
+        }
+        catch
+        {
+            listaPolaczen = new();
+        }
 
         return statusZapisu;
-
     }
 
     private static (int Kat, bool Odbicie) PobierzOrientacjeWidoku(string kierunek)
     {
-        string kierunekNormalizowany = (kierunek ?? "")
-            .Trim()
-            .ToLowerInvariant();
+        string k = (kierunek ?? "").Trim().ToLowerInvariant();
 
-        return kierunekNormalizowany switch
-        {
-            "prawa" or "prawej" or "prawy" or "prawo"
-                => (0, false),
+        // Zamiana polskich znaków na ASCII (żeby "dołu" == "dolu", "góry" == "gory")
+        k = k
+            .Replace('ą', 'a')
+            .Replace('ć', 'c')
+            .Replace('ę', 'e')
+            .Replace('ł', 'l')
+            .Replace('ń', 'n')
+            .Replace('ó', 'o')
+            .Replace('ś', 's')
+            .Replace('ź', 'z')
+            .Replace('ż', 'z');
 
-            "góra" or "gora" or "górna" or "gorna" or "górnej" or "gorne"
-                => (270, false),
+        // Teraz porównujemy po przedrostku — niezależnie od przypadka
+        if (k.StartsWith("praw")) return (90, false);   // prawa, prawej, prawy, prawo, prawą
+        if (k.StartsWith("gor")) return (0, false);    // góra, góry, górna, górnej, górą
+        if (k.StartsWith("dol")) return (180, false);  // dół, dołu, dolna, dolnej, dołem
+        if (k.StartsWith("lew")) return (270, true);   // lewa, lewej, lewy, lewo, lewą
 
-            "dół" or "dol" or "dolna" or "dolnej"
-                => (90, false),
-
-            "lewa" or "lewej" or "lewy" or "lewo"
-                => (0, true),
-
-            _ => throw new ArgumentException(
-                $"Nieznany kierunek budowy: {kierunek}")
-        };
+        throw new ArgumentException(
+            $"Nieznany kierunek budowy: '{kierunek}' (po normalizacji: '{k}'). " +
+            $"Dozwolone: lewa/prawa/góra/dół w dowolnym przypadku.");
     }
 
 
@@ -5614,7 +5722,6 @@
         {
             Console.WriteLine("🔄 Rozpoczynam ładowanie danych modal edycji...");
 
-            // Resetuj pozycję model2 przed załadowaniem
             await JSRuntime.InvokeVoidAsync("svgHelper.resetModel2Position");
             await Task.Delay(50);
 
@@ -5622,19 +5729,35 @@
             edytowanePolaczenie = polaczenie;
             edytowanyRowId = polaczenie.RowId;
 
-            // Wypełnij formularz danymi
             edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
             edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
 
-            edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
-            edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
-            edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
-            edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+            // 🔄 UN-SWAP: baza trzyma X/Y w kanonicznej orientacji strony,
+            //    a formularz pokazuje wartości w bazowym widoku budowania.
+            bool swapXY = (edytowanaStrona is "prawa" or "lewa");
 
-            old_edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
-            old_edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
-            old_edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
-            old_edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+            if (swapXY)
+            {
+                edytowanePrzesuniecieX = polaczenie.PrzesuniecieY;
+                edytowanePrzesuniecieY = polaczenie.PrzesuniecieX;
+                edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieYStycznej;
+                edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieXStycznej;
+
+                Console.WriteLine($"[ZaladujDaneModalEdycji] {edytowanaStrona}: un-swap X↔Y");
+            }
+            else
+            {
+                edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
+                edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
+                edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
+                edytowanePrzesuniecieYStycznej = polaczenie.PrzesuniecieYStycznej;
+            }
+
+            // Zapamiętaj wartości startowe (do wyliczania delty)
+            old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
+            old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
+            old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
+            old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
 
             edytowanyKat = polaczenie.ZapisanyKat;
 
@@ -5644,15 +5767,16 @@
             old_ElementZewnetrznyToSlupek = polaczenie.ElementZewnetrznyToSlupek;
             old_ElementWewnetrznyToSlupek = polaczenie.ElementWewnetrznyToSlupek;
 
-            Console.WriteLine($"📋 Podstawowe dane przypisane. Model1 ID: {SelectedModelPierwszyId}, Model2 ID: {SelectedModelDrugiId}");
+            // Odtwórz kierunek budowy
+            wybranyKierunekBudowy = polaczenie.KierunekBudowy;
+
+            Console.WriteLine($"📋 Podstawowe dane. Model1={SelectedModelPierwszyId}, Model2={SelectedModelDrugiId}");
 
             // Pobierz pierwszy model
-            Console.WriteLine("🌐 Pobieram pierwszy model z API...");
             var response1 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
             if (!response1.IsSuccessStatusCode)
             {
                 BladKonfiguracji = $"Błąd odczytu powiązania: {response1.StatusCode} #1";
-                Console.WriteLine($"❌ {BladKonfiguracji}");
                 return;
             }
 
@@ -5660,21 +5784,16 @@
             if (result1?.KonfSystem == null || result1.KonfSystem.Count == 0)
             {
                 BladKonfiguracji = "Brak danych powiązanych #1";
-                Console.WriteLine($"❌ {BladKonfiguracji}");
                 return;
             }
-            var pasujaceSystemy1 = result1.KonfSystem.ToList();
-            var pasujacy1 = pasujaceSystemy1.First();
-            pierwszyModel = pasujacy1;
-            Console.WriteLine($"✅ Pobrano pierwszy model: {pierwszyModel.Nazwa}");
+            pierwszyModel = result1.KonfSystem.First();
+            Console.WriteLine($"✅ Pierwszy model: {pierwszyModel.Nazwa}");
 
             // Pobierz drugi model
-            Console.WriteLine("🌐 Pobieram drugi model z API...");
             var response2 = await Http.GetAsync($"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
             if (!response2.IsSuccessStatusCode)
             {
                 BladKonfiguracji = $"Błąd odczytu powiązania: {response2.StatusCode} #2";
-                Console.WriteLine($"❌ {BladKonfiguracji}");
                 return;
             }
 
@@ -5682,131 +5801,71 @@
             if (result2?.KonfSystem == null || result2.KonfSystem.Count == 0)
             {
                 BladKonfiguracji = "Brak danych powiązanych #2";
-                Console.WriteLine($"❌ {BladKonfiguracji}");
                 return;
             }
-            var pasujaceSystemy2 = result2.KonfSystem.ToList();
-            var pasujacy2 = pasujaceSystemy2.First();
-            drugiModel = pasujacy2;
-            Console.WriteLine($"✅ Pobrano drugi model: {drugiModel.Nazwa}");
+            drugiModel = result2.KonfSystem.First();
+            Console.WriteLine($"✅ Drugi model: {drugiModel.Nazwa}");
 
-            // 📌 WAŻNE: Najpierw pokaż modal
             czyModalEdycjiWidoczny = true;
 
-            // Wygeneruj SVG jeśli nie istnieje
             if (string.IsNullOrEmpty(combinedSvg) && string.IsNullOrEmpty(combinedSvgStyczne))
             {
                 AktualizujSvg();
             }
 
             await InvokeAsync(StateHasChanged);
-            await Task.Delay(500); // Poczekaj na pełny render
+            await Task.Delay(500);
 
-            // 📌 SPRAWDŹ CZY MAMY ZAPISANY SVG W BAZIE
+            // 📌 SVG Z BAZY
             if (!string.IsNullOrEmpty(polaczenie.KonfiguracjaSVG))
             {
-                Console.WriteLine("📦 Wczytano SVG z bazy danych");
-                Console.WriteLine($"📏 Długość SVG: {polaczenie.KonfiguracjaSVG.Length} znaków");
-
-                // Załaduj SVG z zachowaniem transformacji
-                var loadResult = await JSRuntime.InvokeAsync<bool>("svgHelper.loadSvgPreserveTransform",
+                Console.WriteLine("📦 Wczytano SVG z bazy");
+                var loadResult = await JSRuntime.InvokeAsync<bool>(
+                    "svgHelper.loadSvgPreserveTransform",
                     polaczenie.KonfiguracjaSVG);
 
                 if (loadResult)
                 {
-                    Console.WriteLine("✅ SVG załadowane z zachowaniem transformacji");
-
-                    // Poczekaj na pełne załadowanie
                     await Task.Delay(300);
 
-                    // Sprawdź transformację model2
                     var model2Transform = await JSRuntime.InvokeAsync<string>("eval",
                         "(function() { const m2 = document.querySelector('#model2'); return m2 ? (m2.getAttribute('transform') || 'BRAK') : 'NIE ISTNIEJE'; })()");
 
                     Console.WriteLine($"📐 Transformacja model2: {model2Transform}");
 
-                    // Jeśli model2 ma zapisaną transformację, zachowaj ją
-                    if (model2Transform != "BRAK" && model2Transform != "NIE ISTNIEJE" &&
-                        !string.IsNullOrEmpty(model2Transform) && model2Transform != "null")
+                    if (string.IsNullOrEmpty(model2Transform) || model2Transform == "BRAK" || model2Transform == "NIE ISTNIEJE" || model2Transform == "null")
                     {
-                        Console.WriteLine("✅ Model2 ma zapisaną transformację - zachowuję ją bez zmian");
-                    }
-                    else
-                    {
-                        // Model2 nie ma transformacji - zastosuj zapisane przesunięcie
-                        Console.WriteLine("⚠️ Model2 nie ma transformacji, stosuję zapisane przesunięcie");
+                        // Fallback: ustaw z zapisanych wartości
+                        double savedX = boolStyczny ? edytowanePrzesuniecieXStycznej : edytowanePrzesuniecieX;
+                        double savedY = boolStyczny ? edytowanePrzesuniecieYStycznej : edytowanePrzesuniecieY;
 
-                        // Pobierz zapisane przesunięcie
-                        double savedX = boolStyczny ? polaczenie.PrzesuniecieXStycznej : polaczenie.PrzesuniecieX;
-                        double savedY = boolStyczny ? polaczenie.PrzesuniecieYStycznej : polaczenie.PrzesuniecieY;
-
-                        Console.WriteLine($"📐 Zapisane przesunięcie: X={savedX}, Y={savedY}");
-
-                        // Pobierz aktualną skalę zoom-group
                         var scaleResult = await JSRuntime.InvokeAsync<double>("eval",
-                            "(function() { const zg = document.querySelector('#zoom-group'); if (!zg) return 1; const transform = zg.getAttribute('transform') || ''; const match = transform.match(/scale\\(([^)]+)\\)/); return match ? parseFloat(match[1]) : 1; })()");
+                            "(function() { const zg = document.querySelector('#zoom-group'); if (!zg) return 1; const t = zg.getAttribute('transform') || ''; const m = t.match(/scale\\(([^)]+)\\)/); return m ? parseFloat(m[1]) : 1; })()");
 
-                        Console.WriteLine($"📐 Skala zoom-group: {scaleResult}");
-
-                        // Konwersja mm na piksele
                         double mmToPx = 3.779527559;
-                        double deltaX = (savedX * mmToPx) / scaleResult;
-                        double deltaY = (savedY * mmToPx) / scaleResult;
+                        double newX = 300 + (savedX * mmToPx) / scaleResult;
+                        double newY = 300 + (savedY * mmToPx) / scaleResult;
 
-                        // Model1 jest na translate(300, 300)
-                        double newX = 300 + deltaX;
-                        double newY = 300 + deltaY;
-
-                        Console.WriteLine($"📐 Nowa pozycja model2: X={newX:F2}, Y={newY:F2}");
-
-                        // Ustaw transformację model2
-                        var setResult = await JSRuntime.InvokeAsync<bool>("eval", $@"
+                        await JSRuntime.InvokeAsync<bool>("eval", $@"
                         (function() {{
-                            const model2 = document.querySelector('#model2');
-                            if (!model2) {{
-                                console.error('Brak model2');
-                                return false;
-                            }}
-
-                            model2.setAttribute('transform', 'translate({newX.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {newY.ToString(System.Globalization.CultureInfo.InvariantCulture)})');
-
-                            console.log('Model2 ustawiony na: translate({newX:F2}, {newY:F2})');
+                            const m2 = document.querySelector('#model2');
+                            if (!m2) return false;
+                            m2.setAttribute('transform', 'translate({newX.ToString(System.Globalization.CultureInfo.InvariantCulture)}, {newY.ToString(System.Globalization.CultureInfo.InvariantCulture)})');
                             return true;
                         }})()
                     ");
-
-                        if (setResult)
-                        {
-                            Console.WriteLine($"✅ Model2 ustawiony na pozycji: X={newX:F2}, Y={newY:F2}");
-                        }
                     }
 
-                    // Sprawdź czy są prowadnice
                     var hasGuides = await JSRuntime.InvokeAsync<bool>("eval",
                         "(function() { return document.querySelectorAll('[data-name^=\"guide-line-\"]').length > 0; })()");
-
                     if (hasGuides)
-                    {
                         await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
-                        Console.WriteLine("✅ Prowadnice zainicjalizowane");
-                    }
-
-                    // NIE wywołuj centerAndFit - to zepsuje pozycje!
-
-                    Console.WriteLine("✅ SVG przywrócony z bazy - pozycje zachowane");
-                }
-                else
-                {
-                    Console.WriteLine("❌ Nie udało się załadować SVG z bazy");
                 }
             }
             else
             {
-                Console.WriteLine("⚠️ Brak zapisanego SVG - generowanie nowego z offsetami");
-
-                double toffsetX;
-                double toffsetY;
-
+                // Brak SVG w bazie – generuj z offsetami
+                double toffsetX, toffsetY;
                 offsetX = 0;
                 offsetY = 0;
 
@@ -5822,8 +5881,6 @@
                     toffsetY = old_edytowanePrzesuniecieY;
                 }
 
-                Console.WriteLine($"Załadowano pierwszy model: {pierwszyModel.Nazwa} (ID: {pierwszyModel.RowId}) toffsetX: {toffsetX} toffsetY: {toffsetY}");
-
                 await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
                 await Task.Delay(100);
                 await JSRuntime.InvokeVoidAsync("svgHelper.initGuideLines");
@@ -5832,12 +5889,11 @@
                 await Task.Delay(50);
             }
 
-            Console.WriteLine($"✅ Modal edycji załadowany - Model1: {pierwszyModel.Nazwa}, Model2: {drugiModel.Nazwa}");
+            Console.WriteLine($"✅ Modal edycji załadowany");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Błąd w ZaladujDaneModalEdycji: {ex.Message}");
-            Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
             BladKonfiguracji = $"Błąd ładowania danych: {ex.Message}";
         }
     }
@@ -5895,81 +5951,64 @@
 
     private async Task OnPrzesuniecieChanged()
     {
-        Console.WriteLine($"OnPrzesuniecieChanged: edytowanePrzesuniecieX={edytowanePrzesuniecieX}, edytowanePrzesuniecieY={edytowanePrzesuniecieY}, edytowanePrzesuniecieXStycznej={edytowanePrzesuniecieXStycznej}, edytowanePrzesuniecieYStycznej={edytowanePrzesuniecieYStycznej}");
+        Console.WriteLine($"OnPrzesuniecieChanged: X={edytowanePrzesuniecieX}, Y={edytowanePrzesuniecieY}, Xs={edytowanePrzesuniecieXStycznej}, Ys={edytowanePrzesuniecieYStycznej}");
 
-        // Sprawdź aktualną transformację model2
         var currentTransform = await JSRuntime.InvokeAsync<string>("eval",
             "(function() { const m2 = document.querySelector('#model2'); return m2 ? (m2.getAttribute('transform') || '') : ''; })()");
 
         Console.WriteLine($"📐 Aktualna transformacja model2: {currentTransform}");
 
-        // Sprawdź czy jesteśmy w trybie stycznym czy przekrojów
-        bool isStyczne = boolStyczny;
+        // Dla widoków pionowych – swap delty przed moveonlyedit
+        bool swapXY = (edytowanaStrona is "prawa" or "lewa");
 
-        if (isStyczne)
+        if (boolStyczny)
         {
-            // Tryb styczny
             if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej ||
                 edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
             {
-                // Oblicz różnicę
                 double deltaX = edytowanePrzesuniecieXStycznej - old_edytowanePrzesuniecieXStycznej;
                 double deltaY = edytowanePrzesuniecieYStycznej - old_edytowanePrzesuniecieYStycznej;
 
-                Console.WriteLine($"📐 Przesuwam model2 o: deltaX={deltaX}, deltaY={deltaY}");
-
-                // Sprawdź czy model2 ma odbicie lustrzane
-                var hasFlip = await JSRuntime.InvokeAsync<bool>("eval",
-                    "(function() { const m2 = document.querySelector('#model2'); if (!m2) return false; const t = m2.getAttribute('transform') || ''; return t.includes('scale(-1') || t.includes('scale(1, -1)'); })()");
-
-                if (hasFlip)
+                if (swapXY)
                 {
-                    Console.WriteLine("🔄 Model2 ma odbicie lustrzane - odwracam kierunek");
-                    // Nie odwracaj tutaj - funkcja JavaScript sama to obsłuży
+                    (deltaX, deltaY) = (deltaY, deltaX);
+                    Console.WriteLine($"[OnPrzesuniecieChanged] {edytowanaStrona}: swap delty stycznej");
                 }
 
-                // Użyj poprawionej funkcji moveonlyedit
+                Console.WriteLine($"📐 Przesuwam model2: ΔX={deltaX}, ΔY={deltaY}");
                 await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit", deltaX, deltaY);
-
                 await Task.Delay(10);
 
-                // Aktualizuj stare wartości
                 old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
                 old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
             }
         }
         else
         {
-            // Tryb przekrojów
             if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX ||
                 edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
             {
-                // Oblicz różnicę
                 double deltaX = edytowanePrzesuniecieX - old_edytowanePrzesuniecieX;
                 double deltaY = edytowanePrzesuniecieY - old_edytowanePrzesuniecieY;
 
-                Console.WriteLine($"📐 Przesuwam model2 o: deltaX={deltaX}, deltaY={deltaY}");
+                if (swapXY)
+                {
+                    (deltaX, deltaY) = (deltaY, deltaX);
+                    Console.WriteLine($"[OnPrzesuniecieChanged] {edytowanaStrona}: swap delty");
+                }
 
-                // Sprawdź czy model2 ma odbicie lustrzane
-                var hasFlip = await JSRuntime.InvokeAsync<bool>("eval",
-                    "(function() { const m2 = document.querySelector('#model2'); if (!m2) return false; const t = m2.getAttribute('transform') || ''; return t.includes('scale(-1') || t.includes('scale(1, -1)'); })()");
-
-                Console.WriteLine($"🔄 Model2 ma odbicie lustrzane: {hasFlip}");
-
-                // Użyj poprawionej funkcji moveonlyedit
+                Console.WriteLine($"📐 Przesuwam model2: ΔX={deltaX}, ΔY={deltaY}");
                 await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit", deltaX, deltaY);
-
                 await Task.Delay(10);
 
-                // Aktualizuj stare wartości
                 old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
                 old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
             }
         }
     }
-
+    
     bool czekajNaZapis = false;
-    // Zapisanie zmian
+
     private async Task ZapiszEdycje()
     {
         if (!boolAdmin && !boolZmian)
@@ -5983,56 +6022,35 @@
             return;
         }
 
-        if (czekajNaZapis)
-        {
-            return;
-        }
-
+        if (czekajNaZapis) return;
         czekajNaZapis = true;
 
         try
         {
             bladEdycji = "";
 
-            // Walidacja
             if (string.IsNullOrWhiteSpace(edytowanaStrona))
             {
                 bladEdycji = "Wybierz stronę połączenia";
                 return;
             }
 
-            // if (edytowanePrzesuniecieX != old_edytowanePrzesuniecieX || edytowanePrzesuniecieY != old_edytowanePrzesuniecieY)
-            // {
-
-            //     //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-            //     await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
-            //     edytowanePrzesuniecieX,
-            //     edytowanePrzesuniecieY);
-            //     await Task.Delay(10); // Daj czas na renderowanie
-
-            //     // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-
-            // }
-
-            // if (edytowanePrzesuniecieXStycznej != old_edytowanePrzesuniecieXStycznej || edytowanePrzesuniecieYStycznej != old_edytowanePrzesuniecieYStycznej)
-            // {
-            //     //await JSRuntime.InvokeVoidAsync("svgHelper.move", edytowanePrzesuniecieXStycznej, edytowanePrzesuniecieYStycznej);
-            //     await JSRuntime.InvokeVoidAsync("svgHelper.moveAbsolute",
-            //     edytowanePrzesuniecieXStycznej,
-            //     edytowanePrzesuniecieYStycznej);
-            //     await Task.Delay(10); // Daj czas na renderowanie
-            //     // await ZmienPrzesuniecie(edytowanePrzesuniecieX, edytowanePrzesuniecieY);
-            // }
-
-            // 🔹 Rysunek aktualnej zakładki
             var png = await GenerujPngBezProwadnic();
-
             var svg = await GenerujSvgBezProwadnic();
-
             var aktualnySvg = await JSRuntime.InvokeAsync<string>("svgHelper.getCurrentSvgState");
 
-            // Jeśli png jest puste, użyj pustej tablicy
             var safePng = png ?? Array.Empty<byte>();
+
+            // 🔄 SWAP: formularz pokazuje base (X/Y jak w widoku budowania),
+            //    a do API wysyłamy w kanonicznej orientacji strony.
+            bool swapXY = (edytowanaStrona is "prawa" or "lewa");
+
+            double zapisX = swapXY ? edytowanePrzesuniecieY : edytowanePrzesuniecieX;
+            double zapisY = swapXY ? edytowanePrzesuniecieX : edytowanePrzesuniecieY;
+            double zapisXStycznej = swapXY ? edytowanePrzesuniecieYStycznej : edytowanePrzesuniecieXStycznej;
+            double zapisYStycznej = swapXY ? edytowanePrzesuniecieXStycznej : edytowanePrzesuniecieYStycznej;
+
+            Console.WriteLine($"[ZapiszEdycje] strona={edytowanaStrona}, swap={swapXY}, X={zapisX}, Y={zapisY}, Xs={zapisXStycznej}, Ys={zapisYStycznej}");
 
             var updateDto = new
             {
@@ -6041,15 +6059,18 @@
                 RowIdModeluDrugi = SelectedModelDrugiId,
                 OpisPolaczenia = edytowanyOpis,
                 StronaPolaczenia = edytowanaStrona,
-                PrzesuniecieX = edytowanePrzesuniecieX,
-                PrzesuniecieY = edytowanePrzesuniecieY,
-                PrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej,
-                PrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej,
+
+                PrzesuniecieX = zapisX,
+                PrzesuniecieY = zapisY,
+                PrzesuniecieXStycznej = zapisXStycznej,
+                PrzesuniecieYStycznej = zapisYStycznej,
+
                 ZapisanyKat = edytowanyKat,
                 RysunekPrzekroju = !boolStyczny ? safePng : Array.Empty<byte>(),
                 RysunekPrzekrojuStyczny = boolStyczny ? safePng : Array.Empty<byte>(),
                 Svg = svg,
                 KonfiguracjaSVG = aktualnySvg,
+                KierunekBudowy = edytowanePolaczenie?.KierunekBudowy,
                 Uwagi = $"Ostatnia zmiana: {DateTime.Now} - [{user}] - Zmiana po edycji",
                 DodatkowyWarunek = boolStyczny ? "STYCZNE" : "PRZEKROJE",
                 ElementZewnetrznyToSlupek = old_ElementZewnetrznyToSlupek,
@@ -6063,14 +6084,9 @@
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine("✅ Zmiany zapisane pomyślnie");
-
                 await OdswiezDane();
-
                 ZamknijModalEdycji();
-
                 activeKey = "0";
-                // Opcjonalnie pokaż komunikat sukcesu
-                // await _message.Success("Zmiany zostały zapisane");
             }
             else
             {
@@ -6084,8 +6100,10 @@
             bladEdycji = $"Wystąpił błąd: {ex.Message}";
             Console.WriteLine($"❌ Wyjątek: {ex.Message}");
         }
-
-        czekajNaZapis = false;
+        finally
+        {
+            czekajNaZapis = false;
+        }
     }
 
     private IEnumerable<dynamic> FiltrowanePolaczenia

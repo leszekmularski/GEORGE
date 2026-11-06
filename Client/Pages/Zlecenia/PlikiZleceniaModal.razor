@@ -297,7 +297,7 @@
                                     <div class="file-cell__row">
                                         <Input Placeholder="Podaj uwagę."
                                                @bind-Value="@context.Uwagi"
-                                               MaxLength="55"
+                                               MaxLength="75"
                                                Size="small"
                                                ReadOnly="@IsNotDisabled"
                                                OnBlur="@(() => OnZmienUwage.InvokeAsync((context.Id, context.Uwagi)))" />
