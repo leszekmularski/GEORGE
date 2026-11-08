@@ -3675,6 +3675,12 @@
                                                     Class="btn-sm btn-move" />
                                         </Tooltip>
 
+                                        <Tooltip Title="Lustro elementów - odbicie wszystkich elementów w pionie">
+                                            <Button Icon="@IconType.Outline.Swap"
+                                                    OnClick="MirrorObjAllVertically"
+                                                    Class="btn-sm btn-move" />
+                                        </Tooltip>
+
                                     </div>
 
                                 </div>
@@ -3790,7 +3796,7 @@
                                     <div class="tool-setting">
 
                                         <label>
-                                            Przesuwanie:
+                                            Precyzja przesuwania:
                                         </label>
 
                                         <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania"
@@ -4605,6 +4611,32 @@
         }
 
         BladKonfiguracji = "";
+
+        if(!boolStyczny && model.Typ.Contains("Słupek") && drugiModel == null)
+        {
+            selSlStaly = true;
+            bSlupekStaly = true;
+
+            _notice.Warning(new()
+            {
+                Message = "Wybór słupka stałego jest wymuszony przy połączeniu stycznym ze słupkiem.",
+                Description = "Uwaga!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 4
+            });
+        }
+        else if (!boolStyczny && !model.Typ.Contains("Słupek") && drugiModel == null && bSlupekStaly)
+        {
+            selSlStaly = false;
+            bSlupekStaly = false;
+            _notice.Warning(new()
+            {
+                Message = "W razie konieczności wybierz ponownie słupek stały.",
+                Description = "Uwaga!",
+                Placement = NotificationPlacement.BottomLeft,
+                Duration = 4
+            });
+        }
 
         Console.WriteLine("WybierzModel - START");
 

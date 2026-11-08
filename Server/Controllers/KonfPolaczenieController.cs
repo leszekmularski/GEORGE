@@ -313,6 +313,7 @@ namespace GEORGE.Server.Controllers
             {
                 var records = await _context.KonfPolaczenie
                     .Where(p => p.RowIdSystem == rowidSystem)
+                    .OrderBy(p => p.OpisPolaczenia)
                     .ToListAsync();
 
                 if (records == null || records.Count == 0)

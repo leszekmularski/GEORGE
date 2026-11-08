@@ -580,22 +580,22 @@
 
         function shiftRightSvgElements() {
             console.log("➡️ Przesuwam w prawo (wizualnie)");
-            updateTransform(1, 0);
+            updateTransform(0.5, 0);
         }
 
         function shiftLeftSvgElements() {
             console.log("⬅️ Przesuwam w lewo (wizualnie)");
-            updateTransform(-1, 0);
+            updateTransform(-0.5, 0);
         }
 
         function shiftUpSvgElements() {
             console.log("⬆️ Przesuwam w górę (wizualnie)");
-            updateTransform(0, -1);
+            updateTransform(0, -0.5);
         }
 
         function shiftDownSvgElements() {
             console.log("⬇️ Przesuwam w dół (wizualnie)");
-            updateTransform(0, 1);
+            updateTransform(0, 0.5);
         }
 
         // Bardziej odporna funkcja: konwertuje SVG string -> base64 PNG
@@ -931,21 +931,38 @@
             updateGuideValues();
         }
 
-            function getKonfSystemValues() {
-            return {
-                PionLewa: verticalGuides["guide-line-vertical"] ?? 0,
-                PionPrawa: verticalGuides["guide-line-verticalMax"] ?? 0,
-                PionOsSymetrii: verticalGuides["guide-line-verticalOsSymetrii"] ?? 0,
-                PionOdSzybaOdZew: verticalGuides["guide-line-verticalOdlSzyby"] ?? 0,
+        function getKonfSystemValues() {
+        console.log("📡 Odczytuję aktualne wartości prowadnic z DOM...");
 
-                PoziomDol: horizontalGuides["guide-line-horizontal"] ?? 0,
-                PoziomGora: horizontalGuides["guide-line-horizontalMax"] ?? 0,
-                PoziomKorpus: horizontalGuides["guide-line-horizontal-korpus"] ?? 0,
-                PoziomLiniaSzkla: horizontalGuides["guide-line-horizontal-liniaSzklenia"] ?? 0,
-                PoziomLiniaOkucia: horizontalGuides["guide-line-horizontal-okucie"] ?? 0,
-                PoziomOsSymetrii: horizontalGuides["guide-line-horizontal-OsSymetrii"] ?? 0
-            };
-        }
+        // 🔥 Zawsze odczytaj aktualne wartości z DOM (a nie z pamięci)
+        document.querySelectorAll("line[id^='guide-line']").forEach(line => {
+            const id = line.id;
+            if (id.includes("vertical")) {
+                const x = parseFloat(line.getAttribute("x1"));
+                if (Number.isFinite(x)) verticalGuides[id] = x;
+            } else if (id.includes("horizontal")) {
+                const y = parseFloat(line.getAttribute("y1"));
+                if (Number.isFinite(y)) horizontalGuides[id] = y;
+            }
+        });
+
+        return {
+            PionLewa: verticalGuides["guide-line-vertical"] ?? 0,
+            PionPrawa: verticalGuides["guide-line-verticalMax"] ?? 0,
+            PionOsSymetrii: verticalGuides["guide-line-verticalOsSymetrii"] ?? 0,
+            PionOdSzybaOdZew: verticalGuides["guide-line-verticalOdlSzyby"] ?? 0,
+
+            PoziomDol: horizontalGuides["guide-line-horizontal"] ?? 0,
+            PoziomGora: horizontalGuides["guide-line-horizontalMax"] ?? 0,
+            PoziomKorpus: horizontalGuides["guide-line-horizontal-korpus"] ?? 0,
+            PoziomLiniaSzkla: horizontalGuides["guide-line-horizontal-liniaSzklenia"] ?? 0,
+            PoziomLiniaOkucia: horizontalGuides["guide-line-horizontal-okucie"] ?? 0,
+            PoziomOsDormas: horizontalGuides["guide-line-horizontal-dormas"] ?? 0,
+            PoziomOsSymetrii: horizontalGuides["guide-line-horizontal-OsSymetrii"] ?? 0,
+            PoziomDodatkowa6: horizontalGuides["guide-line-horizontal-dodatkowa6"] ?? 0,
+            PoziomDodatkowa7: horizontalGuides["guide-line-horizontal-dodatkowa7"] ?? 0
+        };
+    }
 
     // ============================================================
     // WYPALENIE ODBICIA PIONOWEGO DO WSPÓŁRZĘDNYCH SVG
@@ -1770,6 +1787,44 @@
         return true;
     };
 
+    window.applyKonfSystemValuesToGuides = function(values) {
+        console.log("🎯 Aplikuję wartości z formularza do prowadnic SVG...");
+        const map = {
+            "guide-line-vertical":               values.PionLewa,
+            "guide-line-verticalMax":            values.PionPrawa,
+            "guide-line-verticalOsSymetrii":     values.PionOsSymetrii,
+            "guide-line-verticalOdlSzyby":       values.PionOdSzybaOdZew,
+            "guide-line-verticalDodatkowa4":     values.PionDodatkowa4,
+            "guide-line-verticalDodatkowa5":     values.PionDodatkowa5,
+            "guide-line-horizontal":             values.PoziomDol,
+            "guide-line-horizontalMax":          values.PoziomGora,
+            "guide-line-horizontal-korpus":      values.PoziomKorpus,
+            "guide-line-horizontal-liniaSzklenia": values.PoziomLiniaSzkla,
+            "guide-line-horizontal-okucie":      values.PoziomLiniaOkucia,
+            "guide-line-horizontal-dormas":      values.PoziomOsDormas,
+            "guide-line-horizontal-OsSymetrii":  values.PoziomOsSymetrii,
+            "guide-line-horizontal-dodatkowa6":  values.PoziomDodatkowa6,
+            "guide-line-horizontal-dodatkowa7":  values.PoziomDodatkowa7
+        };
+
+        Object.entries(map).forEach(([id, val]) => {
+            const line = document.getElementById(id);
+            if (!line || val == null) return;
+            if (id.includes("vertical")) {
+                line.setAttribute("x1", val);
+                line.setAttribute("x2", val);
+                verticalGuides[id] = val;
+            } else {
+                line.setAttribute("y1", val);
+                line.setAttribute("y2", val);
+                horizontalGuides[id] = val;
+            }
+        });
+
+        if (typeof updateGuideValues === "function") updateGuideValues();
+        return true;
+    };
+
 </script>
 
 @if (czekajNaZaladowanieDanych)
@@ -2196,26 +2251,46 @@
 
     </TabPane>
     <TabPane Tab="Linie oraz rysunek DXF" Key="2">
-        <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-            <a href="#" @onclick="@(() => activeKey = "1")"
-               @onclick:preventDefault="true"
-               class="btn btn-primary btn-sm"
-               role="button">
-                💾 Przejdź do zapisu
-            </a>
- 
-            <button class="btn btn-outline-secondary btn-sm" @onclick="RefreshSvg">
-                🔄 Odśwież
-            </button>
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap p-2 rounded"
+             style="background: #f8f9fa; border: 1px solid #e9ecef;">
 
-            <button class="btn btn-outline-secondary btn-sm" @onclick="FixGuides">
-                🗺️ Napraw prowadnice
-            </button>
+            <!-- 🔹 Lewa grupa: akcje -->
+            <div class="dxf-toolbar mb-3">
 
-            <button class="btn btn-info text-white btn-sm" @onclick="DownloadDxf">
-                📥 Pobierz DXF
-            </button>
-            <span class="badge bg-secondary fs-6" style="width:50%">Podgląd profilu pobranego z DXF</span>
+                <!-- 🔹 Lewa grupa: akcje -->
+                <div class="dxf-toolbar-group">
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="PrzejdzDoZapisu"
+                            title="Przejdź do formularza zapisu">
+                        💾 Przejdź do zapisu
+                    </button>
+
+                    <span class="dxf-toolbar-divider"></span>
+
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="RefreshSvg"
+                            title="Odśwież widok SVG">
+                        🔄 Odśwież
+                    </button>
+
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="FixGuides"
+                            title="Przytnij prowadnice do rzeczywistego obszaru rysunku">
+                        🗺️ Napraw prowadnice
+                    </button>
+
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="DownloadDxf"
+                            title="Pobierz plik DXF z przekrojem profilu">
+                        📥 Pobierz DXF
+                    </button>
+                </div>
+
+                <!-- 🔹 Prawa grupa: tytuł sekcji -->
+                <span class="dxf-toolbar-title">Podgląd profilu z DXF</span>
+            </div>
+
+            <!-- 🔹 Prawa grupa: tytuł sekcji -->
+            <span class="text-muted fw-semibold"
+                  style="font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase;">
+                Podgląd profilu z DXF
+            </span>
         </div>
         <!-- Wrapper dla SVG i wartości linii -->
         <div style="display: flex; align-items: flex-start; gap: 15px;">
@@ -2233,7 +2308,6 @@
                     <p>⏳ Wczytywanie rysunku...</p>
                 }
             </div>
-
 
             <!-- Panel po prawej stronie -->
             <div style="width: 300px; border-left: 2px solid #ccc; padding-left: 10px;">
@@ -2354,16 +2428,32 @@
         czekajNaZaladowanieDanych = false;
     }
 
-    private async Task OnTabClick()
+    private async Task OnTabClick(string newKey)
     {
-        if (activeKey != "2")
-            return;
+        // 🔥 Gdy WYCHODZIMY z zakładki "2" – zapisz aktualne wartości prowadnic do modelu
+        if (activeKey == "2" && newKey != "2")
+        {
+            try
+            {
+                var values = await JSRuntime.InvokeAsync<KonfSystem>("getKonfSystemValues");
+                AktualizujProwadnice(values);
+                Console.WriteLine("✅ Zapisano wartości prowadnic z zakładki DXF do modelu");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Błąd odczytu prowadnic: {ex.Message}");
+            }
+        }
 
-        var values = await JSRuntime.InvokeAsync<KonfSystem>("getKonfSystemValues");
+        // 🔥 Gdy WCHODZIMY do zakładki "2" – opcjonalnie zsynchronizuj z modelu do SVG
+        if (newKey == "2")
+        {
+            await Task.Delay(150); // poczekaj na render SVG
+            await JSRuntime.InvokeVoidAsync("applyKonfSystemValuesToGuides", konfSystem);
+        }
 
-        AktualizujProwadnice(values);
-
-        StateHasChanged();
+        activeKey = newKey;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void AktualizujProwadnice(KonfSystem source)
@@ -2378,7 +2468,7 @@
         nameof(KonfSystem.PionDodatkowa5),
 
         nameof(KonfSystem.PoziomGora),
-        nameof(KonfSystem.PoziomDol), 
+        nameof(KonfSystem.PoziomDol),
         nameof(KonfSystem.PoziomKorpus),
         nameof(KonfSystem.PoziomLiniaSzkla),
         nameof(KonfSystem.PoziomLiniaOkucia),
@@ -2397,7 +2487,7 @@
 
             var nowaWartosc = prop.GetValue(source) as double?;
 
-            if (nowaWartosc.HasValue && nowaWartosc.Value != 0)
+            if (nowaWartosc.HasValue && nowaWartosc.Value > -0.001)
             {
                 prop.SetValue(konfSystem, Math.Round(nowaWartosc ?? 0, precyzjaZapisuLinii));
 
@@ -2555,6 +2645,30 @@
         else
         {
             Console.WriteLine("❌ Błąd pobierania DXF: " + await response.Content.ReadAsStringAsync());
+        }
+    }
+
+    private async Task PrzejdzDoZapisu()
+    {
+        await ZapiszProwadniceDoModelu();   // 🔥 synchronizacja prowadnic
+        activeKey = "1";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ZapiszProwadniceDoModelu()
+    {
+        if (activeKey != "2")
+            return;
+
+        try
+        {
+            var values = await JSRuntime.InvokeAsync<KonfSystem>("getKonfSystemValues");
+            AktualizujProwadnice(values);
+            Console.WriteLine("✅ Zapisano wartości prowadnic z zakładki DXF do modelu");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Błąd odczytu prowadnic: {ex.Message}");
         }
     }
 
@@ -2750,14 +2864,14 @@
             return;
         }
 
-        if( KonfiguracjeSystemu == null)
+        if (KonfiguracjeSystemu == null)
         {
             KonfiguracjeSystemu = await Http.GetFromJsonAsync<List<KonfSystem>>($"api/konfsystem/FIND_ROWID_SYS/{SelectedSystemId}");
         }
 
         var czyJestTakiIndeks = KonfiguracjeSystemu.Any(k => k.IndeksElementu == konfSystem.IndeksElementu);
 
-        if(czyJestTakiIndeks && konfSystem.Id == 0)
+        if (czyJestTakiIndeks && konfSystem.Id == 0)
         {
             activeKey = "1";
 

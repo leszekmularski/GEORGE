@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<WasmEnableSimdSupport>false</WasmEnableSimdSupport>
-	<AssemblyVersion>1.1.4.6</AssemblyVersion>
-	<FileVersion>1.1.4.6</FileVersion>
+	<AssemblyVersion>1.1.4.7</AssemblyVersion>
+	<FileVersion>1.1.4.7</FileVersion>
 	<InvariantGlobalization>false</InvariantGlobalization>
     <BlazorEnableTimeZoneSupport>true</BlazorEnableTimeZoneSupport>
     <SignAssembly>False</SignAssembly>
@@ -19,7 +19,7 @@
     <PackageReference Include="Blazor.Extensions.Canvas" Version="1.1.1" />
     <PackageReference Include="itext7" Version="8.0.5" />
     <PackageReference Include="lmNetDXF" Version="1.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.33" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.91.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
 	<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
