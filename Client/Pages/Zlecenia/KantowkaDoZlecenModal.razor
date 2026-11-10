@@ -1,0 +1,1454 @@
+﻿@using GEORGE.Shared.Models
+@using GEORGE.Shared.ViewModels
+@using GEORGE.Shared.Class
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Net
+@using System.Text.Json
+@using System.Text.RegularExpressions
+@using AntDesign
+
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject IMessageService _message
+@inject PdfReaderService PdfReaderService
+@inject GEORGE.Client.Pages.PDF.PdfDataParser PdfDataParser
+@inject Utilities.ILocalStorage LocalStorage
+@inject IConfirmService _confirmService
+@inject INotificationService _notice
+
+@if (!string.IsNullOrEmpty(Display) && Display != "none")
+{
+    <style>
+        /* styl modala – scoped na tyle, na ile to możliwe */
+        .kantowka-modal .custom-link { color: blue; }
+        .kantowka-modal .zrealizowano, .kantowka-modal .zrealizowano > td {
+            background-color: forestgreen !important; color: white;
+        }
+        .kantowka-modal .zrealizowano:hover, .kantowka-modal .zrealizowano:hover > td {
+            background-color: mediumslateblue !important; font-size: 1.0em;
+        }
+        .kantowka-modal .zamowiono, .kantowka-modal .zamowiono > td {
+            background-color: lightblue !important; color: black;
+        }
+        .kantowka-modal .zamowiono:hover, .kantowka-modal .zamowiono:hover > td {
+            background-color: mediumslateblue !important; font-size: 1.0em;
+        }
+        .kantowka-modal .zlecenieNaN, .kantowka-modal .zlecenieNaN > td {
+            background-color: whitesmoke !important; color: black;
+        }
+        .kantowka-modal .zlecenieNaN:hover, .kantowka-modal .zlecenieNaN:hover > td {
+            background-color: mediumslateblue !important; font-size: 1.0em;
+        }
+        .kantowka-modal .highlighted-row, .kantowka-modal .highlighted-row > td {
+            background-color: yellow !important; color: black !important;
+        }
+
+        .ant-modal-root,
+        .ant-modal-wrap {
+            z-index: 1200 !important;
+        }
+
+        .ant-modal-mask {
+            z-index: 1190 !important;
+        }
+    </style>
+
+    <div class="modal fade kantowka-modal @ClassShow"
+         tabindex="-1"
+         style="display: @Display; z-index: 1060; background-color: rgba(0,0,0,0.45);"
+         @onclick="OnBackdropClick">
+        <div class="modal-dialog modal-xl" style="max-width: 96%;" @onclick:stopPropagation="true">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Zamówiona kantówka do zlecenia: @dotyczyZlecenia</h5>
+                    <button type="button" class="close" aria-label="Close" @onclick="HandleCloseModal">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body" style="max-height: 82vh; overflow-y: auto;">
+
+                    @if (boolAdmin || boolZmiana)
+                    {
+                        <Button Type="primary" OnClick="@ShowDialogAddNew">
+                            Dodaj nowe zestawienie materiałów
+                        </Button>
+
+                        @if (kantowkaDoZlecen == null || kantowkaDoZlecen.Count == 0)
+                        {
+                            <Tooltip Placement="@Placement.BottomCenter"
+                                     Title="Wklej dane ze schowka (skopiowane z innego zlecenia) i zapisz do bazy">
+                                <Button Type="reset" Icon="@IconType.Fill.Read" OnClick="PasteKantowkiToClipboard" />
+                            </Tooltip>
+                        }
+                    }
+
+                    @if (kantowkaDoZlecen != null && kantowkaDoZlecen.Count > 0)
+                    {
+                        @if (kopiuj)
+                        {
+                            <Tooltip Placement="@Placement.BottomCenter" Title="Kopiuj dane">
+                                <Button Type="reset" Icon="@IconType.Fill.Copy" OnClick="CopyKantowkiToClipboard" />
+                            </Tooltip>
+                        }
+                        else
+                        {
+                            <Tooltip Placement="@Placement.BottomCenter" Title="Wklej dane w innej aplikacji">
+                                <Button Type="reset" Icon="@IconType.Fill.Read" OnClick="PasteKantowkiToClipboard" />
+                            </Tooltip>
+                        }
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz do pliku CSV - wszystko">
+                            <Button Type="reset" Icon="@IconType.Fill.Save" OnClick="ExportToExcel" />
+                        </Tooltip>
+
+                        <Button Type="reset" OnClick="ExportSelectedColumnsToExcel">
+                            Zapisz do pliku CSV - tylko wymagane kolumny
+                        </Button>
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Wyślij zamówienie e-mailem (SMTP).">
+                            <Button Type="reset" Icon="@IconType.Fill.Mail" OnClick="SendElementCheckToEmailViaSmtp" />
+                        </Tooltip>
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz sformatowany dokument EXCEL.">
+                            <Button Type="reset" Icon="@IconType.Fill.FileExcel"
+                                    OnClick="@(() => ZapiszExcelKantowkiPoStronieKlienta(false))" />
+                        </Tooltip>
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Zapisz EXCEL na produkcję.">
+                            <Button Type="reset" Icon="@IconType.Fill.FileExcel"
+                                    OnClick="@(() => ZapiszExcelKantowkiPoStronieKlienta(true))" />
+                        </Tooltip>
+
+                        <Button Type="reset" OnClick="UstawDateZamowienia">
+                            Kantówkę zamówiono (wygeneruj wpis do zamówień)
+                        </Button>
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Wylicz ilość farby">
+                            <Button Icon="@IconType.Fill.Compass" Type="reset" OnClick="WyliczIloscFarby" />
+                        </Tooltip>
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Sprawdź ilość sztang">
+                            <Button Icon="@IconType.Fill.Calculator" Type="reset" OnClick="WyliczIloscSztang" />
+                        </Tooltip>
+
+                        <Tooltip Placement="@Placement.BottomCenter" Title="Ilość widocznych rekordów">
+                            <AntDesign.InputNumber TValue="int"
+                                                   @bind-Value="_pageSize"
+                                                   Min="2" Max="25" Bordered="false"
+                                                   OnChange="@(e => OnClickChange(e))"
+                                                   Style="width: 60px; padding: 0;" />
+                        </Tooltip>
+                    }
+
+                    @if (kantowkaDoZlecen == null)
+                    {
+                        <Spin Style="margin-left:47%" size="large" />
+                        <p style="margin-left:43%"><em>Czekaj na załadowanie danych...</em></p>
+                    }
+                    else
+                    {
+                        <Divider>
+                            Ilość pozycji: @kantowkaDoZlecen.Count(), suma sztuk: @kantowkaDoZlecen.Sum(x => x.IloscSztuk),
+                            suma długości: @(kantowkaDoZlecenSuma / 1000) mb
+                        </Divider>
+                        @if (kantowkaDoZlecen.Count > 0)
+                        {
+                            <Table TItem="KantowkaDoZlecenViewModel"
+                            DataSource="@kantowkaDoZlecen"
+                            ScrollX="1950"
+                            PageSize="@_pageSize"
+                            Size="TableSize.Small"
+                            RowClassName="@(x => x?.Data?.WyslanoDoZamowien == true
+                                   ? (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zamowiono")
+                                   : (x?.Data?.PozDostarczono == true ? "zrealizowano" : "zlecenieNaN"))">
+
+                                <Column Title="ID" @bind-Field="@context.Id" Hidden />
+                                <Column Title="Gatunek" @bind-Field="@context.GatunekKantowki" Sortable OnFilter="(a,b) => a == b" Filterable />
+                                <Column Title="Przekrój" @bind-Field="@context.Przekroj" Sortable OnFilter="(a,b) => a == b" Filterable />
+                                <Column Title="Opis" @bind-Field="@context.NazwaProduktu" Sortable />
+                                <Column Title="Długość na gotowo" @bind-Field="@context.DlugoscNaGotowo" Sortable />
+                                <Column Width="150" Title="Długość na gotowo cd." @bind-Field="@context.DlugoscNaGotowoGrupa" Sortable />
+                                <Column Title="Długość zamówiona" @bind-Field="@context.DlugoscZamawiana" Sortable />
+                                <Column Title="Ilość sztuk" @bind-Field="@context.IloscSztuk" Sortable />
+                                <Column Title="Ze stanu" TData="bool">
+                                    <Template>
+                                        <Checkbox @bind-Checked="@context.MaterialZeStanMagazyn"
+                                        OnChange="(e)=>Handle(e, context.Id)" />
+                                    </Template>
+                                </Column>
+                                <Column Width="350" Title="Uwagi" @bind-Field="@context.Uwagi" Sortable />
+                                <Column Title="Autor zmian" @bind-Field="@context.KtoZapisal" Sortable />
+                                <Column Title="Wysłano do zamówienia" @bind-Field="@context.WyslanoDoZamowien" Hidden />
+
+                                <Column Title="Data zamówienia" TData="DateTime" DataIndex="DataZamowienia" Format="yyyy-MM-dd" Sortable />
+                                <Column Title="Max. data realizacji" TData="DateTime" DataIndex="DataRealizacji" Format="yyyy-MM-dd" Sortable />
+                                <Column Title="Data dostarczenia" TData="DateTime" DataIndex="DataDostarczenia" Format="yyyy-MM-dd" Sortable />
+                                <Column Title="Data zapisu" TData="DateTime" DataIndex="DataZapisu" Format="yyyy-MM-dd" Sortable />
+
+                                <ActionColumn Title="Akcja" Width="100" Fixed="right">
+                                    @if (boolAdmin || boolZmiana)
+                                    {
+                                        <Popconfirm Title="Czy chcesz edytować pozycję?"
+                                        OnConfirm="()=> editRow(context.Id)"
+                                        OkText="Tak" CancelText="Nie">
+                                            <a>Edytuj</a>
+                                        </Popconfirm>
+                                    }
+                                    @if (boolAdmin || boolUsuniecia)
+                                    {
+                                        <Popconfirm Title="Czy chcesz usunąć pozycję?"
+                                        OnConfirm="()=> deleteRow(context.Id)"
+                                        OkText="Tak" CancelText="Nie">
+                                            <a style="color:red">Usuń</a>
+                                        </Popconfirm>
+                                    }
+                                </ActionColumn>
+                            </Table>
+                        }
+                    }
+
+                    <div style="margin-top: 15px;">
+                        <h7>Wybierz plik z STOLCAD z listą materiałów (PDF/XLSX) lub wklej ze schowka</h7>
+                        <InputFile OnChange="HandleFileSelected" />
+
+                        <Button Type="@ButtonType.Link"
+                                style="font-size:1.1em; height:30px; margin-top:10px; color:brown"
+                                @onclick="PasteStolcad">
+                            Wklej ze schowka dane pobrane z STOLCAD
+                        </Button>
+
+                        @if (zestawienie != null)
+                        {
+                            <Divider />
+                            <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAll">
+                                Zapisz wszystkie z poniższej tabeli
+                            </Button>
+                            <Button Type="@ButtonType.Primary" Style="width:49%" Disabled="@isNotDisabled" OnClick="SaveAllGrupa">
+                                Zapisz wszystkie oraz grupuj
+                            </Button>
+                            <Checkbox @bind-Checked="isCheckedDelAll">Usuń wszystkie dane przed zapisem nowych</Checkbox>
+
+                            <h4>Zestawienie Nr: @zestawienie.NrZestawienia</h4>
+                            <p>Data: @zestawienie.Data.ToString("yyyy/MM/dd")</p>
+                            <p>Odbiorca: @zestawienie.Odbiorca</p>
+
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Lp</th><th>Symbol</th><th>Przekrój</th><th>Ilość</th>
+                                        <th>Wymiar</th><th>Kąt</th><th>Wymiar Zam.</th><th>Uwagi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in zestawienie.ListaCieci)
+                                    {
+                                        <tr>
+                                            <td>@item.Lp</td>
+                                            <td>@item.Symbol</td>
+                                            <td>@item.Kolor</td>
+                                            <td>@item.Ilosc</td>
+                                            <td>@item.Wymiar</td>
+                                            <td>@item.Kat</td>
+                                            <td>@item.WymiarNaZamowienie</td>
+                                            <td>@item.Uwagi</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Wewnętrzny modal: dodaj / zmień kantówkę ===== -->
+    <div class="modal fade @classShow" tabindex="-1" style="display: @display; z-index: 1070;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Kantówki dodaj / zmień</h5>
+                    <button type="button" class="close" @onclick="HandleCancel">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <AntDesign.Form Model="@kantowka" Layout="FormLayout.Horizontal" OnFinish="HandleSubmit">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <AntDesign.FormItem Label="Gatunek drewna">
+                                    <AntDesign.Input @bind-Value="kantowka.GatunekKantowki" MaxLength="80" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Przekrój">
+                                    <AntDesign.Input @bind-Value="kantowka.Przekroj" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Nazwa produktu">
+                                    <AntDesign.Input @bind-Value="kantowka.NazwaProduktu" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Kod produktu">
+                                    <AntDesign.Input @bind-Value="kantowka.KodProduktu" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Długość wyliczona">
+                                    <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowo" OnBlur="LiczDlugoscZam" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Długość na gotowo(2) - grupa">
+                                    <AntDesign.Input @bind-Value="kantowka.DlugoscNaGotowoGrupa" OnBlur="LiczDlugoscZam" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Ilość sztuk">
+                                    <AntDesign.InputNumber @bind-Value="kantowka.IloscSztuk" Required />
+                                </AntDesign.FormItem>
+                            </div>
+                            <div class="col-md-6">
+                                <AntDesign.FormItem Label="Uwagi">
+                                    <AntDesign.Input @bind-Value="kantowka.Uwagi" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Długość zamówiona">
+                                    <AntDesign.Input @bind-Value="kantowka.DlugoscZamawiana" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Data zamówienia">
+                                    <AntDesign.DatePicker @bind-Value="kantowka.DataZamowienia" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Data realizacji">
+                                    <AntDesign.DatePicker @bind-Value="kantowka.DataRealizacji" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Materiał ze stanu magazynowego">
+                                    <AntDesign.Checkbox @bind-Value="kantowka.MaterialZeStanMagazyn" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Wygenerowano zamówienie">
+                                    <AntDesign.Checkbox @bind-Value="kantowka.WyslanoDoZamowien" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Kantówkę dostarczono">
+                                    <AntDesign.Checkbox @bind-Value="kantowka.PozDostarczono" />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Kto zapisał">
+                                    <AntDesign.Input @bind-Value="kantowka.KtoZapisal" Required />
+                                </AntDesign.FormItem>
+                                <AntDesign.FormItem Label="Ostatnia zmiana">
+                                    <AntDesign.Input @bind-Value="kantowka.OstatniaZmiana" />
+                                </AntDesign.FormItem>
+                            </div>
+                        </div>
+                        <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
+                            <AntDesign.Button Type="primary" @onclick="HandleAddNew" HtmlType="submit">Zapisz</AntDesign.Button>
+                            <AntDesign.Button @onclick="HandleCancel">Anuluj</AntDesign.Button>
+                        </AntDesign.FormItem>
+                    </AntDesign.Form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Wewnętrzny modal: wybór producenta ===== -->
+    @if (_producenci != null && elementyZamowienia != null)
+    {
+        <div class="modal fade @classShowKantowka" tabindex="-1" style="display: @displayKantowka; z-index: 1070;">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Wybierz producenta kantówki</h5>
+                        <button type="button" class="close" @onclick="HandleKantowkaCancel">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <AntDesign.Form Model="@elementyZamowienia" Layout="FormLayout.Horizontal" OnFinish="HandleKantowkaSubmit">
+                            <FormItem Style="width:100%" Required Label="Wybierz producenta (dostawcę)">
+                                <Select Mode="default"
+                                        DataSource="@_producenci"
+                                        @bind-Value="@context.ElemetZamDoZlecen.RowIdProducent"
+                                        LabelName="@nameof(ProducenciPodwykonawcy.NazwaProducenta)"
+                                        ValueName="@nameof(ProducenciPodwykonawcy.RowId)" />
+                            </FormItem>
+                            <AntDesign.FormItem Style="justify-content: flex-end; display: flex; gap: 10px;">
+                                <AntDesign.Button Disabled="@wylaczZapiszKantowke" Type="primary"
+                                                  @onclick="HandleAddNewKantowka" HtmlType="submit">
+                                    Wybierz producenta i zapisz jako nową pozycję zamówienia
+                                </AntDesign.Button>
+                                <AntDesign.Button @onclick="HandleCancelKantowka">Anuluj</AntDesign.Button>
+                            </AntDesign.FormItem>
+                        </AntDesign.Form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* Dodaj na końcu modala kantówki *@
+    @if (_showPasteConfirm)
+    {
+        <div class="modal fade show"
+             style="display:block; z-index: 1200; background: rgba(0,0,0,.45);"
+             @onclick="() => _showPasteConfirm = false">
+            <div class="modal-dialog" @onclick:stopPropagation="true">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Wklej i zapisz do bazy</h5>
+                        <button type="button" class="close" @onclick="() => _showPasteConfirm = false">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        Znaleziono <b>@_pastePending.Count</b> pozycji kantówki w schowku.<br />
+                        Zapisać je jako nowe pozycje dla bieżącego zlecenia
+                        (<b>@dotyczyZlecenia</b>)?
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="ConfirmPasteAsync">Zapisz</button>
+                        <button class="btn btn-secondary" @onclick="() => _showPasteConfirm = false">Anuluj</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    // ============================================================
+    // PARAMETRY
+    // ============================================================
+    [Parameter] public string? RowIdZlecenia { get; set; }
+    [Parameter] public string? Typ { get; set; } = "zew";
+    [Parameter] public string ClassShow { get; set; } = "";
+    [Parameter] public string Display { get; set; } = "none";
+    [Parameter] public EventCallback OnHideDialog { get; set; }
+
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    // ============================================================
+    // STAN
+    // ============================================================
+    private ElemetZamDoZlecenWithProducent? elementyZamowienia;
+    private string? pdfContent;
+    private List<KantowkaDoZlecenViewModel>? kantowkaDoZlecen;
+    private List<KantowkaDoZlecenViewModel>? oryginalkantowkaDoZlecen;
+    private GEORGE.Client.Pages.PDF.Zestawienie? zestawienie;
+    private List<ProducenciPodwykonawcy>? _producenci;
+
+    private bool _visible = false;
+    private string display = "none";
+    private string classShow = "";
+
+    private bool _visibleKantowka = false;
+    private string displayKantowka = "none";
+    private string classShowKantowka = "";
+
+    private long cid = -1;
+    private KantowkaDoZlecenViewModel kantowka = new();
+    private List<KantowkaDoZlecenViewModel>? kantowki;
+
+    private bool kopiuj = true;
+    private bool isCheckedDelAll = true;
+    private int _pageSize = 7;
+
+    private string dotyczyZlecenia = "";
+    private string dotyczyKlienta = "";
+    private int kantowkaDoZlecenSuma = 0;
+
+    private string? adresEmail = "";
+    private string? hasloPoczta = "";
+    private string? Uimie = "";
+    private string? Unazwisko = "";
+
+    private string formatPlikuImport = "NaN";
+    private bool blokujDwuKlik = false;
+    private bool wylaczZapiszKantowke = false;
+    private bool czekajNaWysWiad = false;
+
+    // ============================================================
+    // UPRAWNIENIA
+    // ============================================================
+    private bool boolOdczyt = false;
+    private bool boolZmiana = false;
+    private bool boolUsuniecia = false;
+    private bool boolAdmin = false;
+    private string RowIdPracownika = "";
+    private string? user;
+    private bool isNotDisabled => !boolZmiana || !boolAdmin;
+    private List<UprawnieniaPracownikaViewModel>? uprawnienia;
+
+    // ============================================================
+    // KONTROLA ŁADOWANIA DANYCH PRZY POKAZYWANIU MODALA
+    // ============================================================
+    private string? _lastLoadedRowId;
+    private bool _wasVisible = false;
+    private bool _jsInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Laduj_Uprawnienia();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_jsInitialized)
+        {
+            _jsInitialized = true;
+            // Definiujemy funkcje JS raz – jeżeli już istnieją, nie nadpisujemy
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if (typeof window.copyToClipboard === 'undefined') {
+                    window.copyToClipboard = function(text) {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(text);
+                        } else {
+                            var t = document.createElement('textarea');
+                            t.value = text; document.body.appendChild(t); t.select();
+                            document.execCommand('copy'); document.body.removeChild(t);
+                        }
+                    };
+                }
+                if (typeof window.saveAsExcel === 'undefined') {
+                    window.saveAsExcel = function(jsonData) {
+                        const data = JSON.parse(jsonData);
+                        const csvRows = [];
+                        const headers = Object.keys(data[0]);
+                        csvRows.push(headers.join(','));
+                        for (const row of data) {
+                            csvRows.push(headers.map(h => '""' + ('' + row[h]).replace(/""/g, '\\""') + '""').join(','));
+                        }
+                        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'kantowka_all.csv';
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    };
+                }
+                if (typeof window.saveAsExcelSel === 'undefined') {
+                    window.saveAsExcelSel = function(jsonData) {
+                        const data = JSON.parse(jsonData);
+                        const csvRows = [];
+                        const headers = ['GatunekKantowki','Przekroj','NazwaProduktu','DlugoscZamawiana','DlugoscNaGotowoGrupa','IloscSztuk'];
+                        csvRows.push(headers.join(','));
+                        for (const row of data) {
+                            csvRows.push(headers.map(h => '""' + ('' + row[h]).replace(/""/g, '\\""') + '""').join(','));
+                        }
+                        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = 'kantowka.csv';
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    };
+                }
+                if (typeof window.saveAsExcelKantowki === 'undefined') {
+                    window.saveAsExcelKantowki = function(base64Excel, fileName) {
+                        const binary = atob(base64Excel);
+                        const bytes = new Uint8Array(binary.length);
+                        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                        const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = fileName;
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    };
+                }
+            ");
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        bool isVisible = !string.IsNullOrEmpty(Display) && Display != "none";
+        bool becameVisible = isVisible && !_wasVisible;
+        bool rowChanged = RowIdZlecenia != _lastLoadedRowId;
+
+        _wasVisible = isVisible;
+
+        if ((becameVisible || rowChanged) && isVisible && !string.IsNullOrEmpty(RowIdZlecenia))
+        {
+            _lastLoadedRowId = RowIdZlecenia;
+            await LoadDataAsync();
+            StateHasChanged();
+        }
+    }
+
+    // ============================================================
+    // ŁADOWANIE DANYCH (dawniej OnInitializedAsync)
+    // ============================================================
+    private async Task LoadDataAsync()
+    {
+        _pageSize = Convert.ToInt32(await LocalStorage.GetStringAsync("kantowka_ile_widocznych"));
+        if (_pageSize == 0) _pageSize = 6;
+
+        if (AppState != null) AppState.SomeData = "";
+
+        // wyczyść stare dane
+        kantowkaDoZlecen = null;
+        zestawienie = null;
+        dotyczyZlecenia = "";
+        dotyczyKlienta = "";
+
+        try
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            if (kantowkaDoZlecen != null)
+                kantowkaDoZlecenSuma = kantowkaDoZlecen.Sum(k => k.DlugoscZamawiana * k.IloscSztuk);
+
+            kantowka = new KantowkaDoZlecenViewModel { Id = 0 };
+        }
+        catch (Exception ex) { Console.WriteLine($"******* Błąd {ex.Message}"); }
+
+        try
+        {
+            if (Typ == "zew")
+            {
+                var response = await Http.GetAsync($"api/ZlecenieProdukt/getzlecclickzew/{RowIdZlecenia}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var l = await response.Content.ReadFromJsonAsync<List<ZleceniaProdukcyjne>>();
+                    if (l != null && l.Count > 0)
+                    {
+                        dotyczyZlecenia = $"{l[0].NumerZamowienia} / {l[0].Klient}";
+                        dotyczyKlienta = l[0].Klient ?? "";
+                    }
+                }
+            }
+            else if (Typ == "wew")
+            {
+                var response = await Http.GetAsync($"api/ZlecenieProdukt/getzlecclickwew/{RowIdZlecenia}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var l = await response.Content.ReadFromJsonAsync<List<ZleceniaProdukcyjneWew>>();
+                    if (l != null && l.Count > 0)
+                    {
+                        dotyczyZlecenia = $"{l[0].TypZamowienia ?? ""} / {l[0].NumerZamowienia ?? ""} / {l[0].Klient ?? ""}";
+                        dotyczyKlienta = l[0].Klient ?? "";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd pobierania zleceń produkcyjnych: {ex.Message}");
+        }
+    }
+
+    // ============================================================
+    // ZAMKNIĘCIE GŁÓWNEGO MODALA
+    // ============================================================
+    private async Task HandleCloseModal()
+    {
+        await OnHideDialog.InvokeAsync();
+    }
+
+    private async Task OnBackdropClick(MouseEventArgs e)
+    {
+        await OnHideDialog.InvokeAsync();
+    }
+
+    // ============================================================
+    // CAŁA DALSZA LOGIKA – SKOPIOWANA Z ORYGINALNEJ STRONY
+    // (bez zmian poza poprawionym `foreach` w SaveAll)
+    // ============================================================
+
+    public async Task ExportToExcel()
+    {
+        if (kantowkaDoZlecen == null) return;
+        var skantowka = kantowkaDoZlecen.OrderBy(x => x.Przekroj);
+        await JSRuntime.InvokeVoidAsync("saveAsExcel", JsonSerializer.Serialize(skantowka));
+    }
+
+    public async Task ExportSelectedColumnsToExcel()
+    {
+        if (kantowkaDoZlecen == null) return;
+        var selectedData = kantowkaDoZlecen.Select(k => new
+        {
+            k.GatunekKantowki, k.Przekroj, k.NazwaProduktu,
+            k.DlugoscZamawiana, k.DlugoscNaGotowoGrupa, k.IloscSztuk
+        }).OrderBy(x => x.Przekroj);
+
+        await JSRuntime.InvokeVoidAsync("saveAsExcelSel", JsonSerializer.Serialize(selectedData));
+    }
+
+    private async Task ZapiszExcelKantowkiPoStronieKlienta(bool czyNaProdukcje)
+    {
+        if (kantowkaDoZlecen == null || !kantowkaDoZlecen.Any())
+        {
+            await _message.Warning("Brak danych do zapisania.");
+            return;
+        }
+
+        int iloscKolumn = czyNaProdukcje ? 6 : 5;
+        var danePosortowane = kantowkaDoZlecen
+            .OrderBy(k => k.GatunekKantowki)
+            .ThenBy(k => k.Przekroj)
+            .ThenBy(k => k.DlugoscZamawiana)
+            .ToList();
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Zamówienie");
+
+        ws.Cell(1, 1).Value = "Gatunek kantówki";
+        ws.Cell(1, 2).Value = "Przekrój";
+        ws.Cell(1, 3).Value = "Nazwa produktu";
+        ws.Cell(1, 4).Value = "Długość zamówiona";
+        ws.Cell(1, 5).Value = "Ilość sztuk";
+        if (czyNaProdukcje) ws.Cell(1, 6).Value = "Długość na gotowo (grupa)";
+
+        if (czyNaProdukcje)
+        {
+            ws.Range(2, 1, 2, 6).Merge();
+            ws.Cell(2, 1).Value = dotyczyKlienta;
+        }
+        else
+        {
+            ws.Range(2, 1, 2, 5).Merge();
+            ws.Cell(2, 1).Value = dotyczyKlienta;
+        }
+
+        for (int r = 1; r <= 2; r++)
+            for (int c = 1; c <= iloscKolumn; c++)
+            {
+                var cell = ws.Cell(r, c);
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontSize = 14;
+                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+
+        int row = 3;
+        foreach (var k in danePosortowane)
+        {
+            ws.Cell(row, 1).Value = k.GatunekKantowki;
+            ws.Cell(row, 2).Value = k.Przekroj;
+            ws.Cell(row, 3).Value = k.NazwaProduktu;
+            ws.Cell(row, 4).Value = k.DlugoscZamawiana;
+            ws.Cell(row, 5).Value = k.IloscSztuk;
+            if (czyNaProdukcje) ws.Cell(row, 6).Value = k.DlugoscNaGotowoGrupa;
+
+            for (int c = 1; c <= iloscKolumn; c++)
+            {
+                var cell = ws.Cell(row, c);
+                cell.Style.Font.FontSize = 14;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Vertical = ClosedXML.Excel.XLAlignmentVerticalValues.Center;
+            }
+            row++;
+        }
+
+        var grupy = danePosortowane.GroupBy(k => k.Przekroj);
+        foreach (var g in grupy)
+        {
+            var sumaMm = g.Sum(k => k.IloscSztuk * k.DlugoscZamawiana);
+            var suma = MathF.Round(sumaMm / 1000f, 2);
+            ws.Range(row, 1, row, 4).Merge();
+            ws.Cell(row, 1).Value = $"Suma {g.Key}";
+            if (czyNaProdukcje)
+            {
+                ws.Range(row, 5, row, 6).Merge();
+                ws.Cell(row, 5).Value = suma + " mb";
+            }
+            else
+            {
+                ws.Cell(row, 5).Value = suma + " mb";
+            }
+            for (int c = 1; c <= iloscKolumn; c++)
+            {
+                var cell = ws.Cell(row, c);
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontSize = 14;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+            }
+            row++;
+        }
+
+        ws.Columns().AdjustToContents();
+
+        await using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Position = 0;
+        var base64 = Convert.ToBase64String(stream.ToArray());
+        string nazwa = Regex.Replace(dotyczyKlienta ?? "klient",
+            $"[{Regex.Escape(new string(Path.GetInvalidFileNameChars()))}]", "_");
+
+        await JSRuntime.InvokeVoidAsync("saveAsExcelKantowki", base64, $"Zamowienie_{nazwa}.xlsx");
+        await _message.Success("Plik Excel został pobrany.");
+    }
+
+    private async Task SendElementCheckToEmailViaSmtp()
+    {
+        if (string.IsNullOrEmpty(adresEmail) || string.IsNullOrEmpty(hasloPoczta))
+        {
+            await _message.Info("Brak konfiguracji e-mail.", 5); return;
+        }
+        if (czekajNaWysWiad) return;
+        if (kantowkaDoZlecen == null || !kantowkaDoZlecen.Any())
+        {
+            await _message.Warning("Brak danych do wysłania."); return;
+        }
+
+        czekajNaWysWiad = true;
+        await _message.Info("Czekaj na wysłanie wiadomości.", 1);
+
+        var subject = "Zamówienie na kantówkę z firmy GEORGE z dnia: " + DateTime.Now.ToShortDateString();
+        var body = $"<html><body><h2>Zamówienie: {dotyczyZlecenia}</h2><br/><br/><br/><h4>Wygenerował {Uimie} {Unazwisko}</h4></body></html>";
+
+        using var wb = new ClosedXML.Excel.XLWorkbook();
+        var ws = wb.Worksheets.Add("Zamówienie");
+        ws.Cell(1, 1).Value = "Gatunek kantówki";
+        ws.Cell(1, 2).Value = "Przekrój";
+        ws.Cell(1, 3).Value = "Nazwa produktu";
+        ws.Cell(1, 4).Value = "Długość zamówiona";
+        ws.Cell(1, 5).Value = "Ilość sztuk";
+
+        int r = 2;
+        foreach (var k in kantowkaDoZlecen)
+        {
+            ws.Cell(r, 1).Value = k.GatunekKantowki;
+            ws.Cell(r, 2).Value = k.Przekroj;
+            ws.Cell(r, 3).Value = k.NazwaProduktu;
+            ws.Cell(r, 4).Value = k.DlugoscZamawiana;
+            ws.Cell(r, 5).Value = k.IloscSztuk;
+            r++;
+        }
+        ws.Columns().AdjustToContents();
+
+        await using var ms = new MemoryStream();
+        wb.SaveAs(ms);
+        ms.Position = 0;
+        string nazwaPliku = string.Concat((dotyczyKlienta ?? "klient").Split(Path.GetInvalidFileNameChars()));
+
+        var form = new MultipartFormDataContent
+        {
+            { new StringContent(adresEmail), "ToEmail" },
+            { new StringContent(hasloPoczta), "Password" },
+            { new StringContent(subject), "Subject" },
+            { new StringContent(body), "HtmlBody" },
+            { new StreamContent(ms), "Attachment", $"Zamowienie_{nazwaPliku}.xlsx" }
+        };
+
+        try
+        {
+            var resp = await Http.PostAsync("api/mail/sendwithattachment", form);
+            if (resp.IsSuccessStatusCode)
+                await _message.Success("Wiadomość wysłana.");
+            else
+                await _message.Error("Błąd: " + await resp.Content.ReadAsStringAsync());
+        }
+        catch (Exception ex) { await _message.Error(ex.Message); }
+        finally { czekajNaWysWiad = false; }
+    }
+
+    public async Task WyliczIloscSztang()
+    {
+        if (kantowkaDoZlecen == null) return;
+        int suma = kantowkaDoZlecen.Sum(x => x.IloscSztuk);
+        var poz = await Http.GetFromJsonAsync<List<PozDoZlecen>>($"api/PozWZleceniu/GetDaneDoZlecenia/{RowIdZlecenia}");
+        if (poz == null || poz.Count == 0)
+        {
+            _ = _notice.Info(new()
+            {
+                Message = "Brak danych.",
+                Description = "Nie wyliczę ilości sztuk. Brak danych.",
+                Placement = NotificationPlacement.BottomLeft
+            });
+            return;
+        }
+        int rama = poz.Sum(x => x.IloscOkien) * 4;
+        int skrz = poz.Sum(x => x.Iloscskrzydel) * 4;
+        await ShowConfirmIcon(ConfirmIcon.Info,
+            $"Suma sztuk sztang: {suma} / ramy+skrzydła: {rama + skrz}");
+    }
+
+    public async Task WyliczIloscFarby()
+    {
+        if (kantowkaDoZlecen == null) return;
+        const double z = 0.3;
+        double pow = 0;
+        foreach (var k in kantowkaDoZlecen)
+        {
+            var wym = k.Przekroj.Trim().ToLower().Split('x');
+            if (wym.Length == 2 && double.TryParse(wym[0], out var a) && double.TryParse(wym[1], out var b))
+                pow += ((a / 1000 * k.DlugoscZamawiana / 1000 * 2) + (b / 1000 * k.DlugoscZamawiana / 1000 * 2)) * k.IloscSztuk;
+        }
+        pow += 1;
+        double l = pow * z;
+        await ShowConfirmIcon(ConfirmIcon.Info,
+            $"Ilość farby: {Math.Round(l, 1)} l (1x), {Math.Round(l * 2, 1)} l (2x), powierzchnia {Math.Round(pow, 1)} m² (zalecane {z} l/m²)");
+    }
+
+    private async Task ShowConfirmIcon(ConfirmIcon icon, string content)
+        => await _confirmService.Show(content, icon.ToString(), ConfirmButtons.OK, icon);
+
+    private async Task CopyKantowkiToClipboard()
+    {
+        if (kantowkaDoZlecen == null || kantowkaDoZlecen.Count == 0) return;
+
+        var kantowkiText = string.Join("\n", kantowkaDoZlecen.Select(k =>
+            $"RowIdZlecenia: {k.RowIdZlecenia}, " +
+            $"GatunekKantowki: {k.GatunekKantowki}, " +
+            $"Przekroj: {k.Przekroj}, " +
+            $"NazwaProduktu: {k.NazwaProduktu}, " +
+            $"KodProduktu: {k.KodProduktu}, " +
+            $"Uwagi: {k.Uwagi}, " +
+            $"DlugoscZamawiana: {k.DlugoscZamawiana}, " +
+            $"DlugoscNaGotowo: {k.DlugoscNaGotowo}, " +
+            $"DlugoscNaGotowoGrupa: {k.DlugoscNaGotowoGrupa}, " +
+            $"IloscSztuk: {k.IloscSztuk}, " +
+            $"DataZamowienia: {k.DataZamowienia:yyyy-MM-dd}, " +
+            $"DataRealizacji: {k.DataRealizacji:yyyy-MM-dd}, " +
+            $"DataDostarczenia: {k.DataDostarczenia:yyyy-MM-dd}, " +
+            $"DataZapisu: {k.DataZapisu:yyyy-MM-dd}, " +
+            $"KtoZapisal: {k.KtoZapisal}, " +
+            $"MaterialZeStanMagazyn: {k.MaterialZeStanMagazyn}, " +
+            $"WyslanoDoZamowien: {k.WyslanoDoZamowien}, " +
+            $"PozDostarczono: {k.PozDostarczono}"
+        ));
+
+        await JSRuntime.InvokeVoidAsync("copyToClipboard", kantowkiText);
+        await _message.Success("Dane skopiowano do schowka");
+    }
+
+    private bool _showPasteConfirm = false;
+    private List<KantowkaDoZlecenViewModel> _pastePending = new();
+
+    private async Task PasteKantowkiToClipboard()
+    {
+        try
+        {
+            var clipboardText = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+
+            if (string.IsNullOrWhiteSpace(clipboardText))
+            {
+                await _message.Warning("Schowek jest pusty.");
+                return;
+            }
+
+            var parsed = ParseKantowkiFromClipboard(clipboardText);
+
+            if (parsed.Count == 0)
+            {
+                await _message.Warning(
+                    "Nie rozpoznano danych kantówki w schowku. " +
+                    "Upewnij się, że dane zostały skopiowane przyciskiem Kopiuj.");
+                return;
+            }
+
+            // ⬇ Zamiast confirm service – pokazujemy własny modal potwierdzenia
+            _pastePending = parsed;
+            _showPasteConfirm = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await _notice.Error(new()
+            {
+                Message = "Błąd wklejania ze schowka.",
+                Description = ex.Message,
+                Placement = NotificationPlacement.BottomLeft
+            });
+        }
+    }
+
+    private async Task ConfirmPasteAsync()
+    {
+        if (_pastePending == null || _pastePending.Count == 0) return;
+
+        _showPasteConfirm = false;
+        StateHasChanged();
+
+        int saved = 0;
+        int failed = 0;
+
+        foreach (var k in _pastePending)
+        {
+            var resp = await Http.PostAsJsonAsync("api/KantowkaDoZlecen", k);
+            if (resp.IsSuccessStatusCode) saved++;
+            else failed++;
+        }
+
+        kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>(
+            $"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+
+        if (kantowkaDoZlecen != null)
+            kantowkaDoZlecenSuma = kantowkaDoZlecen.Sum(k => k.DlugoscZamawiana * k.IloscSztuk);
+
+        _pastePending.Clear();
+
+        if (failed == 0)
+            await _message.Success($"Wklejono i zapisano {saved} pozycji.");
+        else
+            await _message.Warning($"Zapisano {saved} pozycji, {failed} nie powiodło się.");
+
+        StateHasChanged();
+    }
+
+    private List<KantowkaDoZlecenViewModel> ParseKantowkiFromClipboard(string text)
+    {
+        var result = new List<KantowkaDoZlecenViewModel>();
+        if (string.IsNullOrWhiteSpace(text)) return result;
+
+        var knownKeys = new[] {
+        "RowIdZlecenia", "GatunekKantowki", "Przekroj", "NazwaProduktu", "KodProduktu",
+        "Uwagi", "DlugoscZamawiana", "DlugoscNaGotowo", "DlugoscNaGotowoGrupa",
+        "IloscSztuk", "DataZamowienia", "DataRealizacji", "DataDostarczenia", "DataZapisu",
+        "KtoZapisal", "OstatniaZmiana",
+        "WyslanoDoZamowien", "PozDostarczono", "MaterialZeStanMagazyn"
+    };
+
+        var keysPattern = string.Join("|", knownKeys.Select(Regex.Escape));
+        var lineRegex = new Regex($@"({keysPattern}):\s*(.*?)(?=,\s*(?:{keysPattern}):\s|$)", RegexOptions.IgnoreCase);
+
+        var lines = text.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Match m in lineRegex.Matches(line))
+                dict[m.Groups[1].Value] = m.Groups[2].Value.Trim();
+
+            if (dict.Count == 0) continue;
+
+            try
+            {
+                var originalUwagi = GetString(dict, "Uwagi");
+                var note = $"Wklejono ze schowka: {DateTime.Now:yyyy-MM-dd HH:mm}";
+
+                var k = new KantowkaDoZlecenViewModel
+                {
+                    RowIdZlecenia = RowIdZlecenia,
+                    GatunekKantowki = GetString(dict, "GatunekKantowki"),
+                    Przekroj = GetString(dict, "Przekroj"),
+                    NazwaProduktu = GetString(dict, "NazwaProduktu"),
+                    KodProduktu = GetString(dict, "KodProduktu"),
+                    DlugoscNaGotowoGrupa = GetString(dict, "DlugoscNaGotowoGrupa"),
+                    Uwagi = string.IsNullOrWhiteSpace(originalUwagi) ? note : $"{note} | {originalUwagi}",
+                    DlugoscZamawiana = GetInt(dict, "DlugoscZamawiana"),
+                    DlugoscNaGotowo = GetInt(dict, "DlugoscNaGotowo"),
+                    IloscSztuk = GetInt(dict, "IloscSztuk"),
+                    DataZamowienia = GetDate(dict, "DataZamowienia"),
+                    DataRealizacji = GetDate(dict, "DataRealizacji"),
+                    DataDostarczenia = GetDate(dict, "DataDostarczenia"),
+                    DataZapisu = DateTime.Now,
+                    KtoZapisal = user ?? "",
+                    WyslanoDoZamowien = GetBool(dict, "WyslanoDoZamowien"),
+                    PozDostarczono = GetBool(dict, "PozDostarczono"),
+                    MaterialZeStanMagazyn = GetBool(dict, "MaterialZeStanMagazyn"),
+                };
+
+                // Walidacja minimalna
+                if (string.IsNullOrWhiteSpace(k.Przekroj) && k.IloscSztuk == 0) continue;
+
+                result.Add(k);
+            }
+            catch { /* pomiń błędne linie */ }
+        }
+
+        return result;
+    }
+
+    private static string GetString(Dictionary<string, string> d, string key)
+        => d.TryGetValue(key, out var v) ? v : string.Empty;
+
+    private static int GetInt(Dictionary<string, string> d, string key)
+        => d.TryGetValue(key, out var v) && int.TryParse(v, out var i) ? i : 0;
+
+    private static bool GetBool(Dictionary<string, string> d, string key)
+        => d.TryGetValue(key, out var v) && bool.TryParse(v, out var b) && b;
+
+    private static DateTime GetDate(Dictionary<string, string> d, string key)
+    {
+        if (!d.TryGetValue(key, out var v) || string.IsNullOrWhiteSpace(v))
+            return DateTime.MinValue;
+        if (v.StartsWith("0001")) return DateTime.MinValue;
+        return DateTime.TryParse(v, out var dt) ? dt : DateTime.MinValue;
+    }
+
+    public async Task UstawDateZamowienia()
+    {
+        _producenci = await Http.GetFromJsonAsync<List<ProducenciPodwykonawcy>>("api/ProducenciPodwykonawcy");
+        if (_producenci != null)
+            _producenci = _producenci.Where(p => p.RodzajProdukcjiWykonywanej == "Producent kantówki").ToList();
+        await ShowDialogKantowka();
+    }
+
+    private void LiczDlugoscZam()
+    {
+        if (!string.IsNullOrWhiteSpace(kantowka.DlugoscNaGotowo.ToString()))
+            kantowka.DlugoscZamawiana = int.Parse(PdfDataParser.DlugoscHandlowa(kantowka.DlugoscNaGotowo.ToString()));
+    }
+
+    private async void Handle(bool value, long idr) => await ZapiszUstawienieStanu(idr, value);
+
+    private async Task ZapiszUstawienieStanu(long idr, bool nowyStan)
+    {
+        var resp = await Http.PutAsJsonAsync($"api/kantowkaDoZlecen/{idr}/updateMaterialZeStanMagazyn", nowyStan);
+        if (resp.IsSuccessStatusCode && kantowkaDoZlecen != null)
+            oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+        else
+            await _message.Error("Błąd aktualizacji danych");
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file == null) return;
+
+            if (file.Size > 10 * 1024 * 1024)
+            {
+                await _message.Error("Plik zbyt duży (max 10 MB)."); return;
+            }
+
+            if (file.ContentType == "application/pdf")
+            {
+                var path = Path.GetTempFileName();
+                try
+                {
+                    await using (var s = file.OpenReadStream(10 * 1024 * 1024))
+                    await using (var fs = new FileStream(path, FileMode.Create))
+                        await s.CopyToAsync(fs);
+
+                    pdfContent = PdfReaderService.ReadPdfTable(path);
+                    zestawienie = PdfDataParser.ParsePdfData(pdfContent);
+                    formatPlikuImport = "PDF";
+                    StateHasChanged();
+                }
+                finally { try { if (File.Exists(path)) File.Delete(path); } catch { } }
+                return;
+            }
+
+            if (file.ContentType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                || file.Name.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+            {
+                await using var s = file.OpenReadStream(10 * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await s.CopyToAsync(ms);
+                ms.Position = 0;
+                var parser = new PDF.ExcelDataParser();
+                zestawienie = parser.ParseExcelData(ms);
+                formatPlikuImport = "EXCEL";
+                StateHasChanged();
+                return;
+            }
+
+            if (file.Name.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
+            {
+                await _message.Error("Format XLS nieobsługiwany – zapisz jako XLSX."); return;
+            }
+
+            await _message.Error("Niepoprawny format pliku (PDF/XLSX).");
+        }
+        catch (Exception ex)
+        {
+            await _notice.Error(new()
+            {
+                Message = "Błąd importu pliku.",
+                Description = ex.Message + Environment.NewLine + ex.StackTrace,
+                Placement = NotificationPlacement.BottomLeft
+            });
+        }
+    }
+
+    private async Task PasteStolcad()
+    {
+        try
+        {
+            var txt = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
+            zestawienie = PdfDataParser.ParseClipboardData(txt);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _ = _notice.Error(new() { Message = ex.Message, Description = ex.StackTrace, Placement = NotificationPlacement.BottomLeft });
+        }
+    }
+
+    private async Task SaveAll()
+    {
+        kantowki = new();
+        if (zestawienie == null) return;
+
+        string xv = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version != null
+            ? " [" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "]"
+            : "";
+
+        foreach (var item in zestawienie.ListaCieci)
+        {
+            kantowki.Add(new KantowkaDoZlecenViewModel
+            {
+                RowIdZlecenia = RowIdZlecenia,
+                GatunekKantowki = item.Uwagi,
+                Przekroj = item.Kolor,
+                NazwaProduktu = item.Symbol,
+                KodProduktu = "",
+                Uwagi = $"Zaimportowano z {formatPlikuImport} dnia: {DateTime.Now}{xv}",
+                DlugoscZamawiana = int.Parse(item.WymiarNaZamowienie),
+                DlugoscNaGotowo = int.Parse(item.Wymiar),
+                DlugoscNaGotowoGrupa = item.Wymiar,
+                IloscSztuk = int.Parse(item.Ilosc),
+                DataZamowienia = DateTime.MinValue,
+                DataRealizacji = DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = user ?? "",
+                DataDostarczenia = DateTime.MinValue,
+                PozDostarczono = false,
+                WyslanoDoZamowien = false,
+                MaterialZeStanMagazyn = false,
+            });
+        }
+
+        var resp = await Http.PostAsJsonAsync($"api/kantowkaDoZlecen/save-all/{isCheckedDelAll}", kantowki);
+        if (resp.IsSuccessStatusCode)
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            zestawienie = null;
+        }
+    }
+
+    private async Task SaveAllGrupa()
+    {
+        if (zestawienie == null) return;
+
+        string xv = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version != null
+            ? " [" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version + "]"
+            : "";
+
+        var grouped = zestawienie.ListaCieci
+            .GroupBy(i => new { G = i.Uwagi, P = i.Kolor, D = int.Parse(i.WymiarNaZamowienie) })
+            .Select(g => new KantowkaDoZlecenViewModel
+            {
+                RowIdZlecenia = RowIdZlecenia,
+                GatunekKantowki = g.Key.G,
+                Przekroj = g.Key.P,
+                NazwaProduktu = g.FirstOrDefault()?.Symbol ?? "",
+                KodProduktu = "",
+                Uwagi = $"Zaimportowano z {formatPlikuImport} dnia: {DateTime.Now}{xv}",
+                DlugoscZamawiana = g.Key.D,
+                DlugoscNaGotowo = g.FirstOrDefault()?.Wymiar != null ? int.Parse(g.First().Wymiar) : 0,
+                DlugoscNaGotowoGrupa = string.Join("; ", g.Select(i => i.Wymiar)),
+                IloscSztuk = g.Sum(i => int.Parse(i.Ilosc)),
+                DataZamowienia = DateTime.MinValue,
+                DataRealizacji = DateTime.MinValue,
+                DataDostarczenia = DateTime.MinValue,
+                DataZapisu = DateTime.Now,
+                KtoZapisal = user ?? "",
+                PozDostarczono = false,
+                WyslanoDoZamowien = false,
+                MaterialZeStanMagazyn = false,
+            }).ToList();
+
+        var resp = await Http.PostAsJsonAsync($"api/kantowkaDoZlecen/save-all/{isCheckedDelAll}", grouped);
+        if (resp.IsSuccessStatusCode)
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            zestawienie = null;
+        }
+    }
+
+    // ---- modal wewnętrzny: dodaj/edytuj ----
+    public async Task ShowDialogAddNew()
+    {
+        kantowka = new KantowkaDoZlecenViewModel
+        {
+            RowIdZlecenia = RowIdZlecenia,
+            NazwaProduktu = "KANTÓWKA",
+            Uwagi = "Wpisano ręcznie dnia: " + DateTime.Now,
+            DataZapisu = DateTime.Now,
+            KtoZapisal = user ?? "",
+        };
+        cid = -1;
+        display = "block";
+        await Task.Delay(50);
+        classShow = "show";
+        StateHasChanged();
+    }
+
+    public async Task ShowDialog()
+    {
+        display = "block";
+        await Task.Delay(50);
+        classShow = "show";
+        StateHasChanged();
+    }
+
+    public async Task HandleAddNew() { await Task.Delay(1); _visible = true; }
+
+    public async Task HandleCancel() { _visible = false; await HideDialog(); }
+
+    private async Task HideDialog()
+    {
+        if (cid > 0 && kantowkaDoZlecen != null) kantowkaDoZlecen = oryginalkantowkaDoZlecen;
+        cid = -1;
+        classShow = "";
+        await Task.Delay(200);
+        display = "none";
+        StateHasChanged();
+    }
+
+    private async Task HideDialogFile()
+    {
+        classShow = "";
+        await Task.Delay(200);
+        display = "none";
+        StateHasChanged();
+    }
+
+    public async Task editRow(long id)
+    {
+        if (kantowkaDoZlecen == null) return;
+        oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+
+        if (_visible) { _visible = false; await HideDialog(); }
+        else
+        {
+            kantowka = new KantowkaDoZlecenViewModel();
+            var l = kantowkaDoZlecen.Where(d => d.Id == id).ToArray();
+            if (l.Length > 0)
+            {
+                cid = id;
+                kantowka = l[0];
+                _visible = true;
+                await ShowDialog();
+            }
+        }
+    }
+
+    public async Task deleteRow(long id)
+    {
+        if (kantowkaDoZlecen == null) return;
+        var resp = await Http.DeleteAsync($"api/KantowkaDoZlecen/{id}");
+        if (resp.IsSuccessStatusCode)
+            kantowkaDoZlecen = kantowkaDoZlecen.Where(r => r.Id != id).ToList();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!_visible || blokujDwuKlik) return;
+        kantowka.Przekroj = kantowka.Przekroj.ToUpper();
+        blokujDwuKlik = true;
+
+        HttpResponseMessage resp;
+        if (kantowka.Id == 0)
+            resp = await Http.PostAsJsonAsync("api/KantowkaDoZlecen", kantowka);
+        else
+        {
+            kantowka.DataDostarczenia = kantowka.PozDostarczono ? DateTime.Now : DateTime.MinValue;
+            kantowka.KtoZapisal = user ?? "";
+            kantowka.Uwagi = $"Zmiana z dnia: {DateTime.Now}";
+            resp = await Http.PutAsJsonAsync($"api/KantowkaDoZlecen/{kantowka.Id}", kantowka);
+        }
+
+        if (resp.IsSuccessStatusCode)
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+            _visible = false;
+            kantowka = new KantowkaDoZlecenViewModel();
+            await HideDialog();
+            StateHasChanged();
+        }
+        blokujDwuKlik = false;
+    }
+
+    // ---- modal wyboru producenta ----
+    public async Task ShowDialogKantowka()
+    {
+        elementyZamowienia = new ElemetZamDoZlecenWithProducent
+        {
+            ElemetZamDoZlecen = new ElemetZamDoZlecen
+            {
+                RowIdZlecenia = RowIdZlecenia,
+                NazwaProduktu = $"Kantówka (klejonka){(kantowkaDoZlecen == null || kantowkaDoZlecen.Count == 0 ? "" : " - " + kantowkaDoZlecen[0].GatunekKantowki)}",
+                IloscSztuk = kantowkaDoZlecen == null ? 0 : kantowkaDoZlecen.Sum(x => x.IloscSztuk),
+                Jednostka = "szt.",
+                DataZamowienia = DateTime.Now,
+                DataRealizacji = DateTime.Now.AddDays(14),
+                DataZapisu = DateTime.Now,
+                Uwagi = "Zapis automatycznie - Zamów kantówkę",
+                CzyZamowiono = true,
+                KtoZapisal = user ?? ""
+            },
+            ProducenciPodwykonawcy = new ProducenciPodwykonawcy(),
+            DodatkowaInformacja = "Dane z dnia " + DateTime.Now
+        };
+        displayKantowka = "block";
+        await Task.Delay(50);
+        classShowKantowka = "show";
+        StateHasChanged();
+    }
+
+    public async Task HandleAddNewKantowka() { _visibleKantowka = true; await Task.CompletedTask; }
+    public async Task HandleCancelKantowka() { _visibleKantowka = false; await HideDialogKantowka(); }
+    public async Task HandleKantowkaCancel() { _visibleKantowka = false; await HideDialogKantowka(); }
+
+    private async Task HideDialogKantowka()
+    {
+        if (cid > 0 && kantowkaDoZlecen != null) kantowkaDoZlecen = oryginalkantowkaDoZlecen;
+        cid = -1;
+        classShowKantowka = "";
+        await Task.Delay(200);
+        displayKantowka = "none";
+        StateHasChanged();
+    }
+
+    private async Task HandleKantowkaSubmit()
+    {
+        if (!_visibleKantowka) return;
+        wylaczZapiszKantowke = true;
+        elementyZamowienia!.ElemetZamDoZlecen.NazwaProduktu = elementyZamowienia.ElemetZamDoZlecen.NazwaProduktu.Trim();
+
+        HttpResponseMessage r;
+        if (elementyZamowienia.ElemetZamDoZlecen.Id == 0)
+            r = await Http.PostAsJsonAsync("api/ElementyDoZlecen", elementyZamowienia.ElemetZamDoZlecen);
+        else
+            r = await Http.PutAsJsonAsync($"api/ElementyDoZlecen/{elementyZamowienia.ElemetZamDoZlecen.Id}", elementyZamowienia.ElemetZamDoZlecen);
+
+        var resp = await Http.PutAsJsonAsync($"api/kantowkaDoZlecen/{RowIdZlecenia}/updateDateZamowieniaStatusZamow", "");
+        if (resp.IsSuccessStatusCode)
+        {
+            kantowkaDoZlecen = await Http.GetFromJsonAsync<List<KantowkaDoZlecenViewModel>>($"api/KantowkaDoZlecen/rowid/{RowIdZlecenia}");
+            if (kantowkaDoZlecen != null) oryginalkantowkaDoZlecen = kantowkaDoZlecen.DeepCopyList();
+            await _message.Success("Ustawiono datę zamówienia kantówki");
+        }
+        await HideDialogKantowka();
+        wylaczZapiszKantowke = false;
+    }
+
+    private async Task OnClickChange(int e)
+    {
+        await LocalStorage.SaveStringAsync("kantowka_ile_widocznych", e.ToString());
+    }
+
+    private async Task Laduj_Uprawnienia()
+    {
+        user = await LocalStorage.GetStringAsync("user");
+        if (string.IsNullOrEmpty(user)) { user = "NaN"; return; }
+
+        const string t = "KantowkaDoZlecen";
+        try
+        {
+            uprawnienia = await Http.GetFromJsonAsync<List<UprawnieniaPracownikaViewModel>>($"/api/ZwrocSatus/{user}/{t}");
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            await _message.Error("Brak danych - status użytkownika");
+        }
+        catch (Exception ex) { await _message.Error(ex.Message); }
+
+        if (uprawnienia != null && uprawnienia.Count > 0)
+        {
+            var s = uprawnienia.FirstOrDefault(x => x.TableName == t);
+            if (s != null)
+            {
+                boolOdczyt = s.Odczyt;
+                boolZmiana = s.Zmiana;
+                boolUsuniecia = s.Usuniecie;
+                boolAdmin = s.Administrator;
+                RowIdPracownika = s.RowId;
+                adresEmail = s.Email;
+                hasloPoczta = s.HasloDoPoczty;
+                Uimie = s.Imie;
+                Unazwisko = s.Nazwisko;
+            }
+        }
+    }
+}

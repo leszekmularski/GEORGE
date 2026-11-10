@@ -144,6 +144,18 @@
     }
 </style>
 
+<script>
+    window.clipboardCopy = {
+        copyText: function (text) {
+            navigator.clipboard.writeText(text).then(function () {
+                console.log('Skopiowano: ' + text);
+            }).catch(function (error) {
+                console.error('Błąd kopiowania: ', error);
+            });
+        }
+    };
+</script>
+
 <PageTitle>Program do wspomagania produkcji zlecenia</PageTitle>
 
 <div class="card mb-3">
@@ -624,6 +636,11 @@ else
                     OnDownloadAllFile="@(cnc => DownloadAllFile(cnc))"
                     OnHideDialogFile="@(() => HideDialogFile())" />
 
+<KantowkaDoZlecenModal RowIdZlecenia="@currentRowIdKantowka"
+                       Typ="zew"
+                       ClassShow="@classShowKantowka"
+                       Display="@displayKantowka"
+                       OnHideDialog="@HideKantowkaDialog" />
 
 <div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
     <div class="modal-dialog modal-lg">
@@ -752,6 +769,11 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
     int _pageIndex = 1;
 
     private string szukanyKlient = "";
+
+    // aktualnie wyświetlane zlecenie w modalu kantówki
+    private string currentRowIdKantowka = "";
+    private string classShowKantowka = "";
+    private string displayKantowka = "none";
 
     protected override async Task OnInitializedAsync()
     {
@@ -1258,9 +1280,21 @@ style="display: @displayPDFWP; margin: auto; top: 50%; left: 50%; transform: tra
         _onlyIconLoadingPdf = false;
     }
 
-    private void DodajKantowke(ZleceniaProdukcyjne row)
+    private async Task DodajKantowke(ZleceniaProdukcyjne row)
     {
-        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}/zew");
+        currentRowIdKantowka = row.RowId;
+        displayKantowka = "block";
+        await Task.Delay(50);
+        classShowKantowka = "show";
+        StateHasChanged();
+    }
+
+    private async Task HideKantowkaDialog()
+    {
+        classShowKantowka = "";
+        await Task.Delay(200);
+        displayKantowka = "none";
+        StateHasChanged();
     }
 
     private string _rowIdElementyDoZlecen;

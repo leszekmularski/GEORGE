@@ -1825,6 +1825,134 @@
         return true;
     };
 
+        // ============================================================
+    // KOPIOWANIE SVG (BEZ PROWADNIC) DO SCHOWKA
+    // ============================================================
+    window.copySvgToClipboard = async function () {
+        try {
+            console.log("📋 Kopiuję rysunek (bez prowadnic) do schowka...");
+
+            // 1. Pobierz aktualny SVG (z prowadnicami)
+            const svgWithGuides = getUpdatedSvg();
+            if (!svgWithGuides) {
+                return { ok: false, msg: "Brak rysunku do skopiowania" };
+            }
+
+            // 2. Sparsuj i usuń prowadnice
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgWithGuides, "image/svg+xml");
+
+            const parseError = svgDoc.querySelector("parsererror");
+            if (parseError) {
+                return { ok: false, msg: "Błąd parsowania SVG: " + parseError.textContent };
+            }
+
+            // 🔥 Usuwamy wszystkie prowadnice
+            svgDoc.querySelectorAll("*[id^='guide-line-']").forEach(el => el.remove());
+
+            const svgEl = svgDoc.documentElement;
+
+            if (!svgEl.getAttribute("xmlns")) {
+                svgEl.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            }
+
+            // 3. Ustal wymiary (z width/height lub viewBox)
+            let width = parseFloat(svgEl.getAttribute("width")) || NaN;
+            let height = parseFloat(svgEl.getAttribute("height")) || NaN;
+            const vb = svgEl.getAttribute("viewBox");
+
+            if (vb) {
+                const parts = vb.trim().split(/\s+|,/).map(Number);
+                if (parts.length >= 4 && parts.every(p => !isNaN(p))) {
+                    if (!isFinite(width)) width = parts[2];
+                    if (!isFinite(height)) height = parts[3];
+                    svgEl.setAttribute("width", width);
+                    svgEl.setAttribute("height", height);
+                }
+            }
+
+            if (!isFinite(width) || !isFinite(height) || width <= 0 || height <= 0) {
+                width = 800;
+                height = 800;
+                svgEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+                svgEl.setAttribute("width", width);
+                svgEl.setAttribute("height", height);
+            }
+
+            const finalSvg = new XMLSerializer().serializeToString(svgDoc);
+
+            // 4. Próba: PNG do schowka (najlepsza kompatybilność)
+            try {
+                const pngBlob = await new Promise((resolve, reject) => {
+                    const blob = new Blob([finalSvg], { type: "image/svg+xml;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+
+                    img.onload = () => {
+                        try {
+                            const scale = 2;
+                            const canvas = document.createElement("canvas");
+                            canvas.width = Math.round(width * scale);
+                            canvas.height = Math.round(height * scale);
+
+                            const ctx = canvas.getContext("2d");
+
+                            // 🔥 KLUCZOWA POPRAWKA: białe tło zamiast przezroczystego
+                            ctx.fillStyle = "#ffffff";
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                            URL.revokeObjectURL(url);
+                            canvas.toBlob(b => b ? resolve(b) : reject(new Error("Brak bloba PNG")), "image/png");
+                        } catch (err) {
+                            URL.revokeObjectURL(url);
+                            reject(err);
+                        }
+                    };
+
+                    img.onerror = () => {
+                        URL.revokeObjectURL(url);
+                        reject(new Error("Nie można wczytać SVG do <img>"));
+                    };
+
+                    img.src = url;
+                });
+
+                await navigator.clipboard.write([
+                    new ClipboardItem({ "image/png": pngBlob })
+                ]);
+
+                console.log("✅ Skopiowano jako PNG");
+                return { ok: true, format: "png", msg: "Skopiowano obrazek (PNG) do schowka" };
+
+            } catch (pngErr) {
+                console.warn("⚠️ PNG do schowka nie powiodło się, próbuję SVG:", pngErr);
+
+                // 5. Fallback: SVG do schowka
+                try {
+                    const svgBlob = new Blob([finalSvg], { type: "image/svg+xml" });
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ "image/svg+xml": svgBlob })
+                    ]);
+
+                    console.log("✅ Skopiowano jako SVG");
+                    return { ok: true, format: "svg", msg: "Skopiowano obrazek (SVG) do schowka" };
+                } catch (svgErr) {
+                    console.error("❌ Błąd kopiowania SVG:", svgErr);
+                    return {
+                        ok: false,
+                        msg: "Nie udało się skopiować: " + (svgErr.message || svgErr.name || "błąd schowka")
+                    };
+                }
+            }
+        } catch (err) {
+            console.error("❌ copySvgToClipboard error:", err);
+            return { ok: false, msg: err.message || "Nieznany błąd" };
+        }
+    };
+
 </script>
 
 @if (czekajNaZaladowanieDanych)
@@ -2251,46 +2379,74 @@
 
     </TabPane>
     <TabPane Tab="Linie oraz rysunek DXF" Key="2">
-        <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap p-2 rounded"
-             style="background: #f8f9fa; border: 1px solid #e9ecef;">
+        <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded"
+             style="background: #f8f9fa; border: 1px solid #e9ecef;
+            flex-wrap: nowrap; overflow-x: auto;">
 
-            <!-- 🔹 Lewa grupa: akcje -->
-            <div class="dxf-toolbar mb-3">
+            <!-- 🔹 Akcje (lewa strona) -->
+            <div class="d-flex align-items-center gap-1" style="flex-shrink: 0;">
 
-                <!-- 🔹 Lewa grupa: akcje -->
-                <div class="dxf-toolbar-group">
-                    <button type="button" class="btn btn-primary btn-sm" @onclick="PrzejdzDoZapisu"
-                            title="Przejdź do formularza zapisu">
-                        💾 Przejdź do zapisu
-                    </button>
+                <button type="button" class="btn btn-primary btn-sm"
+                        style="white-space: nowrap;"
+                        @onclick="PrzejdzDoZapisu"
+                        title="Przejdź do formularza zapisu">
+                    💾 Przejdź do zapisu
+                </button>
 
-                    <span class="dxf-toolbar-divider"></span>
+                <span class="dxf-toolbar-divider" style="flex-shrink: 0;"></span>
 
-                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="RefreshSvg"
-                            title="Odśwież widok SVG">
-                        🔄 Odśwież
-                    </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        style="white-space: nowrap;"
+                        @onclick="RefreshSvg"
+                        title="Odśwież widok SVG">
+                    🔄 Odśwież
+                </button>
 
-                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="FixGuides"
-                            title="Przytnij prowadnice do rzeczywistego obszaru rysunku">
-                        🗺️ Napraw prowadnice
-                    </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        style="white-space: nowrap;"
+                        @onclick="FixGuides"
+                        title="Przytnij prowadnice do rzeczywistego obszaru rysunku">
+                    🗺️ Napraw prowadnice
+                </button>
 
-                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="DownloadDxf"
-                            title="Pobierz plik DXF z przekrojem profilu">
-                        📥 Pobierz DXF
-                    </button>
-                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm"
+                        style="white-space: nowrap;"
+                        @onclick="DownloadDxf"
+                        title="Pobierz plik DXF z przekrojem profilu">
+                    📥 Pobierz DXF
+                </button>
 
-                <!-- 🔹 Prawa grupa: tytuł sekcji -->
-                <span class="dxf-toolbar-title">Podgląd profilu z DXF</span>
+                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1"
+                        style="white-space: nowrap;"
+                        @onclick="CopySVG"
+                        title="Kopiuj obrazek bez prowadnic">
+                    ⧉ Kopiuj SVG obrazka
+                </button>
+
             </div>
 
-            <!-- 🔹 Prawa grupa: tytuł sekcji -->
-            <span class="text-muted fw-semibold"
-                  style="font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase;">
-                Podgląd profilu z DXF
-            </span>
+            <!-- 🔹 Tytuł + podpowiedź obrazkowa (prawa strona) -->
+            <div class="d-flex align-items-center gap-2 ms-auto" style="flex-shrink: 0;">
+                <span class="dxf-toolbar-title">Podgląd profilu z DXF</span>
+
+                @if (GetObrazkiDlaTypu(konfSystem.Typ).Count > 0)
+                {
+                    <div class="d-flex align-items-center gap-1"
+                         title="Podpowiedź: jak ustawić model dla typu '@konfSystem.Typ'">
+                        @foreach (var imgSrc in GetObrazkiDlaTypu(konfSystem.Typ))
+                        {
+                            <img src="@imgSrc"
+                                 alt="@konfSystem.Typ"
+                                 onerror="this.style.display='none'"
+                                 @onclick="() => PokazPodgladObrazka(imgSrc)"
+                                 style="height: 40px; width: auto; display: block;
+                                border: 1px solid #dee2e6; border-radius: 4px;
+                                background: #fff; padding: 2px;
+                                cursor: zoom-in;" />
+                        }
+                    </div>
+                }
+            </div>
         </div>
         <!-- Wrapper dla SVG i wartości linii -->
         <div style="display: flex; align-items: flex-start; gap: 15px;">
@@ -2646,6 +2802,36 @@
         {
             Console.WriteLine("❌ Błąd pobierania DXF: " + await response.Content.ReadAsStringAsync());
         }
+    }
+
+    private async Task CopySVG()
+    {
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<CopyResult>("copySvgToClipboard");
+
+            if (result.Ok)
+            {
+                await _message.Success($"✅ {result.Msg}");
+            }
+            else
+            {
+                await _message.Error($"❌ {result.Msg}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ CopySVG: {ex.Message}");
+            await _message.Error($"❌ Błąd kopiowania: {ex.Message}");
+        }
+    }
+
+    // Klasa pomocnicza (może być też rekordem)
+    public class CopyResult
+    {
+        public bool Ok { get; set; }
+        public string Msg { get; set; } = "";
+        public string Format { get; set; } = "";
     }
 
     private async Task PrzejdzDoZapisu()
@@ -3350,6 +3536,28 @@
         await modalCompletionSource.Task;
     }
 
+    private async Task PokazPodgladObrazka(string imgSrc)
+    {
+        RenderFragment content = @<div class="text-center" style="margin: 0;">
+            <img src="@imgSrc"
+                 alt="Podgląd"
+                 style="width: 100%; max-width: 220px; height: auto;
+                            max-height: 80vh; object-fit: contain;
+                            display: block; margin: 0 auto;" />
+        </div>;
+
+        var options = new ConfirmOptions()
+        {
+            Title = $"Podpowiedź: {konfSystem.Typ}",
+            Width = 800,           // 🔥 dużo szerszy modal
+            Centered = true,
+            Content = content,
+            OkText = "Zamknij",
+            CancelText = "Anuluj"
+        };
+
+        await _modalService.CreateConfirmAsync(options);
+    }
 
     record Typ(string Nazwa);
     private List<Typ> _typ = new List<Typ>
@@ -3361,4 +3569,17 @@
             new Typ("Słupek stały"),
             new Typ("Listwa przyszybowa"),
         };
+
+    private List<string> GetObrazkiDlaTypu(string? typ)
+    {
+        return typ switch
+        {
+            "Rama" => new() { "Images/RAMA.png", "Images/RAMA-DOL.png" },
+            "Skrzydło" => new() { "Images/SKRZYDLO.png" },
+            "Słupek ruchomy" => new() { "Images/SL_RUCH.png" },
+            "Słupek stały" => new() { "Images/SL_STALY.png", "Images/SLEMIE.png" },
+            "Listwa przyszybowa" => new() { "Images/LISTWA.png" },
+            _ => new()
+        };
+    }
 }

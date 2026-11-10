@@ -4625,7 +4625,7 @@
                 Duration = 4
             });
         }
-        else if (!boolStyczny && !model.Typ.Contains("Słupek") && drugiModel == null && bSlupekStaly)
+        else if (!boolStyczny && !model.Typ.Contains("Słupek") && drugiModel == null && bSlupekStaly && !pierwszyModel.Typ.Contains("Słupek"))
         {
             selSlStaly = false;
             bSlupekStaly = false;
@@ -5437,7 +5437,7 @@
 
         GuideDisplacementResult result;
 
-        // boolStyczny oznacza, że użytkownik wybrał tryb STYCZNY (bez prowadnic, prostokąt) np dosunięcie modelu 2 do modelu 1 czyli słupka do ramy
+       // boolStyczny oznacza, że użytkownik wybrał tryb STYCZNY (bez prowadnic, prostokąt) np dosunięcie modelu 2 do modelu 1 czyli słupka do ramy
 
         if (boolStyczny)
         {
@@ -5479,6 +5479,21 @@
             }
         }
 
+        Console.WriteLine($"[DIAG-MODEL1] " +
+        $"PionLewa={pierwszyModel.PionLewa}, " +
+        $"PionPrawa={pierwszyModel.PionPrawa}, " +
+        $"PionOsSymetrii={pierwszyModel.PionOsSymetrii}, " +
+        $"PionOdSzybaOdZew={pierwszyModel.PionOdSzybaOdZew}, " +
+        $"PoziomDol={pierwszyModel.PoziomDol}, " +
+        $"PoziomGora={pierwszyModel.PoziomGora}, " +
+        $"PoziomKorpus={pierwszyModel.PoziomKorpus}, " +
+        $"PoziomOsSymetrii={pierwszyModel.PoziomOsSymetrii}, " +
+        $"PoziomLiniaSzkla={pierwszyModel.PoziomLiniaSzkla}, " +
+        $"PoziomLiniaOkucia={pierwszyModel.PoziomLiniaOkucia}, " +
+        $"PoziomOsDormas={pierwszyModel.PoziomOsDormas}");
+
+         Console.WriteLine($"[DIAG-MEAS] raw X={result.przesuniecieX:F3}, raw Y={result.przesuniecieY:F3}");
+
         double przesuniecieX = Math.Round(result.przesuniecieX, precyzjaZapisu);
         double przesuniecieY = Math.Round(result.przesuniecieY, precyzjaZapisu);
 
@@ -5496,37 +5511,39 @@
 
         if (pierwszyModel.Typ.Contains("Słupek stały"))
         {
-            bool pionS;
+            // bool pionS;
 
-            if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
-                pierwszyModel.KatWystapieniaZakresOdMax == 360)
-            {
-                // Dowolny kąt
-                pionS = true;
-            }
-            else if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
-                     pierwszyModel.KatWystapieniaZakresOdMax == 0)
-            {
-                // Kierunek poziomy
-                pionS = false;
-            }
-            else
-            {
-                // Pozostałe zakresy
-                // tutaj zależy od tego, czy zakres wskazuje na kierunek poziomy
-                pionS = true;
-            }
+            // if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
+            //     pierwszyModel.KatWystapieniaZakresOdMax == 360)
+            // {
+            //     // Dowolny kąt
+            //     pionS = true;
+            // }
+            // else if (pierwszyModel.KatWystapieniaZakresOdMin == 0 &&
+            //          pierwszyModel.KatWystapieniaZakresOdMax == 0)
+            // {
+            //     // Kierunek poziomy
+            //     pionS = false;
+            // }
+            // else
+            // {
+            //     // Pozostałe zakresy
+            //     // tutaj zależy od tego, czy zakres wskazuje na kierunek poziomy
+            //     pionS = true;
+            // }
 
-            if (pionS)
-            {
-                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(pierwszyModel.PionOsSymetrii ?? 0)}");
-                przesuniecieY = Math.Abs(przesuniecieY - (pierwszyModel.PionOsSymetrii ?? 0));
-            }
-            else
-            {
-                Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (poziomy słupek): {przesuniecieY} -> {(pierwszyModel.PoziomOsSymetrii ?? 0)}");
-                przesuniecieY = Math.Abs(przesuniecieY - (pierwszyModel.PoziomOsSymetrii ?? 0));
-            }
+            // if (pionS)
+            // {
+            //     Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (pionowy słupek): {przesuniecieY} -> {(pierwszyModel.PionOsSymetrii ?? 0)}");
+            //     przesuniecieY = Math.Abs(przesuniecieY - (pierwszyModel.PionOsSymetrii ?? 0));
+            // }
+            // else
+            // {
+            //Model przekroju jest zawsze zapiasany w wersja pozioma
+            Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (poziomy słupek): {(pierwszyModel.PoziomOsSymetrii ?? 0)} -> {przesuniecieY}");
+            przesuniecieY = (pierwszyModel.PoziomOsSymetrii ?? 0) - przesuniecieY;
+            Console.WriteLine($"🔷🔷🔷🔷 Przesunięcie Y (poziomy słupek) wartość po wyliczeniu: {przesuniecieY}");
+            // }
         }
 
         // Aktualizacja wyniku o ostateczne wartości

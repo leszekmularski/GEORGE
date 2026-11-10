@@ -697,6 +697,12 @@ else
                     OnDownloadAllFile="@(cnc => DownloadAllFile(cnc))"
                     OnHideDialogFile="@(() => HideDialogFile())" />
 
+<KantowkaDoZlecenModal RowIdZlecenia="@currentRowIdKantowka"
+                       Typ="zew"
+                       ClassShow="@classShowKantowka"
+                       Display="@displayKantowka"
+                       OnHideDialog="@HideKantowkaDialog" />
+
 <div class="modal fade @classShowTWZ" tabindex="-1" style="display: @displayTWZ;margin: auto; top: 50%; left: 50%; transform: translate(-50%, -50%); position: absolute; width: 80%;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -821,6 +827,10 @@ else
     int _pageIndex = 1;
 
     private string szukanyNumer = "";
+
+    private string currentRowIdKantowka = "";
+    private string classShowKantowka = "";
+    private string displayKantowka = "none";
 
     protected override async Task OnInitializedAsync()
     {
@@ -1585,10 +1595,22 @@ else
 
     }
 
-    private void DodajKantowke(ZleceniaProdukcyjneWew row)
-    {
-        navigationManager.NavigateTo($"/Kantowka-do-zlecen/{row.RowId}/wew");
-    }
+ private async Task DodajKantowke(ZleceniaProdukcyjneWew row)
+{
+    currentRowIdKantowka = row.RowId;
+    displayKantowka = "block";
+    await Task.Delay(50);
+    classShowKantowka = "show";
+    StateHasChanged();
+}
+
+private async Task HideKantowkaDialog()
+{
+    classShowKantowka = "";
+    await Task.Delay(200);
+    displayKantowka = "none";
+    StateHasChanged();
+}
 
     private string _rowIdElementyDoZlecen;
     private string _trybElementyDoZlecen = "wew";
