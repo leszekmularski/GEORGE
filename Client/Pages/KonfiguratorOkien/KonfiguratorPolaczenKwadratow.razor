@@ -5014,6 +5014,7 @@
 
     bool czekajNaZapisAll = false;
 
+
     private async Task SaveAllPosition()
     {
         if (string.IsNullOrEmpty(SelectedSystemId) ||
@@ -5022,7 +5023,6 @@
         {
             await _message.Error(
                 "❌ Brak wybranego systemu lub modeli do zapisania");
-
             return;
         }
 
@@ -5035,43 +5035,49 @@
         if (czekajNaZapisAll)
             return;
 
-        // Lista widoków, które mają zostać zapisane.
-        // Kat i odbicie określają ich docelową orientację.
-        var stronyDoZapisu = new List<(string Strona, int Kat, bool Odbicie,  int KatZapis)>();
+        // Docelowe widoki:
+        // OdbicieGoraDol   - odbicie góra/dół (mirror w JS)
+        // OdbicieLewoPrawo - odbicie lewo/prawo (mirrorVertical w JS)
+        var stronyDoZapisu =
+            new List<(string Strona,
+                      int Kat,
+                      bool OdbicieGoraDol,
+                      bool OdbicieLewoPrawo,
+                      int KatZapis)>();
 
-        if(boolStyczny)
+        if (boolStyczny)
         {
-
             if (selGoraStyczne)
-                stronyDoZapisu.Add(("góra", 0, false , 0));
+                stronyDoZapisu.Add(("góra", 0, false, false, 0));
 
             if (selDolStyczne)
-                stronyDoZapisu.Add(("dół", 180, false, 180));
+                stronyDoZapisu.Add(("dół", 180, false, false, 180));
 
             if (selPrawaStyczne)
-                stronyDoZapisu.Add(("prawa", 270, true, 90));
+                stronyDoZapisu.Add(("prawa", 270, false, false, 90));
 
             if (selLewaStyczne)
-                stronyDoZapisu.Add(("lewa", 270, false, 270));
+                stronyDoZapisu.Add(("lewa", 270, false, true, 270));
         }
         else
         {
             if (selGora)
-                stronyDoZapisu.Add(("góra", 0, false ,0));
+                stronyDoZapisu.Add(("góra", 0, false, false, 0));
 
             if (selDol)
-                stronyDoZapisu.Add(("dół", 180, false, 180));
+                stronyDoZapisu.Add(("dół", 180, false, false, 180));
 
             if (selPrawa)
-                stronyDoZapisu.Add(("prawa", 270, true, 90));
+                stronyDoZapisu.Add(("prawa", 270, false, false, 90));
 
             if (selLewa)
-                stronyDoZapisu.Add(("lewa", 270, false, 270));
+                stronyDoZapisu.Add(("lewa", 270, false, true, 90));
         }
 
         if (stronyDoZapisu.Count == 0)
         {
-            await _message.Warning("❗ Zaznacz przynajmniej jeden widok do zapisania");
+            await _message.Warning(
+                "❗ Zaznacz przynajmniej jeden widok do zapisania");
             return;
         }
 
@@ -5079,19 +5085,24 @@
 
         string statusZapisu = "";
 
-        // Zapamiętujemy aktualny kąt ustawienia modelu.
+        // Zapamiętujemy aktualny stan CANVAS.
         int katBazowy = katUstawienia;
 
         try
         {
-            // Orientacja widoku, w którym aktualnie budowany jest model.
+            // Orientacja aktualnego widoku CANVAS.
             var orientacjaBazowa =
                 PobierzOrientacjeWidoku(wybranyKierunekBudowy);
 
             int katWidokuBazowego = orientacjaBazowa.Kat;
-            bool odbicieWidokuBazowego = orientacjaBazowa.Odbicie;
 
-            // Zapamiętaj dokładną transformację całej grupy modeli.
+            bool odbicieBazoweGoraDol =
+                orientacjaBazowa.OdbicieGoraDol;
+
+            bool odbicieBazoweLewoPrawo =
+                orientacjaBazowa.OdbicieLewoPrawo;
+
+            // Zapamiętujemy dokładną transformację całej grupy modeli.
             string? transformacjaBazowa =
                 await JSRuntime.InvokeAsync<string?>(
                     "svgHelper.getModelsGroupTransform");
@@ -5100,7 +5111,6 @@
             {
                 await _message.Error(
                     "❌ Nie udało się odczytać transformacji modeli SVG.");
-
                 return;
             }
 
@@ -5108,7 +5118,13 @@
                 $"[SaveAllPosition] Kierunek bazowy: {wybranyKierunekBudowy}");
 
             Console.WriteLine(
-                $"[SaveAllPosition] Kąt bazowy: {katBazowy}");
+                $"[SaveAllPosition] Kąt bazowy: {katWidokuBazowego}°");
+
+            Console.WriteLine(
+                $"[SaveAllPosition] Odbicie góra/dół: {odbicieBazoweGoraDol}");
+
+            Console.WriteLine(
+                $"[SaveAllPosition] Odbicie lewo/prawo: {odbicieBazoweLewoPrawo}");
 
             Console.WriteLine(
                 $"[SaveAllPosition] Transformacja bazowa: {transformacjaBazowa}");
@@ -5119,61 +5135,77 @@
             {
                 foreach (var strona in stronyDoZapisu)
                 {
-                    // Przywróć dokładnie ten sam stan początkowy
-                    // przed przygotowaniem każdego kolejnego widoku.
-                    bool przywrocono = await JSRuntime.InvokeAsync<bool>(
-                        "svgHelper.setModelsGroupTransform",
-                        transformacjaBazowa);
+                    // Każdy widok rozpoczynamy od identycznego stanu CANVAS.
+                    bool przywrocono =
+                        await JSRuntime.InvokeAsync<bool>(
+                            "svgHelper.setModelsGroupTransform",
+                            transformacjaBazowa);
 
                     if (!przywrocono)
                     {
                         wynikiZapisu.Add(
                             $"❌ {strona.Strona}: nie udało się przywrócić transformacji bazowej.");
-
                         continue;
                     }
 
-                    // Oblicz różnicę pomiędzy widokiem docelowym
-                    // a aktualnym widokiem budowania.
-                    int katObrotu =
-                        NormalizujKat(strona.Kat - katWidokuBazowego);
-                    int katObrotuZapisz =
-                    NormalizujKat(strona.KatZapis - katWidokuBazowego);
+                    // Różnica kąta między aktualnym widokiem
+                    // a widokiem, który chcemy zapisać.
+                    int katObrotu = NormalizujKat(
+                        strona.Kat - katWidokuBazowego);
 
-                    // Odbicie wykonujemy tylko wtedy, gdy orientacje
-                    // bazowa i docelowa różnią się rodzajem odbicia.
-                    bool odbicie =
-                        strona.Odbicie != odbicieWidokuBazowego;
+                    // Kąt wykorzystywany do zapisu rekordu.
+                    int katObrotuZapisz = NormalizujKat(
+                        strona.KatZapis - katWidokuBazowego);
+
+                    // Odbicie wykonujemy tylko wtedy, gdy
+                    // orientacja bazowa różni się od docelowej.
+                    bool odbicieGoraDol =
+                        strona.OdbicieGoraDol != odbicieBazoweGoraDol;
+
+                    bool odbicieLewoPrawo =
+                        strona.OdbicieLewoPrawo != odbicieBazoweLewoPrawo;
 
                     Console.WriteLine(
-                        $"[SaveAllPosition] Strona: {strona.Strona}, " +
-                        $"obrót: {katObrotu}°, odbicie: {odbicie}");
+                        $"[SaveAllPosition] Strona: {strona.Strona}");
 
-                    // Ustaw orientację docelową względem bazy.
-                    bool zastosowano = await JSRuntime.InvokeAsync<bool>(
-                        "svgHelper.applyModelsViewTransform",
-                        transformacjaBazowa,
-                        katObrotu,
-                        odbicie);
+                    Console.WriteLine(
+                        $"[SaveAllPosition] Obrót: {katObrotu}°");
+
+                    Console.WriteLine(
+                        $"[SaveAllPosition] Odbicie góra/dół: {odbicieGoraDol}");
+
+                    Console.WriteLine(
+                        $"[SaveAllPosition] Odbicie lewo/prawo: {odbicieLewoPrawo}");
+
+                    // Ustawiamy widok docelowy.
+                    // Argumenty odpowiadają kolejno parametrom JS:
+                    // baseTransform, rotationDelta, mirror, mirrorVertical.
+                    bool zastosowano =
+                        await JSRuntime.InvokeAsync<bool>(
+                            "svgHelper.applyModelsViewTransform",
+                            transformacjaBazowa,
+                            katObrotu,
+                            odbicieGoraDol,
+                            odbicieLewoPrawo);
 
                     if (!zastosowano)
                     {
                         wynikiZapisu.Add(
                             $"❌ {strona.Strona}: nie udało się ustawić widoku.");
-
                         continue;
                     }
 
-                    // Aktualizuj kąt zapisywany w rekordzie.
-                    katUstawienia = NormalizujKat(katBazowy + katObrotuZapisz);
+                    // Aktualizujemy kąt ustawienia na czas zapisu.
+                    katUstawienia = NormalizujKat(
+                        katBazowy + katObrotuZapisz);
 
                     await InvokeAsync(StateHasChanged);
 
-                    // Poczekaj na zakończenie operacji SVG.
-                    await Task.Delay(100);
+                    // Czekamy na zakończenie transformacji SVG.
+                    await Task.Delay(150);
                     await Task.Yield();
 
-                    // Zapisz konkretny widok.
+                    // Zapisujemy konkretny widok.
                     string wynik = await SavePosition(
                         strona.Strona,
                         strona.KatZapis);
@@ -5186,8 +5218,7 @@
             }
             finally
             {
-                // Bez względu na wynik zapisu przywracamy
-                // oryginalny widok, w którym użytkownik budował model.
+                // Przywracamy pierwotny widok CANVAS.
                 await JSRuntime.InvokeVoidAsync(
                     "svgHelper.setModelsGroupTransform",
                     transformacjaBazowa);
@@ -5220,9 +5251,15 @@
 
         if (!string.IsNullOrWhiteSpace(statusZapisu))
         {
-            await _message.Success(statusZapisu, 5);
+            _ = _notice.Info(new()
+            {
+                Message = statusZapisu,
+                Description = "Informacj o zapisie",
+                Placement = NotificationPlacement.TopRight
+            });
         }
     }
+
 
     private async Task<string> SavePosition(
      string strona,
@@ -5355,7 +5392,7 @@
         if (response.IsSuccessStatusCode)
         {
             var zakladka = boolStyczny ? "styczna" : "przekrój";
-            statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katDoZapisu}° \r\n";
+            statusZapisu += $"✅ Zapisano stronę {strona} ({zakladka}), kąt: {katDoZapisu}° <br/>";
         }
         else
         {
@@ -5389,11 +5426,18 @@
         return statusZapisu;
     }
 
-    private static (int Kat, bool Odbicie) PobierzOrientacjeWidoku(string kierunek)
-    {
-        string k = (kierunek ?? "").Trim().ToLowerInvariant();
 
-        // Zamiana polskich znaków na ASCII (żeby "dołu" == "dolu", "góry" == "gory")
+    private static (
+        int Kat,
+        bool OdbicieGoraDol,
+        bool OdbicieLewoPrawo
+    ) PobierzOrientacjeWidoku(string kierunek)
+    {
+        string k = (kierunek ?? "")
+            .Trim()
+            .ToLowerInvariant();
+
+        // Normalizacja polskich znaków.
         k = k
             .Replace('ą', 'a')
             .Replace('ć', 'c')
@@ -5405,16 +5449,28 @@
             .Replace('ź', 'z')
             .Replace('ż', 'z');
 
-        // Teraz porównujemy po przedrostku — niezależnie od przypadka
-        if (k.StartsWith("praw")) return (90, false);   // prawa, prawej, prawy, prawo, prawą
-        if (k.StartsWith("gor")) return (0, false);    // góra, góry, górna, górnej, górą
-        if (k.StartsWith("dol")) return (180, false);  // dół, dołu, dolna, dolnej, dołem
-        if (k.StartsWith("lew")) return (270, true);   // lewa, lewej, lewy, lewo, lewą
+        // Góra – widok podstawowy.
+        if (k.StartsWith("gor"))
+            return (0, false, false);
+
+        // Dół – obrót o 180 stopni.
+        if (k.StartsWith("dol"))
+            return (180, false, false);
+
+        // Prawa – obrót o 270 stopni.
+        if (k.StartsWith("praw"))
+            return (270, false, false);
+
+        // Lewa – obrót o 270 stopni i odbicie lewo/prawo.
+        if (k.StartsWith("lew"))
+            return (270, false, true);
 
         throw new ArgumentException(
-            $"Nieznany kierunek budowy: '{kierunek}' (po normalizacji: '{k}'). " +
-            $"Dozwolone: lewa/prawa/góra/dół w dowolnym przypadku.");
+            $"Nieznany kierunek budowy: '{kierunek}' " +
+            $"(po normalizacji: '{k}'). " +
+            "Dozwolone: lewa/prawa/góra/dół.");
     }
+
 
 
     private static int NormalizujKat(int kat)

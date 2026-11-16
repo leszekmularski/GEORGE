@@ -572,10 +572,10 @@
             sumailoszSztukPoz = wykazPozycjiDoZlecenia.Sum(x => x.IloscOkien); 
             sumailoszSkrzydelPoz = wykazPozycjiDoZlecenia.Sum(x => x.Iloscskrzydel);
 
-            sumaPowM2 = wykazPozycjiDoZlecenia.Sum(x => (x.Szerokosc / 1000) * (x.Wysokosc / 1000) * x.IloscOkien);
+            sumaPowM2 = MathF.Round(wykazPozycjiDoZlecenia.Sum(x => (x.Szerokosc / 1000) * (x.Wysokosc / 1000) * x.IloscOkien), 2);
 
-            sumaObwod = wykazPozycjiDoZlecenia.Sum(x => 2 * ((x.Szerokosc / 1000) + (x.Wysokosc / 1000)) * x.IloscOkien);
-            sumaObwodTylkoDol = wykazPozycjiDoZlecenia.Sum(x => (x.Szerokosc / 1000) * x.IloscOkien);
+            sumaObwod = MathF.Round(wykazPozycjiDoZlecenia.Sum(x => 2 * ((x.Szerokosc / 1000) + (x.Wysokosc / 1000)) * x.IloscOkien), 2);
+            sumaObwodTylkoDol = MathF.Round(wykazPozycjiDoZlecenia.Sum(x => (x.Szerokosc / 1000) * x.IloscOkien), 2);
         }
 
         StateHasChanged();
