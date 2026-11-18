@@ -4900,6 +4900,10 @@
         if (czekajNaZapisAll)
             return;
 
+        await ZoomAllObj();
+
+        await Task.Delay(100); // Dodaj opóźnienie, aby upewnić się, że zoom został zastosowany
+
         // Docelowe widoki:
         // OdbicieGoraDol   - odbicie góra/dół (mirror w JS)
         // OdbicieLewoPrawo - odbicie lewo/prawo (mirrorVertical w JS)
