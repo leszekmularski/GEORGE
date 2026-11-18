@@ -7490,11 +7490,11 @@
     }
 
     private async Task<string> ObsluzSkrzydlo(
-        GeneratorState state,
-        Generator generator,
-        string idRegion,
-        List<XPoint> wierzcholki,
-        List<XPoint> wierzcholkiMaster)
+    GeneratorState state,
+    Generator generator,
+    string idRegion,
+    List<XPoint> wierzcholki,
+    List<XPoint> wierzcholkiMaster)
     {
         var wybranyRegionSkrzydlo = _regionsSkrzydlo.FirstOrDefault(r => r.Id == idRegion);
 

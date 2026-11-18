@@ -668,7 +668,7 @@ namespace GEORGE.Client.Pages.Okna
         /// wielokąta (prostokąt, domek, trapezoid, wielokąt z łukami).
         /// Zachowuje liczbę punktów i kolejność.
         /// </summary>
-        private static List<XPoint> PrzesunPunktyDoSrodka(
+    private static List<XPoint> PrzesunPunktyDoSrodka(
     List<XPoint> punkty, double offsetLewo, double offsetPrawo,
     double offsetGora, double offsetDol)
         {

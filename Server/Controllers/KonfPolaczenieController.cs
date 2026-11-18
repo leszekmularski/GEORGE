@@ -92,13 +92,16 @@ namespace GEORGE.Server.Controllers
                 var records = await query
                    .Select(p => new PrzesuniecieDto
                    {
-                       PrzesuniecieX = p.PrzesuniecieX == 0 ? 1 : p.PrzesuniecieX,
-                       PrzesuniecieY = p.PrzesuniecieY == 0 ? 1 : p.PrzesuniecieY,
-                       PrzesuniecieXStycznej = p.PrzesuniecieXStycznej == 0 ? 1 : p.PrzesuniecieXStycznej,
-                       PrzesuniecieYStycznej = p.PrzesuniecieYStycznej == 0 ? 1 : p.PrzesuniecieYStycznej,
+                       PrzesuniecieX = p.PrzesuniecieX,
+                       PrzesuniecieY = p.PrzesuniecieY,
+                       PrzesuniecieXStycznej = p.PrzesuniecieXStycznej,
+                       PrzesuniecieYStycznej = p.PrzesuniecieYStycznej,
+
                        ElementWewnetrznyId = p.ElementWewnetrznyId,
                        ElementZewnetrznyId = p.ElementZewnetrznyId,
-                       Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE", // Jeśli StronaPolaczenia jest null, ustawiamy "NaN"
+
+                       Strona = p.StronaPolaczenia ?? "BRAK DANYCH W BAZIE",
+
                        ElementZewnetrznyToSlupek = p.ElementZewnetrznyToSlupek,
                        ElementWewnetrznyToSlupek = p.ElementWewnetrznyToSlupek
                    })
@@ -111,10 +114,10 @@ namespace GEORGE.Server.Controllers
                 {
                     new PrzesuniecieDto
                     {
-                        PrzesuniecieX = 1,
-                        PrzesuniecieY = 1,
-                        PrzesuniecieXStycznej = 1,
-                        PrzesuniecieYStycznej = 1,
+                        PrzesuniecieX = 0,
+                        PrzesuniecieY = 0,
+                        PrzesuniecieXStycznej = 0,
+                        PrzesuniecieYStycznej = 0,
                         ElementWewnetrznyId = Guid.Empty,
                         ElementZewnetrznyId = Guid.Empty,
                         Strona = "NaN"
