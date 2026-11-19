@@ -2,8 +2,10 @@
 @using GEORGE.Client.Pages.Models
 @using System.Text.Encodings.Web
 @using System.Text.Json.Serialization
+@using GEORGE.Shared.Models
 @using GEORGE.Shared.ViewModels
 @inject IJSRuntime JSRuntime
+@inject HttpClient Http
 @using Blazor.HighlightJS
 @using System.Text
 
@@ -769,8 +771,27 @@
             margin: 0;
             font-size: 13px;
         }
-</style>
 
+    /* Kontener rysunku połączenia */
+    .rysunek-polaczenia {
+        width: 100%;
+        min-height: 150px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        background: white;
+        border-radius: 6px;
+        padding: 10px;
+    }
+
+        /* SVG dopasowane do dostępnego miejsca */
+        .rysunek-polaczenia svg {
+            max-width: 100%;
+            max-height: 350px;
+            height: auto;
+        }
+</style>
 
 <div class="container-fluid py-3">
     <!-- Nagłówek -->
@@ -1627,7 +1648,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
                                 <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
@@ -1667,8 +1688,8 @@
                     <div class="json-content @(rozwinJson ? "expanded" : "")"
                          @key="aktywnaZakladka"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
-                                                padding: 20px;">
+                                                                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                                                                                                padding: 20px;">
 
                         @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
                         {
@@ -1679,6 +1700,12 @@
                                 <div class="row">
                                     @foreach (var kwadrat in wybranyStan.ListaKwadratow)
                                     {
+                                        var kluczPolaczenia = PobierzKluczPolaczenia(
+                                        kwadrat.RowIdElementu,
+                                        kwadrat.RowIdSasiada,
+                                        kwadrat.Strona
+                                        );
+
                                         <div class="col-md-6 mb-3">
                                             <div class="card h-100 @(ciemnyMotyw ? "bg-dark text-light border-secondary" : "border")">
                                                 <div class="card-header d-flex justify-content-between align-items-center @(ciemnyMotyw ? "bg-secondary" : "bg-light")">
@@ -1737,43 +1764,134 @@
                                                         <div class="property"><span class="property-label">RowId Sąsiada strona B:</span><span class="property-value">@kwadrat.RowIdSasiadaStronaB</span></div>
                                                         <div class="property"><span class="property-label">Sąsiad jest słupkiem strona A:</span><span class="property-value">@kwadrat.SasiadSlupekStronaA</span></div>
                                                         <div class="property"><span class="property-label">Sąsiad jest słupkiem strona B:</span><span class="property-value">@kwadrat.SasiadSlupekStronaB</span></div>
-                                                        <div class="property">
-                                                            <span class="property-label">Punkty sąsiada strona A</span>
-                                                            <span class="property-value">
-                                                                @if (kwadrat.WierzcholkiSasiadaA is not null && kwadrat.WierzcholkiSasiadaA.Any())
+                                                        <div class="property mt-3">
+
+                                                            <button class="btn btn-outline-primary btn-sm"
+                                                                    @onclick="() => PokazRysunekPolaczenia(kwadrat)"
+                                                                    disabled="@pobieraneRysunki.Contains(kluczPolaczenia)">
+
+                                                                @if (pobieraneRysunki.Contains(kluczPolaczenia))
                                                                 {
-                                                                    <ul>
-                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaA)
-                                                                        {
-                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
-                                                                        }
-                                                                    </ul>
+                                                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                                                    @("Pobieranie...")
+                                                                }
+                                                                else if (widoczneRysunkiPolaczen.Contains(kluczPolaczenia))
+                                                                {
+                                                                    <i class="bi bi-eye-slash me-1"></i>
+                                                                    @("Ukryj rysunek")
                                                                 }
                                                                 else
                                                                 {
-
-                                                                    <em>Brak danych</em>
+                                                                    <i class="bi bi-image me-1"></i>
+                                                                    @("Pokaż rysunek połączenia")
                                                                 }
-                                                            </span>
-                                                        </div>
-                                                        <div class="property">
-                                                            <span class="property-label">Punkty sąsiada strona B</span>
-                                                            <span class="property-value">
-                                                                @if (kwadrat.WierzcholkiSasiadaB is not null && kwadrat.WierzcholkiSasiadaB.Any())
+
+                                                            </button>
+
+                                                            @if (widoczneRysunkiPolaczen.Contains(kluczPolaczenia))
+                                                            {
+                                                                @if (pobranePolaczenia.TryGetValue(kluczPolaczenia, out var listaPolaczen))
                                                                 {
-                                                                    <ul>
-                                                                        @foreach (var p in kwadrat.WierzcholkiSasiadaB)
+                                                                    @if (listaPolaczen.Any())
+                                                                    {
+                                                                        @foreach (var polaczenie in listaPolaczen)
                                                                         {
-                                                                            <li>@($"X: {p.X}; Y: {p.Y}")</li>
-                                                                        }
-                                                                    </ul>
-                                                                }
-                                                                else
-                                                                {
+                                                                            <div class="mt-3 p-3 border rounded"
+                                                                                 style="background-color:white;">
 
-                                                                    <em>Brak danych</em>
+                                                                                <div class="small text-muted mb-2">
+                                                                                    **Połączenie**
+
+                                                                                    <div>Zew: @polaczenie.ElementZewnetrznyId</div>
+                                                                                    <div>Wew: @polaczenie.ElementWewnetrznyId</div>
+                                                                                    <div>Strona: @polaczenie.StronaPolaczenia</div>
+                                                                                </div>
+
+                                                                                @* DWA RYSUNKI PNG OBOK SIEBIE *@
+
+                                                                                <div class="d-flex flex-wrap align-items-start gap-3">
+
+                                                                                    @if (polaczenie.RysunekPrzekroju != null &&
+                                                                                                                                        polaczenie.RysunekPrzekroju.Length > 20)
+                                                                                    {
+                                                                                        <div class="text-center">
+
+                                                                                            <div class="small text-muted mb-1">
+                                                                                                Przekrój
+                                                                                            </div>
+
+                                                                                            <a href="#"
+                                                                                               @onclick:preventDefault="true"
+                                                                                               @onclick="() => OtworzRysunek(polaczenie.RysunekPrzekroju)">
+
+                                                                                                <img title="Rysunek przekroju"
+                                                                                                     src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekroju)"
+                                                                                                     style="width:150px; height:130px; object-fit:contain; border:1px solid #ddd; padding:4px;" />
+                                                                                            </a>
+
+                                                                                        </div>
+                                                                                    }
+
+                                                                                    @if (polaczenie.RysunekPrzekrojuStyczny != null &&
+                                                                                                                                        polaczenie.RysunekPrzekrojuStyczny.Length > 20)
+                                                                                    {
+                                                                                        <div class="text-center">
+
+                                                                                            <div class="small text-muted mb-1">
+                                                                                                Przekrój styczny
+                                                                                            </div>
+
+                                                                                            <a href="#"
+                                                                                               @onclick:preventDefault="true"
+                                                                                               @onclick="() => OtworzRysunek(polaczenie.RysunekPrzekrojuStyczny)">
+
+                                                                                                <img title="Rysunek przekroju stycznego"
+                                                                                                     src="data:image/png;base64,@Convert.ToBase64String(polaczenie.RysunekPrzekrojuStyczny)"
+                                                                                                     style="width:150px; height:130px; object-fit:contain; border:1px solid #ddd; padding:4px;" />
+                                                                                            </a>
+
+                                                                                        </div>
+                                                                                    }
+
+                                                                                    @if ((polaczenie.RysunekPrzekroju?.Length ?? 0) <= 20 &&
+                                                                                                                                        (polaczenie.RysunekPrzekrojuStyczny?.Length ?? 0) <= 20)
+                                                                                    {
+                                                                                        <span class="text-muted small">
+                                                                                            Brak zapisanych rysunków PNG
+                                                                                        </span>
+                                                                                    }
+
+                                                                                </div>
+
+                                                                                @* RYSUNEK SVG *@
+
+                                                                                @if (!string.IsNullOrWhiteSpace(polaczenie.SVG))
+                                                                                {
+                                                                                    <div class="mt-3 border-top pt-3">
+
+                                                                                        <div class="small text-muted mb-2">
+                                                                                            Rysunek SVG sąsiada
+                                                                                        </div>
+
+                                                                                        <div class="rysunek-polaczenia">
+                                                                                            @((MarkupString)polaczenie.SVG)
+                                                                                        </div>
+
+                                                                                    </div>
+                                                                                }
+
+                                                                            </div>
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <div class="alert alert-warning mt-2">
+                                                                            Nie znaleziono rysunku dla tego połączenia.
+                                                                        </div>
+                                                                    }
                                                                 }
-                                                            </span>
+                                                            }
+
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2125,7 +2243,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-5"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2185,7 +2303,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-6"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2249,7 +2367,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-7"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2313,7 +2431,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-8"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                       border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2334,7 +2452,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                            border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                                                            border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
@@ -2353,7 +2471,7 @@
                     </div>
                     <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                            background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                                                                                            background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
                         @if (uzyjHighlightJS)
                         {
                             <HighlightCode Language="json" Code="@GetFormattedJson()" />
@@ -2361,8 +2479,8 @@
                         else
                         {
                             <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
-                                                            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                                                            font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
+                                                                                                                                    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                                                                                                                                    font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
                         }
                     </div>
                 </div>
@@ -2428,6 +2546,12 @@
     private const double ZoomMin = 0.1;
     private const double ZoomMax = 20.0;
     private const double ZoomStep = 1.25;
+
+    private Dictionary<string, List<KonfPolaczenie>> pobranePolaczenia = new();
+
+    private HashSet<string> widoczneRysunkiPolaczen = new();
+
+    private HashSet<string> pobieraneRysunki = new();
 
     private readonly JsonSerializerOptions jsonOptions = new()
     {
@@ -2592,6 +2716,13 @@
         aktywnaZakladka = 0;
         _lastRenderedTab = -1;
         _lastRenderedStanId = null;
+
+        pobranePolaczenia = new();
+
+        widoczneRysunkiPolaczen = new();
+
+        pobieraneRysunki = new();
+
 
         // resetujemy zoom dla nowego modelu
         tabZoom.Clear();
@@ -3268,12 +3399,252 @@
         </table>
                 }
     </div>
-</div>;
-  
-    protected override async Task OnInitializedAsync()
+</div>
+    ;
+
+protected override async Task OnInitializedAsync()
+{
+    Console.WriteLine("GeneratorStateViewer initialized.");
+
+    szczegolyWidoczne = false;
+
+    pobranePolaczenia = new();
+
+    widoczneRysunkiPolaczen = new();
+
+    pobieraneRysunki = new();
+
+    await Task.Yield();
+}
+
+private async Task PokazRysunekPolaczenia(DaneKwadratu kwadrat)
+{
+
+    if (kwadrat == null || kwadrat.RowIdElementu == Guid.Empty || wybranyStan == null || wybranyStan.ListaKwadratow == null)
     {
-        Console.WriteLine("GeneratorStateViewer initialized.");
-        szczegolyWidoczne = false;
-        await Task.Yield();
+        Console.WriteLine("Nieprawidłowe dane kwadratu. Nie można pobrać rysunku połączenia.");
+        return;
     }
+
+    // Wybierz połączenia odpowiadające zestawowi elementów
+    var kwadratInfoGD = string.Equals(
+        kwadrat.Strona?.Trim(),
+        "GÓRA-DÓŁ",
+        StringComparison.OrdinalIgnoreCase
+    );
+
+    var kwadratInfoLP = string.Equals(
+    kwadrat.Strona?.Trim(),
+    "LEWA-PRAWA",
+    StringComparison.OrdinalIgnoreCase
+    );
+
+    if (wybranyStan.ListaKwadratow.Count == 5 && !kwadratInfoLP && !kwadratInfoGD)
+    {
+        Console.WriteLine("Słupek - tylko połączenia stroan A i B");
+        return;
+    }
+
+    var klucz = PobierzKluczPolaczenia(
+        kwadrat.RowIdElementu,
+        kwadrat.RowIdSasiada,
+        kwadrat.Strona
+    );
+
+    try
+    {
+        // Jeżeli rysunek jest już widoczny, ukryj go
+        if (widoczneRysunkiPolaczen.Contains(klucz))
+        {
+            widoczneRysunkiPolaczen.Remove(klucz);
+            return;
+        }
+
+        // Jeżeli dane są już pobrane, nie wykonuj kolejnego zapytania
+        if (pobranePolaczenia.ContainsKey(klucz))
+        {
+            widoczneRysunkiPolaczen.Add(klucz);
+            return;
+        }
+
+        pobieraneRysunki.Add(klucz);
+
+        StateHasChanged();
+
+        Guid zewId = kwadrat.RowIdSasiada;
+        Guid wewId = kwadrat.RowIdElementu;
+
+        Guid stronaA = kwadrat.RowIdSasiadaStronaA;
+        Guid stronaB = kwadrat.RowIdSasiadaStronaB;
+
+        Console.WriteLine("══════════════════════════════════════");
+        Console.WriteLine("📦 POBIERANIE RYSUNKU POŁĄCZENIA");
+        Console.WriteLine($"Element zewnętrzny: {zewId}");
+        Console.WriteLine($"Element wewnętrzny: {wewId}");
+        Console.WriteLine($"Strona: {kwadrat.Strona}");
+
+        var wszystkiePolaczenia = await PobierzPolaczeniaAll(
+            zewId,
+            wewId,
+            stronaA,
+            stronaB,
+            kwadrat.RowIdElementu,
+            kwadrat.Strona
+        );
+
+        Console.WriteLine($"Pobrano rekordów: {wszystkiePolaczenia.Count}");
+
+        var identyfikatorySasiadow = new HashSet<Guid>
+        {
+            kwadrat.RowIdSasiada,
+            kwadrat.RowIdSasiadaStronaA,
+            kwadrat.RowIdSasiadaStronaB
+        };
+
+        var dopasowanePolaczenia = wszystkiePolaczenia
+            .Where(x =>
+                (
+                    identyfikatorySasiadow.Contains(x.ElementZewnetrznyId) ||
+                    identyfikatorySasiadow.Contains(x.ElementWewnetrznyId)
+                )
+                &&
+                (
+                    kwadratInfoGD
+                        ? new[] { "GÓRA", "DÓŁ" }.Contains(
+                            x.StronaPolaczenia?.Trim().ToUpperInvariant()
+                        )
+                        : kwadratInfoLP
+                        ? new[] { "LEWA", "PRAWA" }.Contains(
+                            x.StronaPolaczenia?.Trim().ToUpperInvariant()
+                        ) :
+                        string.Equals(
+                            x.StronaPolaczenia?.Trim(),
+                            kwadrat.Strona?.Trim(),
+                            StringComparison.OrdinalIgnoreCase
+                        )
+                ))
+            .ToList();
+
+        if (!kwadrat.SasiadSlupekStronaA && kwadrat.SasiadSlupekStronaB && kwadratInfoGD)
+        {
+            dopasowanePolaczenia = dopasowanePolaczenia
+                .Where(x => string.Equals(
+                    x.StronaPolaczenia?.Trim(),
+                    "GÓRA",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else if (kwadrat.SasiadSlupekStronaA && !kwadrat.SasiadSlupekStronaB && kwadratInfoGD)
+        {
+            dopasowanePolaczenia = dopasowanePolaczenia
+                .Where(x => string.Equals(
+                    x.StronaPolaczenia?.Trim(),
+                    "DÓŁ",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else if (!kwadrat.SasiadSlupekStronaA && kwadrat.SasiadSlupekStronaB && kwadratInfoLP)
+        {
+            dopasowanePolaczenia = dopasowanePolaczenia
+                .Where(x => string.Equals(
+                    x.StronaPolaczenia?.Trim(),
+                    "LEWA",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else if (kwadrat.SasiadSlupekStronaA && !kwadrat.SasiadSlupekStronaB && kwadratInfoLP)
+        {
+            dopasowanePolaczenia = dopasowanePolaczenia
+                .Where(x => string.Equals(
+                    x.StronaPolaczenia?.Trim(),
+                    "PRAWA",
+                    StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        Console.WriteLine($"kwadrat.Strona = [{kwadrat.Strona}]");
+        Console.WriteLine($"kwadratInfoGD = {kwadratInfoGD}, kwadratInfoLP = {kwadratInfoLP}");
+
+        foreach (var p in wszystkiePolaczenia)
+        {
+            Console.WriteLine(
+                $"Zew zgodny: {p.ElementZewnetrznyId == zewId}, " +
+                $"Wew zgodny: {p.ElementWewnetrznyId == wewId}, " +
+                $"ElementWewnetrznyToSlupek: {p.ElementWewnetrznyToSlupek}, " +
+                $"ElementZewnetrznyToSlupek: {p.ElementZewnetrznyToSlupek}, " +
+                $"Strona: [{p.StronaPolaczenia}], " +
+                $"Długość strony: {p.StronaPolaczenia?.Length}"
+            );
+        }
+
+        Console.WriteLine($"Dopasowano rekordów: {dopasowanePolaczenia.Count} kwadratInfoGD: {kwadratInfoGD}, kwadratInfoLP: {kwadratInfoLP}");
+
+        pobranePolaczenia[klucz] = dopasowanePolaczenia;
+
+        if (dopasowanePolaczenia.Any())
+        {
+            widoczneRysunkiPolaczen.Add(klucz);
+        }
+        else
+        {
+            Console.WriteLine("⚠️ Nie znaleziono pasującego połączenia.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Błąd wyświetlania rysunku: {ex}");
+    }
+    finally
+    {
+        pobieraneRysunki.Remove(klucz);
+        StateHasChanged();
+    }
+}
+
+private string PobierzKluczPolaczenia(
+    Guid elementId,
+    Guid sasiadId,
+    string? strona)
+{
+    return $"{elementId}_{sasiadId}_{strona}";
+}
+
+private async Task<List<KonfPolaczenie>> PobierzPolaczeniaAll(Guid zewId, Guid wewId, Guid stronaA, Guid stronaB, Guid idElementu, string strona)
+{
+    //Góra-Dół
+
+    try
+    {
+        Console.WriteLine($"📦 Pobieram dane połączeń z: {zewId} w: {wewId} strona: {strona}");
+        var response = await Http.GetAsync($"api/konfpolaczenie/find-by-elements-all-zewwew/{zewId}/{wewId}/{stronaA}/{stronaB}");
+        if (response.IsSuccessStatusCode)
+        {
+            var lista = await response.Content.ReadFromJsonAsync<List<KonfPolaczenie>>();
+            return lista ?? new List<KonfPolaczenie>();
+        }
+        else
+        {
+            Console.WriteLine($"❌ Błąd podczas pobierania połączeń: {response.ReasonPhrase} - strona: {strona}");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Błąd podczas pobierania połączenia: {ex.Message}");
+    }
+
+    return new List<KonfPolaczenie>();
+}
+
+private async Task OtworzRysunek(byte[] rysunek)
+{
+    if (rysunek == null || rysunek.Length <= 20)
+        return;
+
+    string base64 = Convert.ToBase64String(rysunek);
+
+    await JSRuntime.InvokeVoidAsync(
+        "openImageInNewTab",
+        base64
+    );
+}
 }

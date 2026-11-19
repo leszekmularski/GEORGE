@@ -113,8 +113,8 @@
     }
 
     /* ==========================================================
-                           GŁÓWNY STICKY PANEL
-                           ========================================================== */
+                               GŁÓWNY STICKY PANEL
+                               ========================================================== */
 
     .connection-sticky-panel {
         position: sticky;
@@ -129,8 +129,8 @@
 
 
     /* ==========================================================
-                           GÓRNY PASEK
-                           ========================================================== */
+                               GÓRNY PASEK
+                               ========================================================== */
 
     .connection-main-toolbar {
         display: flex;
@@ -142,8 +142,8 @@
 
 
     /* ==========================================================
-                           ZAPIS
-                           ========================================================== */
+                               ZAPIS
+                               ========================================================== */
 
     .connection-save-group {
         display: flex;
@@ -172,8 +172,8 @@
 
 
     /* ==========================================================
-                           NARZĘDZIA
-                           ========================================================== */
+                               NARZĘDZIA
+                               ========================================================== */
 
     .connection-tools {
         display: flex;
@@ -186,8 +186,8 @@
 
 
     /* ==========================================================
-                           GRUPA NARZĘDZI
-                           ========================================================== */
+                               GRUPA NARZĘDZI
+                               ========================================================== */
 
     .tool-group {
         display: flex;
@@ -214,8 +214,8 @@
 
 
     /* ==========================================================
-                           USTAWIENIE PRECYZJI
-                           ========================================================== */
+                               USTAWIENIE PRECYZJI
+                               ========================================================== */
 
     .tool-setting-group {
         padding-left: 10px;
@@ -236,8 +236,8 @@
 
 
     /* ==========================================================
-                           PASEK PODGLĄDU
-                           ========================================================== */
+                               PASEK PODGLĄDU
+                               ========================================================== */
 
     .connection-preview-toolbar {
         display: grid;
@@ -251,8 +251,8 @@
 
 
     /* ==========================================================
-                           TYTUŁ PODGLĄDU
-                           ========================================================== */
+                               TYTUŁ PODGLĄDU
+                               ========================================================== */
 
     .preview-heading {
         display: flex;
@@ -270,8 +270,8 @@
 
 
     /* ==========================================================
-                           OSTRZEŻENIE
-                           ========================================================== */
+                               OSTRZEŻENIE
+                               ========================================================== */
 
     .preview-warning {
         display: flex;
@@ -289,8 +289,8 @@
 
 
     /* ==========================================================
-                           PRZYCISKI PODGLĄDU
-                           ========================================================== */
+                               PRZYCISKI PODGLĄDU
+                               ========================================================== */
 
     .preview-actions {
         display: flex;
@@ -305,8 +305,8 @@
 
 
     /* ==========================================================
-                           STATUS
-                           ========================================================== */
+                               STATUS
+                               ========================================================== */
 
     .status-message {
         display: flex;
@@ -324,8 +324,8 @@
 
 
     /* ==========================================================
-                           PUSTY SVG
-                           ========================================================== */
+                               PUSTY SVG
+                               ========================================================== */
 
     .svg-empty-state {
         display: flex;
@@ -338,8 +338,8 @@
 
 
     /* ==========================================================
-                           RESPONSYWNOŚĆ
-                           ========================================================== */
+                               RESPONSYWNOŚĆ
+                               ========================================================== */
 
     @@media (max-width: 1200px) {
         .connection-main-toolbar {
@@ -3373,6 +3373,7 @@
                         <label style="color: red;">Uwaga: <br />W przypadku łuków wartość odsunięcia jest pobierana ze zmiennej GÓRA</label>
                         @if (ListaModeli != null && ListaModeli.Any())
                         {
+                            <label style="color: blue;"><br />Strona pierwszego dodawanego elementu</label>
                             <div class="side-checkboxes">
                                 <div class="side-checkbox">
                                     <input type="checkbox" @bind="selDol" id="str_dol" onclick="@DelSvg" />
@@ -3665,15 +3666,15 @@
 
                                     <div class="tool-buttons">
 
-                                        <Tooltip Title="Pomiar odległości">
+                                        <Tooltip Placement="@Placement.BottomCenter" Title="Pomiar odległości">
                                             <Button Icon="@IconType.Outline.Scan"
                                                     OnClick="StartMeasurement"
                                                     Class="btn-sm btn-move" />
                                         </Tooltip>
-                                        <Tooltip Title="Pokaż wartości przesunięć w osi X i Y">
+                                        <Tooltip Placement="@Placement.BottomCenter" Title="Pokaż wartości przesunięć w osi X i Y">
                                             <Button Icon="@IconType.Outline.Info" OnClick="PokazWartosciPrzesuniecia" Class="btn-sm btn-move" />
                                         </Tooltip>
-                                        <Tooltip Title="Wyczyść pomiary">
+                                        <Tooltip Placement="@Placement.BottomCenter" Title="Wyczyść pomiary">
                                             <Button Icon="@IconType.Outline.Close"
                                                     OnClick="ClearMeasurements"
                                                     Class="btn-sm btn-move" />
@@ -3841,6 +3842,7 @@
                     <div class="model-list">
                         @if (ListaModeli != null && ListaModeli.Any())
                         {
+                             <label style="color: blue;">Uwaga: <br />Strona pierwszego dodawanego elementu</label>
                             <div class="side-checkboxes">
                                 <div class="side-checkbox">
                                     <input type="checkbox" @bind="selDolStyczne" id="str_dol_st" onclick="@DelSvg" />
@@ -3968,13 +3970,13 @@
                                 <label class="ms-2">Precyzja przesuwania:</label>
                                 <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania" Min="0" Max="50" Style="width: 60px;" />
 
-                                <Tooltip Title="Pomiar odległości">
+                                <Tooltip Placement="@Placement.BottomCenter" Title="Pomiar odległości">
                                     <Button Icon="@IconType.Outline.Scan" OnClick="StartMeasurement" Class="btn-sm btn-move" />
                                 </Tooltip>
-                                <Tooltip Title="Pokaż wartości przesunięć w osi X i Y">
+                                <Tooltip Placement="@Placement.BottomCenter" Title="Pokaż wartości przesunięć w osi X i Y">
                                     <Button Icon="@IconType.Outline.Info" OnClick="PokazWartosciPrzesuniecia" Class="btn-sm btn-move" />
                                 </Tooltip>
-                                <Tooltip Title="Wyczyść pomiary">
+                                <Tooltip Placement="@Placement.BottomCenter" Title="Wyczyść pomiary">
                                     <Button Icon="@IconType.Outline.Close" OnClick="ClearMeasurements" Class="btn-sm btn-move" />
                                 </Tooltip>
                             </div>
@@ -4786,28 +4788,43 @@
 
     private async Task PokazWartosciPrzesuniecia()
     {
-        // Pobierz wynik przesunięcia
+        // Zapamiętaj aktualny widok
+        string? transformacjaAktualna = await JSRuntime.InvokeAsync<string?>(
+            "svgHelper.getModelsGroupTransform");
+
+        // Mierz w widoku 0° — spójnie z SaveAllPosition
+        await JSRuntime.InvokeVoidAsync(
+            "svgHelper.setModelsGroupTransform", "");
+        await Task.Delay(100);
+
         var result = await PobierzWynikPrzesuniecia();
 
+        // Przywróć widok (nawet gdy result == null)
+        await JSRuntime.InvokeVoidAsync(
+            "svgHelper.setModelsGroupTransform", transformacjaAktualna);
+        await Task.Delay(100);
+
         if (result == null)
-        {
-            return; // Błąd został już obsłużony w funkcji PobierzWynikPrzesuniecia
-        }
+            return;   // PobierzWynikPrzesuniecia już pokazało błąd
+
+        Console.WriteLine(
+            $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
 
         _ = _notice.Info(new()
         {
             Message = "Informacja !!!!",
-            Description = $"Aktualne przesunięcie modelu 2 względem modelu 1: X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
+            Description =
+                $"Aktualne przesunięcie modelu 2 względem modelu 1: " +
+                $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
             Placement = NotificationPlacement.Top,
             Duration = 6.0
         });
 
         var transformacje = await JSRuntime.InvokeAsync<JsonElement>(
-        "svgHelper.getDiagnosticTransforms");
+            "svgHelper.getDiagnosticTransforms");
 
         Console.WriteLine("========== TRANSFORMACJE SVG ==========");
         Console.WriteLine(transformacje.ToString());
-
     }
 
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
@@ -4879,7 +4896,6 @@
 
     bool czekajNaZapisAll = false;
 
-
     private async Task SaveAllPosition()
     {
         if (string.IsNullOrEmpty(SelectedSystemId) ||
@@ -4901,18 +4917,17 @@
             return;
 
         await ZoomAllObj();
-
-        await Task.Delay(100); // Dodaj opóźnienie, aby upewnić się, że zoom został zastosowany
+        await Task.Delay(100);
 
         // Docelowe widoki:
         // OdbicieGoraDol   - odbicie góra/dół (mirror w JS)
         // OdbicieLewoPrawo - odbicie lewo/prawo (mirrorVertical w JS)
         var stronyDoZapisu =
-    new List<(string Strona,
-              int Kat,
-              bool OdbicieGoraDol,
-              bool OdbicieLewoPrawo,
-              int KatZapis)>();
+            new List<(string Strona,
+                      int Kat,
+                      bool OdbicieGoraDol,
+                      bool OdbicieLewoPrawo,
+                      int KatZapis)>();
 
         if (boolStyczny)
         {
@@ -4985,16 +5000,12 @@
 
             Console.WriteLine(
                 $"[SaveAllPosition] Kierunek bazowy: {wybranyKierunekBudowy}");
-
             Console.WriteLine(
                 $"[SaveAllPosition] Kąt bazowy: {katWidokuBazowego}°");
-
             Console.WriteLine(
                 $"[SaveAllPosition] Odbicie góra/dół: {odbicieBazoweGoraDol}");
-
             Console.WriteLine(
                 $"[SaveAllPosition] Odbicie lewo/prawo: {odbicieBazoweLewoPrawo}");
-
             Console.WriteLine(
                 $"[SaveAllPosition] Transformacja bazowa: {transformacjaBazowa}");
 
@@ -5002,21 +5013,43 @@
 
             try
             {
-
-                // Ustaw widok bazowy (bez transformacji widoku)
-                await JSRuntime.InvokeAsync<bool>(
-                    "svgHelper.setModelsGroupTransform", transformacjaBazowa);
+                // ============================================================
+                // POMIAR BAZOWY W WIDOKU IDENTITY (0°)
+                // ============================================================
+                //
+                // 1) Reset models-group do 0° — measureGuideDisplacement NIE
+                //    jest niezmienniczy względem rotacji models-group
+                //    (bbox-based), więc mierzymy w neutralnym widoku.
+                //
+                // 2) Używamy PobierzWynikPrzesuniecia (C#), a NIE svgHelper
+                //    bezpośrednio — bo tylko ta funkcja stosuje korektę
+                //    dla słupka stałego (oś symetrii PoziomOsSymetrii).
+                //
+                await JSRuntime.InvokeVoidAsync(
+                    "svgHelper.setModelsGroupTransform", "");
                 await Task.Delay(150);
 
-                // JEDEN pomiar w widoku bazowym — będzie użyty dla wszystkich stron
-                var pomiarBazowy = await JSRuntime.InvokeAsync<JsonElement>(
-                    "svgHelper.measureGuideDisplacement");
+                var pomiarBazowy = await PobierzWynikPrzesuniecia();
 
-                double pomiarBazowyX = pomiarBazowy.GetProperty("przesuniecieX").GetDouble();
-                double pomiarBazowyY = pomiarBazowy.GetProperty("przesuniecieY").GetDouble();
+                // Przywracamy widok bazowy — pętla i tak ustawia go
+                // w każdej iteracji przez setModelsGroupTransform.
+                await JSRuntime.InvokeVoidAsync(
+                    "svgHelper.setModelsGroupTransform", transformacjaBazowa);
+                await Task.Delay(100);
+
+                if (pomiarBazowy == null)
+                {
+                    // PobierzWynikPrzesuniecia już pokazało komunikat błędu.
+                    await _message.Error(
+                        "❌ Nie udało się pobrać pomiaru bazowego.");
+                    return;
+                }
+
+                double pomiarBazowyX = pomiarBazowy.przesuniecieX;
+                double pomiarBazowyY = pomiarBazowy.przesuniecieY;
 
                 Console.WriteLine(
-                    $"[SaveAllPosition] Pomiar bazowy (widok {wybranyKierunekBudowy}): " +
+                    $"[SaveAllPosition] Pomiar bazowy (po korekcie słupka): " +
                     $"X={pomiarBazowyX}, Y={pomiarBazowyY}");
 
                 foreach (var strona in stronyDoZapisu)
@@ -5037,7 +5070,7 @@
                     // Różnica kąta między aktualnym widokiem
                     // a widokiem, który chcemy zapisać.
                     int katObrotu = NormalizujKat(
-                    strona.Kat - katWidokuBazowego);
+                        strona.Kat - katWidokuBazowego);
 
                     int katObrotuZapisz = NormalizujKat(
                         strona.KatZapis - katWidokuBazowego);
@@ -5052,13 +5085,10 @@
 
                     Console.WriteLine(
                         $"[SaveAllPosition] Strona: {strona.Strona}");
-
                     Console.WriteLine(
                         $"[SaveAllPosition] Obrót: {katObrotu}°");
-
                     Console.WriteLine(
                         $"[SaveAllPosition] Odbicie góra/dół: {odbicieGoraDol}");
-
                     Console.WriteLine(
                         $"[SaveAllPosition] Odbicie lewo/prawo: {odbicieLewoPrawo}");
 
@@ -5090,11 +5120,9 @@
                     await Task.Delay(150);
                     await Task.Yield();
 
-                    // Zapisujemy konkretny widok.
-                    // zamiast:
-                    // string wynik = await SavePosition(strona.Strona, strona.KatZapis);
-
-                    // na:
+                    // Zapisujemy konkretny widok, przekazując pomiar bazowy
+                    // (po korekcie słupka, w widoku 0°) — spójny dla
+                    // wszystkich stron i zgodny z PokazWartosciPrzesuniecia.
                     string wynik = await SavePosition(
                         strona.Strona,
                         strona.KatZapis,
@@ -5157,7 +5185,7 @@
             _ = _notice.Info(new()
             {
                 Message = statusZapisu,
-                Description = "Informacj o zapisie",
+                Description = "Informacja o zapisie",
                 Placement = NotificationPlacement.TopRight
             });
         }
@@ -5564,7 +5592,7 @@
 
             double yPrzedKorekta = przesuniecieY;
 
-            przesuniecieY = osSymetrii - przesuniecieY;
+            przesuniecieY = przesuniecieY - osSymetrii;
 
             Console.WriteLine("[DIAG] Korekta Y – SŁUPEK STAŁY");
             Console.WriteLine($"Y przed korektą: {yPrzedKorekta:F3}");
@@ -5888,7 +5916,6 @@
     }
 
     // Otwarcie modala edycji
-
     private async Task ZaladujDaneModalEdycji(KonfPolaczenie polaczenie)
     {
         try
@@ -5903,7 +5930,7 @@
             edytowanyOpis = polaczenie.OpisPolaczenia ?? "";
             edytowanaStrona = polaczenie.StronaPolaczenia ?? "";
 
-            // Wartości z bazy = fizyczne (kartezjańskie). Formularz pokazuje je wprost.
+            // Formularz = konwencja fizyczna (Y+ = góra), jak w bazie.
             edytowanePrzesuniecieX = polaczenie.PrzesuniecieX;
             edytowanePrzesuniecieY = polaczenie.PrzesuniecieY;
             edytowanePrzesuniecieXStycznej = polaczenie.PrzesuniecieXStycznej;
@@ -5931,6 +5958,7 @@
             Console.WriteLine(
                 $"📋 Podstawowe dane. Model1={SelectedModelPierwszyId}, Model2={SelectedModelDrugiId}");
 
+            // Modele z API
             var response1 = await Http.GetAsync(
                 $"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
             if (!response1.IsSuccessStatusCode)
@@ -5945,7 +5973,6 @@
                 return;
             }
             pierwszyModel = result1.KonfSystem.First();
-            Console.WriteLine($"✅ Pierwszy model: {pierwszyModel.Nazwa}");
 
             var response2 = await Http.GetAsync(
                 $"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
@@ -5961,7 +5988,6 @@
                 return;
             }
             drugiModel = result2.KonfSystem.First();
-            Console.WriteLine($"✅ Drugi model: {drugiModel.Nazwa}");
 
             czyModalEdycjiWidoczny = true;
 
@@ -5973,6 +5999,9 @@
             await InvokeAsync(StateHasChanged);
             await Task.Delay(500);
 
+            // ============================================================
+            // WCZYTANIE SVG Z BAZY
+            // ============================================================
             if (!string.IsNullOrEmpty(polaczenie.KonfiguracjaSVG))
             {
                 Console.WriteLine("📦 Wczytano SVG z bazy");
@@ -5998,13 +6027,28 @@
 
                     if (brakTransformacji)
                     {
-                        // Fallback: wartości z bazy są FIZYCZNE. Konwersja: fiz → SVG = translate(x, -y).
                         double fizX = boolStyczny
                             ? edytowanePrzesuniecieXStycznej
                             : edytowanePrzesuniecieX;
                         double fizY = boolStyczny
                             ? edytowanePrzesuniecieYStycznej
                             : edytowanePrzesuniecieY;
+
+                        // ========================================================
+                        // ODWROTNOŚĆ KOREKTY SŁUPKA STAŁEGO
+                        // ========================================================
+                        //
+                        // Zapis:   y_baza = y_fiz - Poziom     (bez ABS)
+                        // Odczyt:  y_fiz  = y_baza + Poziom
+                        //
+                        if (pierwszyModel?.Typ.Contains("Słupek stały") == true)
+                        {
+                            double poziom = pierwszyModel.PoziomOsSymetrii ?? 0;
+                            Console.WriteLine(
+                                $"[ZaladujDaneModalEdycji] Słupek stały — odwrotność korekty: " +
+                                $"y_baza={fizY}, Poziom={poziom}, y_fiz={fizY + poziom}");
+                            fizY += poziom;
+                        }
 
                         var scaleResult = await JSRuntime.InvokeAsync<double>("eval",
                             "(function() { const zg = document.querySelector('#zoom-group'); " +
@@ -6037,7 +6081,7 @@
             }
             else
             {
-                // Brak SVG w bazie — generuj i ustaw offset z wartości fizycznych.
+                // Brak SVG w bazie — generuj i ustaw offset
                 double fizX, fizY;
                 offsetX = 0;
                 offsetY = 0;
@@ -6052,6 +6096,17 @@
                 {
                     fizX = old_edytowanePrzesuniecieX;
                     fizY = old_edytowanePrzesuniecieY;
+                }
+
+                // Odwrotność korekty słupka stałego
+                if (pierwszyModel?.Typ.Contains("Słupek stały") == true)
+                {
+                    double poziom = pierwszyModel.PoziomOsSymetrii ?? 0;
+
+                    Console.WriteLine(
+                        $"[ZaladujDaneModalEdycji] Słupek stały (brak SVG) — " +
+                        $"y_baza={fizY}, Poziom={poziom}, y_fiz={fizY + poziom}");
+                    fizY += poziom;
                 }
 
                 await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");

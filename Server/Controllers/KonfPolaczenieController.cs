@@ -80,6 +80,68 @@ namespace GEORGE.Server.Controllers
             }
         }
 
+        [HttpGet("find-by-elements-all-zewwew/{zewId:guid}/{wewId:guid}/{stronaA:guid}/{stronaB:guid}")]
+        public async Task<ActionResult<List<KonfPolaczenie>>> GetByElementIdsZewWew(
+            Guid zewId,
+            Guid wewId,
+            Guid stronaA,
+            Guid stronaB)
+        {
+            try
+            {
+                var records = await _context.KonfPolaczenie
+                    .Where(p =>
+                        // Para podstawowa
+                        (
+                            p.ElementZewnetrznyId == zewId &&
+                            p.ElementWewnetrznyId == wewId
+                        )
+                        ||
+                        (
+                            p.ElementZewnetrznyId == wewId &&
+                            p.ElementWewnetrznyId == zewId
+                        )
+                        ||
+                        // Para dla stron A i B
+                        (
+                            p.ElementZewnetrznyId == stronaA &&
+                            p.ElementWewnetrznyId == wewId
+                        )
+                        ||
+                        (
+                            p.ElementZewnetrznyId == stronaB &&
+                            p.ElementWewnetrznyId == wewId
+                        )
+                    )
+                    .ToListAsync();
+
+                //Console.WriteLine("══════════ WYSZUKIWANIE POŁĄCZEŃ ══════════");
+                //Console.WriteLine($"zewId:   {zewId}");
+                //Console.WriteLine($"wewId:   {wewId}");
+                //Console.WriteLine($"stronaA: {stronaA}");
+                //Console.WriteLine($"stronaB: {stronaB}");
+                //Console.WriteLine($"Znaleziono rekordów: {records.Count}");
+
+                //foreach (var p in records)
+                //{
+                //    Console.WriteLine(
+                //        $"DB: Zew={p.ElementZewnetrznyId}, " +
+                //        $"Wew={p.ElementWewnetrznyId}, " +
+                //        $"Strona={p.StronaPolaczenia}"
+                //    );
+                //}
+
+                if (records.Count == 0)
+                    return NotFound();
+
+                return Ok(records);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Błąd serwera: {ex.Message}");
+            }
+        }
+
         [HttpGet("find-by-elements-all-system/{sysId:guid}")]
         public async Task<ActionResult<List<PrzesuniecieDto>>> GetByElementAllElementSystem(Guid sysId)
         {

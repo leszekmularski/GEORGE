@@ -5696,7 +5696,7 @@
                         generator.Wysokosc = (float)(maxY - minY);
                         generator.Zindeks = typModelu == "Skrzydło z słupkiem ruchomym" ? 2 : 3;
 
-                        double przesLewo = 110, przesPrawo = 110, przesGora = 110, przesDol = 110;
+                        double przesLewo = 0, przesPrawo = 0, przesGora = 0, przesDol = 0;
 
                         _logger.LogDebug(
                             $"📐 WyliczObszarSkrzydla dla {cleanId}: " +
@@ -6731,8 +6731,8 @@
                 GruboscObramowania = 2.0f,
                 ZIndex = generator.Zindeks,
                 Strona = stronaSzukaj,
-                WierzcholkiSasiadaA = new List<XPoint>(),
-                WierzcholkiSasiadaB = new List<XPoint>(),
+                // WierzcholkiSasiadaA = new List<XPoint>(),
+                // WierzcholkiSasiadaB = new List<XPoint>(),
                 RowIdSasiada = najlepszySasiad?.RowIdElementu ?? Guid.Empty,
                 RowIdSasiadaStronaA = najlepszySasiad?.SasiadStronaA ?? Guid.Empty,  // ➕ dodaj
                 RowIdSasiadaStronaB = najlepszySasiad?.SasiadStronaB ?? Guid.Empty,  // ➕ dodaj
@@ -6930,8 +6930,8 @@
             .Concat(polaczenieWartosciB)
             .ToList(),
 
-            WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
-            WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>(),
+            // WierzcholkiSasiadaA = najlepszySasiadA?.WierzcholkiSasiadaA ?? new List<XPoint>(),
+            // WierzcholkiSasiadaB = najlepszySasiadB?.WierzcholkiSasiadaB ?? new List<XPoint>(),
             LiniaStala = liniaStalaWierzcholki
         });
 

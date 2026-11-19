@@ -15,8 +15,8 @@ namespace GEORGE.Shared.ViewModels
         public bool SasiadSlupekStronaB { get; set; } = false; //czy sąsiad strona A lub B jest słupkiem
         public double OsuniecieSlupekStronaA { get; set; } = 0; //czy sąsiad strona A lub B jest słupkiem
         public double OsuniecieSlupekStronaB { get; set; } = 0; //czy sąsiad strona A lub B jest słupkiem
-        public List<XPoint>? WierzcholkiSasiadaA { get; set; } //punkty wierzchołków pojedynczej linii
-        public List<XPoint>? WierzcholkiSasiadaB { get; set; } //punkty wierzchołków pojedynczej linii
+        //public List<XPoint>? WierzcholkiSasiadaA { get; set; } //punkty wierzchołków pojedynczej linii
+        //public List<XPoint>? WierzcholkiSasiadaB { get; set; } //punkty wierzchołków pojedynczej linii
         public float KatLinii { get; set; } //kierunek linii w stopniach
         public string? Strona { get; set; } //kierunek linii w stopniach
         public double OffsetTop { get; set; } = 0; //odległość linii od górnej krawędzi elementu pobrana z bazy danych
@@ -98,11 +98,11 @@ namespace GEORGE.Shared.ViewModels
                 RowIdSasiadaStronaA = this.RowIdSasiadaStronaA,
                 RowIdSasiadaStronaB = this.RowIdSasiadaStronaB,
 
-                // 🔧 GŁĘBOKA kopia list sąsiadów
-                WierzcholkiSasiadaA = this.WierzcholkiSasiadaA?
-                    .Select(p => new XPoint(p.X, p.Y)).ToList(),
-                WierzcholkiSasiadaB = this.WierzcholkiSasiadaB?
-                    .Select(p => new XPoint(p.X, p.Y)).ToList(),
+                //// 🔧 GŁĘBOKA kopia list sąsiadów
+                //WierzcholkiSasiadaA = this.WierzcholkiSasiadaA?
+                //    .Select(p => new XPoint(p.X, p.Y)).ToList(),
+                //WierzcholkiSasiadaB = this.WierzcholkiSasiadaB?
+                //    .Select(p => new XPoint(p.X, p.Y)).ToList(),
 
                 KatLinii = this.KatLinii,
                 Strona = this.Strona,
