@@ -983,6 +983,8 @@ else
             if (string.IsNullOrWhiteSpace(szukanyNumer))
                 return zleceniaProdukcyjneWew;
 
+            szukanyNumer = szukanyNumer.Replace(" ", "").Replace("-", "/");
+
             var wynik = zleceniaProdukcyjneWew.Where(x =>
                 !string.IsNullOrWhiteSpace(x.NumerZamowienia) &&
                 x.NumerZamowienia.Contains(

@@ -4187,10 +4187,10 @@
     private string combinedSvgStyczne = string.Empty;
     private double offsetX = 0;
     private double offsetY = 0;
-    private double luzLewo = 25;  // Zwiększony luz
-    private double luzPrawo = 25;
-    private double luzGora = 25;
-    private double luzDol = 25;
+    // private double luzLewo = 25;  // Zwiększony luz
+    // private double luzPrawo = 25;
+    // private double luzGora = 25;
+    // private double luzDol = 25;
 
     private double przesuniecieX;
     private double przesuniecieY;
@@ -4237,7 +4237,7 @@
     // Wysokość prostokąta zastępczego dla zakładki STYCZNE.
     // Musi być identyczna w AktualizujSvg, PobierzWynikPrzesuniecia
     // i ZaladujDaneModalEdycji — inaczej round-trip się rozjedzie.
-    private const double StyczneRectHeight = 100.0;
+    private double StyczneRectHeight = 100.0;
 
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
@@ -4598,6 +4598,9 @@
                 offsetX = 0; // Resetuj offset
                 offsetY = 0; // Resetuj offset
 
+
+                StyczneRectHeight = (pasujacy.PoziomDol ?? 0) - (pasujacy.PoziomGora ?? 0);
+
                 AktualizujSvg();
             }
             else if (drugiModel == null)
@@ -4648,7 +4651,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-                {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -4695,7 +4698,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -4704,7 +4707,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-            {string.Join("", svgParts)}
+    {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -4781,42 +4784,46 @@
         await Task.Delay(10);
     }
 
-    private async Task MoveLeftObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", -precyzjaPrzesuwania, 0);
-    private async Task MoveRightObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", precyzjaPrzesuwania, 0);
-    private async Task MoveUpObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, -precyzjaPrzesuwania);
-    private async Task MoveDownObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, precyzjaPrzesuwania);
+    // Efektywna precyzja — 0 traktujemy jako 0.1 mm
+    private double EffectivePrecyzja => precyzjaPrzesuwania == 0 ? 0.1 : precyzjaPrzesuwania;
+
+    private async Task MoveLeftObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", -EffectivePrecyzja, 0);
+    private async Task MoveRightObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", EffectivePrecyzja, 0);
+    private async Task MoveUpObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, -EffectivePrecyzja);
+    private async Task MoveDownObj() => await JSRuntime.InvokeVoidAsync("svgHelper.move", 0, EffectivePrecyzja);
+
     private async Task ZoomAllObj() => await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
     private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
 
     private async Task PokazWartosciPrzesuniecia()
-{
-    string? transformacjaAktualna = await JSRuntime.InvokeAsync<string?>(
-        "svgHelper.getModelsGroupTransform");
-
-    await JSRuntime.InvokeVoidAsync(
-        "svgHelper.setModelsGroupTransform", "");
-    await Task.Delay(100);
-
-    var result = await PobierzWynikPrzesuniecia();
-
-    await JSRuntime.InvokeVoidAsync(
-        "svgHelper.setModelsGroupTransform", transformacjaAktualna);
-    await Task.Delay(100);
-
-    if (result == null)
-        return;
-
-    Console.WriteLine(
-        $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
-
-    // Notka informacyjna dla stycznych (tylko strona dół ma korektę)
-    string notkaDol = "";
-    if (boolStyczny)
     {
-            notkaDol = $" (dla strony DÓŁ w bazie: Y = {StyczneRectHeight - result.przesuniecieY} mm)";
-    }
+        string? transformacjaAktualna = await JSRuntime.InvokeAsync<string?>(
+            "svgHelper.getModelsGroupTransform");
 
-    _ = _notice.Info(new()
+        await JSRuntime.InvokeVoidAsync(
+            "svgHelper.setModelsGroupTransform", "");
+        await Task.Delay(100);
+
+        var result = await PobierzWynikPrzesuniecia();
+
+        await JSRuntime.InvokeVoidAsync(
+            "svgHelper.setModelsGroupTransform", transformacjaAktualna);
+        await Task.Delay(100);
+
+        if (result == null)
+            return;
+
+        Console.WriteLine(
+            $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
+
+        // Notka informacyjna dla stycznych (tylko strona dół ma korektę)
+        string notkaDol = "";
+        if (boolStyczny)
+        {
+            notkaDol = $" (dla strony DÓŁ w bazie: Y = {StyczneRectHeight - result.przesuniecieY} mm)";
+        }
+
+        _ = _notice.Info(new()
     {
         Message = "Informacja !!!!",
         Description =
@@ -4826,12 +4833,12 @@
         Duration = 6.0
     });
 
-    var transformacje = await JSRuntime.InvokeAsync<JsonElement>(
-        "svgHelper.getDiagnosticTransforms");
+        var transformacje = await JSRuntime.InvokeAsync<JsonElement>(
+            "svgHelper.getDiagnosticTransforms");
 
-    Console.WriteLine("========== TRANSFORMACJE SVG ==========");
-    Console.WriteLine(transformacje.ToString());
-}
+        Console.WriteLine("========== TRANSFORMACJE SVG ==========");
+        Console.WriteLine(transformacje.ToString());
+    }
 
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
     private async Task ZoomOutObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomOut");
@@ -5608,7 +5615,18 @@
 
             double yPrzedKorekta = przesuniecieY;
 
-            przesuniecieY = przesuniecieY - osSymetrii;
+            if (boolStyczny)
+            {
+                if (selDolStyczne)
+                {
+                    przesuniecieY = StyczneRectHeight - przesuniecieY + osSymetrii;
+                }
+                else
+                {
+                     przesuniecieY = przesuniecieY - osSymetrii;
+                }
+            }
+
 
             Console.WriteLine("[DIAG] Korekta Y – SŁUPEK STAŁY");
             Console.WriteLine($"Y przed korektą: {yPrzedKorekta:F3}");
