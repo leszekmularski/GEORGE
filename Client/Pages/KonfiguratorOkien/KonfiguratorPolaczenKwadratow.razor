@@ -3705,7 +3705,6 @@
 
                             </div>
 
-
                             <!-- OSTRZEŻENIE -->
                             <div class="preview-warning">
 
@@ -3718,7 +3717,6 @@
                                 </span>
 
                             </div>
-
 
                             <!-- AKCJE -->
                             <div class="preview-actions">
@@ -3788,7 +3786,6 @@
 
                         </div>
                     }
-
 
                     <!-- ========================================================= -->
                     <!-- OBSZAR SVG                                                 -->
@@ -4237,6 +4234,11 @@
     // Kierunek budowy modelu — wybór jednokrotny (lewa / prawa / góra / dół)
     private string? wybranyKierunekBudowy;
 
+    // Wysokość prostokąta zastępczego dla zakładki STYCZNE.
+    // Musi być identyczna w AktualizujSvg, PobierzWynikPrzesuniecia
+    // i ZaladujDaneModalEdycji — inaczej round-trip się rozjedzie.
+    private const double StyczneRectHeight = 100.0;
+
     // Inicjalizacja
     protected override async Task OnInitializedAsync()
     {
@@ -4646,7 +4648,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+                {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -4673,13 +4675,13 @@
             // Wybieramy ten wymiar, którego różnica jest mniejsza (jest bliższy pasujacyPierwszy)
             double rectWidth = (roznicaY < roznicaX) ? pasujacyWymiarY : pasujacyWymiarX;
 
-            double rectHeight = 100; // Domyślny rozmiar prostokąta tylko do wizualizacji
+            //double rectHeight = 100; // Domyślny rozmiar prostokąta tylko do wizualizacji
             double rectX = 0;//centerX + offsetX - rectWidth;
             double rectY = 0;//centerY + offsetY - rectHeight;
 
             string svtmp = $@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-                <rect x=""{rectX}"" y=""{rectY}"" width=""{rectWidth.ToString().Replace(',', '.')}"" height=""{rectHeight.ToString().Replace(',', '.')}""
+                <rect x=""{rectX}"" y=""{rectY}"" width=""{rectWidth.ToString().Replace(',', '.')}"" height=""{StyczneRectHeight.ToString().Replace(',', '.')}""
                       fill=""#e0e0e0"" fill-opacity=""0.5"" stroke=""#000"" stroke-width=""1"" />
             </g>";
 
@@ -4693,7 +4695,7 @@
 
             svgParts.Add($@"
             <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
+            {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
             </g>");
         }
 
@@ -4702,7 +4704,7 @@
         <svg xmlns=""http://www.w3.org/2000/svg"" width=""600"" height=""600""
              viewBox=""0 0 600 600"" preserveAspectRatio=""xMidYMid meet"">
             <g id=""zoom-group"">
-    {string.Join("", svgParts)}
+            {string.Join("", svgParts)}
             </g>
         </svg>";
 
@@ -4787,45 +4789,49 @@
     private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
 
     private async Task PokazWartosciPrzesuniecia()
+{
+    string? transformacjaAktualna = await JSRuntime.InvokeAsync<string?>(
+        "svgHelper.getModelsGroupTransform");
+
+    await JSRuntime.InvokeVoidAsync(
+        "svgHelper.setModelsGroupTransform", "");
+    await Task.Delay(100);
+
+    var result = await PobierzWynikPrzesuniecia();
+
+    await JSRuntime.InvokeVoidAsync(
+        "svgHelper.setModelsGroupTransform", transformacjaAktualna);
+    await Task.Delay(100);
+
+    if (result == null)
+        return;
+
+    Console.WriteLine(
+        $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
+
+    // Notka informacyjna dla stycznych (tylko strona dół ma korektę)
+    string notkaDol = "";
+    if (boolStyczny)
     {
-        // Zapamiętaj aktualny widok
-        string? transformacjaAktualna = await JSRuntime.InvokeAsync<string?>(
-            "svgHelper.getModelsGroupTransform");
-
-        // Mierz w widoku 0° — spójnie z SaveAllPosition
-        await JSRuntime.InvokeVoidAsync(
-            "svgHelper.setModelsGroupTransform", "");
-        await Task.Delay(100);
-
-        var result = await PobierzWynikPrzesuniecia();
-
-        // Przywróć widok (nawet gdy result == null)
-        await JSRuntime.InvokeVoidAsync(
-            "svgHelper.setModelsGroupTransform", transformacjaAktualna);
-        await Task.Delay(100);
-
-        if (result == null)
-            return;   // PobierzWynikPrzesuniecia już pokazało błąd
-
-        Console.WriteLine(
-            $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
-
-        _ = _notice.Info(new()
-        {
-            Message = "Informacja !!!!",
-            Description =
-                $"Aktualne przesunięcie modelu 2 względem modelu 1: " +
-                $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
-            Placement = NotificationPlacement.Top,
-            Duration = 6.0
-        });
-
-        var transformacje = await JSRuntime.InvokeAsync<JsonElement>(
-            "svgHelper.getDiagnosticTransforms");
-
-        Console.WriteLine("========== TRANSFORMACJE SVG ==========");
-        Console.WriteLine(transformacje.ToString());
+            notkaDol = $" (dla strony DÓŁ w bazie: Y = {StyczneRectHeight - result.przesuniecieY} mm)";
     }
+
+    _ = _notice.Info(new()
+    {
+        Message = "Informacja !!!!",
+        Description =
+            $"Aktualne przesunięcie modelu 2 względem modelu 1: " +
+            $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm{notkaDol}",
+        Placement = NotificationPlacement.Top,
+        Duration = 6.0
+    });
+
+    var transformacje = await JSRuntime.InvokeAsync<JsonElement>(
+        "svgHelper.getDiagnosticTransforms");
+
+    Console.WriteLine("========== TRANSFORMACJE SVG ==========");
+    Console.WriteLine(transformacje.ToString());
+}
 
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
     private async Task ZoomOutObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomOut");
@@ -5192,10 +5198,10 @@
     }
 
     private async Task<string> SavePosition(
-     string strona,
-     int? katZapisywany = null,
-     double? pomiarX = null,
-     double? pomiarY = null)
+    string strona,
+    int? katZapisywany = null,
+    double? pomiarX = null,
+    double? pomiarY = null)
     {
         int katDoZapisu = katZapisywany ?? katUstawienia;
 
@@ -5219,16 +5225,25 @@
             przesuniecieY = result.przesuniecieY;
         }
 
-        // //int katDoZapisu = katZapisywany ?? katUstawienia;
-
-        // // Pomiar fizyczny (kartezjański): X+ = prawo, Y+ = góra.
-        // // To są DOKŁADNIE te wartości, które pokazuje PokazWartosciPrzesuniecia.
-        // var result = await PobierzWynikPrzesuniecia();
-        // if (result == null)
-        //     return "Brak danych o przesunięciu. Nie zapisano.";
-
-        // double przesuniecieX = result.przesuniecieX;
-        // double przesuniecieY = result.przesuniecieY;
+        // ============================================================
+        // KOREKTA PROSTOKĄTA ZASTĘPCZEGO (STYCZNE, tylko strona DÓŁ)
+        // ============================================================
+        //
+        // Dla boolStyczny drugi model jest rysowany jako rect od (0,0)
+        // w dół (dół bboxa w +StyczneRectHeight), podczas gdy rzeczywiste
+        // modele są wyśrodkowane wokół (0,0). Dla strony "dół" powoduje to
+        // zawyżenie Y o StyczneRectHeight — korygujemy przy zapisie.
+        //
+        // Odwrotność (przywrócenie) jest w ZaladujDaneModalEdycji.
+        //
+        if (boolStyczny && strona == "dół")
+        {
+            Console.WriteLine(
+                $"[SavePosition] STYCZNE/DÓŁ: Y przed={przesuniecieY}, " +
+                $"rectHeight={StyczneRectHeight}");
+            przesuniecieY += StyczneRectHeight;
+            Console.WriteLine($"[SavePosition] STYCZNE/DÓŁ: Y po={przesuniecieY}");
+        }
 
         Console.WriteLine("========== POMIAR → ZAPIS ==========");
         Console.WriteLine($"Strona: {strona}");
@@ -5293,8 +5308,8 @@
         if (boolStyczny)
         {
             // --- ZAKŁADKA "STYCZNE" ---
-            polaczenie.PrzesuniecieXStycznej = przesuniecieX;// - 3.05;
-            polaczenie.PrzesuniecieYStycznej = przesuniecieY;// - 8.99;
+            polaczenie.PrzesuniecieXStycznej = przesuniecieX;
+            polaczenie.PrzesuniecieYStycznej = przesuniecieY;
             polaczenie.RysunekPrzekrojuStyczny = png;
 
             if (existing != null)
@@ -5356,7 +5371,7 @@
         }
 
         Console.WriteLine("========== ZAPIS PRZESUNIĘCIA ==========");
-        Console.WriteLine($"Strona: {strona}");     // ← parametr, nie edytowanaStrona
+        Console.WriteLine($"Strona: {strona}");
         Console.WriteLine($"Kąt: {katDoZapisu}");
         Console.WriteLine($"X: {przesuniecieX}");
         Console.WriteLine($"Y: {przesuniecieY}");
@@ -5393,6 +5408,7 @@
 
         return statusZapisu;
     }
+
 
     private static (
         int Kat,
@@ -5958,7 +5974,6 @@
             Console.WriteLine(
                 $"📋 Podstawowe dane. Model1={SelectedModelPierwszyId}, Model2={SelectedModelDrugiId}");
 
-            // Modele z API
             var response1 = await Http.GetAsync(
                 $"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelPierwszyId}");
             if (!response1.IsSuccessStatusCode)
@@ -5999,9 +6014,6 @@
             await InvokeAsync(StateHasChanged);
             await Task.Delay(500);
 
-            // ============================================================
-            // WCZYTANIE SVG Z BAZY
-            // ============================================================
             if (!string.IsNullOrEmpty(polaczenie.KonfiguracjaSVG))
             {
                 Console.WriteLine("📦 Wczytano SVG z bazy");
@@ -6035,18 +6047,26 @@
                             : edytowanePrzesuniecieY;
 
                         // ========================================================
-                        // ODWROTNOŚĆ KOREKTY SŁUPKA STAŁEGO
+                        // ODWROTNOŚĆ KOREKTY (kolejność ODWROTNA do zapisu)
                         // ========================================================
-                        //
-                        // Zapis:   y_baza = y_fiz - Poziom     (bez ABS)
-                        // Odczyt:  y_fiz  = y_baza + Poziom
-                        //
+
+                        // 1) rect (odwrotność ostatniej korekty w SavePosition)
+                        if (boolStyczny && edytowanaStrona == "dół")
+                        {
+                            Console.WriteLine(
+                                $"[ZaladujDaneModalEdycji] STYCZNE/DÓŁ — odwrotność rect: " +
+                                $"y_baza={fizY}, rectHeight={StyczneRectHeight}, " +
+                                $"y_fiz={fizY + StyczneRectHeight}");
+                            fizY += StyczneRectHeight;
+                        }
+
+                        // 2) słupek stały (odwrotność pierwszej korekty w PobierzWynikPrzesuniecia)
                         if (pierwszyModel?.Typ.Contains("Słupek stały") == true)
                         {
                             double poziom = pierwszyModel.PoziomOsSymetrii ?? 0;
                             Console.WriteLine(
-                                $"[ZaladujDaneModalEdycji] Słupek stały — odwrotność korekty: " +
-                                $"y_baza={fizY}, Poziom={poziom}, y_fiz={fizY + poziom}");
+                                $"[ZaladujDaneModalEdycji] Słupek stały — odwrotność: " +
+                                $"Poziom={poziom}, y_fiz={fizY + poziom}");
                             fizY += poziom;
                         }
 
@@ -6057,7 +6077,7 @@
 
                         double mmToPx = 3.779527559;
                         double newX = 300 + (fizX * mmToPx) / scaleResult;
-                        double newY = 300 - (fizY * mmToPx) / scaleResult;   // SVG: Y+ = dół
+                        double newY = 300 - (fizY * mmToPx) / scaleResult;
 
                         Console.WriteLine(
                             $"[ZaladujDaneModalEdycji] Fallback: fiz=({fizX},{fizY}) → px=({newX:F2},{newY:F2})");
@@ -6081,7 +6101,6 @@
             }
             else
             {
-                // Brak SVG w bazie — generuj i ustaw offset
                 double fizX, fizY;
                 offsetX = 0;
                 offsetY = 0;
@@ -6098,14 +6117,27 @@
                     fizY = old_edytowanePrzesuniecieY;
                 }
 
-                // Odwrotność korekty słupka stałego
+                // ============================================================
+                // ODWROTNOŚĆ KOREKTY — kolejność ODWROTNA do zapisu
+                // ============================================================
+
+                // 1) rect (odwrotność ostatniej korekty w SavePosition)
+                if (boolStyczny && edytowanaStrona == "dół")
+                {
+                    Console.WriteLine(
+                        $"[ZaladujDaneModalEdycji] STYCZNE/DÓŁ (brak SVG) — " +
+                        $"odwrotność rect: y_baza={fizY}, " +
+                        $"y_fiz={fizY + StyczneRectHeight}");
+                    fizY += StyczneRectHeight;
+                }
+
+                // 2) słupek stały
                 if (pierwszyModel?.Typ.Contains("Słupek stały") == true)
                 {
                     double poziom = pierwszyModel.PoziomOsSymetrii ?? 0;
-
                     Console.WriteLine(
                         $"[ZaladujDaneModalEdycji] Słupek stały (brak SVG) — " +
-                        $"y_baza={fizY}, Poziom={poziom}, y_fiz={fizY + poziom}");
+                        $"Poziom={poziom}, y_fiz={fizY + poziom}");
                     fizY += poziom;
                 }
 
