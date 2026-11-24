@@ -3373,7 +3373,7 @@
                         <label style="color: red;">Uwaga: <br />W przypadku łuków wartość odsunięcia jest pobierana ze zmiennej GÓRA</label>
                         @if (ListaModeli != null && ListaModeli.Any())
                         {
-                            <label style="color: blue;"><br />Strona pierwszego dodawanego elementu</label>
+                            <label style="color: blue;"><br />Strona względem skrzydła</label>
                             <div class="side-checkboxes">
                                 <div class="side-checkbox">
                                     <input type="checkbox" @bind="selDol" id="str_dol" onclick="@DelSvg" />
@@ -3647,7 +3647,7 @@
                                         </label>
 
                                         <AntDesign.InputNumber @bind-Value="precyzjaPrzesuwania"
-                                                               Min="1"
+                                                               Min="0"
                                                                Max="50"
                                                                Style="width: 60px;" />
 
@@ -4651,7 +4651,7 @@
         {
             svgParts.Add($@"
             <g id=""model1"" transform=""translate({centerX}, {centerY})"">
-        {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
+    {ExtractInnerSvg(NormalizeSvg(pierwszyModel.SVG))}
             </g>");
         }
 
@@ -4816,19 +4816,19 @@
         Console.WriteLine(
             $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
 
-        // Notka informacyjna dla stycznych (tylko strona dół ma korektę)
-        string notkaDol = "";
-        if (boolStyczny)
-        {
-            notkaDol = $" (dla strony DÓŁ w bazie: Y = {StyczneRectHeight - result.przesuniecieY} mm)";
-        }
+        // // Notka informacyjna dla stycznych (tylko strona dół ma korektę)
+        // string notkaDol = "";
+        // if (boolStyczny && selDolStyczne)
+        // {
+        //     notkaDol = $" (dla strony DÓŁ w bazie: Y = {StyczneRectHeight - result.przesuniecieY} mm)";
+        // }
 
         _ = _notice.Info(new()
     {
         Message = "Informacja !!!!",
         Description =
             $"Aktualne przesunięcie modelu 2 względem modelu 1: " +
-            $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm{notkaDol}",
+            $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
         Placement = NotificationPlacement.Top,
         Duration = 6.0
     });
@@ -5061,6 +5061,8 @@
                 double pomiarBazowyX = pomiarBazowy.przesuniecieX;
                 double pomiarBazowyY = pomiarBazowy.przesuniecieY;
 
+                double osSymetrii = pomiarBazowy.osSymetriiDlaSlupkow;
+
                 Console.WriteLine(
                     $"[SaveAllPosition] Pomiar bazowy (po korekcie słupka): " +
                     $"X={pomiarBazowyX}, Y={pomiarBazowyY}");
@@ -5140,7 +5142,8 @@
                         strona.Strona,
                         strona.KatZapis,
                         pomiarBazowyX,
-                        pomiarBazowyY);
+                        pomiarBazowyY,
+                        osSymetrii);
 
                     wynikiZapisu.Add(wynik);
 
@@ -5208,7 +5211,8 @@
     string strona,
     int? katZapisywany = null,
     double? pomiarX = null,
-    double? pomiarY = null)
+    double? pomiarY = null,
+    double? osSymetrii = null)
     {
         int katDoZapisu = katZapisywany ?? katUstawienia;
 
@@ -5316,6 +5320,16 @@
         {
             // --- ZAKŁADKA "STYCZNE" ---
             polaczenie.PrzesuniecieXStycznej = przesuniecieX;
+
+            if (selDolStyczne)
+            {
+                przesuniecieY = Math.Abs(przesuniecieY) - (osSymetrii ?? 0);//StyczneRectHeight - przesuniecieY + osSymetrii;
+            }
+            else if(selGoraStyczne)
+            {
+                przesuniecieY = StyczneRectHeight - przesuniecieY;// - osSymetrii;
+            }
+
             polaczenie.PrzesuniecieYStycznej = przesuniecieY;
             polaczenie.RysunekPrzekrojuStyczny = png;
 
@@ -5522,6 +5536,7 @@
                 elementsFound = offset.elementsFound,
                 przesuniecieX = offset.przesuniecieX,
                 przesuniecieY = offset.przesuniecieY,
+                osSymetriiDlaSlupkow = (pierwszyModel.PoziomOsSymetrii ?? 0),
                 katObrotu = offset.katObrotu,
                 odbicieLustrzane = offset.odbicieLustrzane,
                 scale = 1
@@ -5613,24 +5628,39 @@
             double osSymetrii =
                 pierwszyModel.PoziomOsSymetrii ?? 0;
 
+            double dolnaliniaRysunku = (pierwszyModel.PoziomDol ?? 0) - (pierwszyModel.PoziomGora ?? 0);
+
             double yPrzedKorekta = przesuniecieY;
 
             if (boolStyczny)
             {
                 if (selDolStyczne)
                 {
-                    przesuniecieY = StyczneRectHeight - przesuniecieY + osSymetrii;
+                    przesuniecieY = Math.Abs(przesuniecieY) - osSymetrii;//StyczneRectHeight - przesuniecieY + osSymetrii;
+                }
+                else if(selGoraStyczne)
+                {
+                    przesuniecieY = StyczneRectHeight - przesuniecieY;// - osSymetrii;
+                }
+            }
+            else
+            {
+                if (selGora)
+                {
+                    przesuniecieY = StyczneRectHeight - przesuniecieY;// - osSymetrii;
                 }
                 else
                 {
-                     przesuniecieY = przesuniecieY - osSymetrii;
+                    przesuniecieY = Math.Abs(przesuniecieY) - (dolnaliniaRysunku - osSymetrii);//StyczneRectHeight - przesuniecieY + osSymetrii;
                 }
+              
             }
 
 
             Console.WriteLine("[DIAG] Korekta Y – SŁUPEK STAŁY");
             Console.WriteLine($"Y przed korektą: {yPrzedKorekta:F3}");
             Console.WriteLine($"PoziomOsSymetrii: {osSymetrii:F3}");
+            Console.WriteLine($"DolnaliniaRysunku: {dolnaliniaRysunku:F3}");
             Console.WriteLine($"Y po korekcie: {przesuniecieY:F3}");
         }
 
@@ -6461,6 +6491,8 @@
 
         public double przesuniecieX { get; set; }
         public double przesuniecieY { get; set; }
+
+        public double osSymetriiDlaSlupkow { get; set; }
 
         public double katObrotu { get; set; }
 

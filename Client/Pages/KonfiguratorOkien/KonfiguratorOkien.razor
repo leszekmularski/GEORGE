@@ -756,91 +756,120 @@
         }
 
 
-        function getUpdatedSvg() {
+            function getUpdatedSvg() {
         let svg = document.querySelector(".scaled-svg svg");
         if (!svg) {
-        console.error("❌ Nie znaleziono rysunku SVG!");
-        return "";
+            console.error("❌ getUpdatedSvg: nie znaleziono SVG!");
+            return "";
         }
 
-        let clonedSvg = svg.cloneNode(true);
+        // =========================================================
+        // KROK 1: PRAWDZIWY bbox rysunku (bez prowadnic) — z LIVE DOM
+        // =========================================================
+        // getBBox() działa tylko na elementach podpiętych do DOM,
+        // dlatego liczymy PRZED klonowaniem.
+        const group = svg.querySelector("#rotate-group") || svg;
 
-        // 🔥 Naprawiamy problem z obrotem `rotate(...)`
-        clonedSvg.querySelectorAll("[transform]").forEach(element => {
-        let transformValue = element.getAttribute("transform");
-
-        if (transformValue && transformValue.includes("rotate")) {
-        // Zamiana przecinków na spacje (poprawny format dla SVG)
-        transformValue = transformValue.replace(/,/g, " ");
-        element.setAttribute("transform", transformValue);
-        }
-        });
-
-        // 📏 Znajdź rzeczywisty obszar rysunku (bez prowadnic)
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let elCount = 0;
 
-        clonedSvg.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline").forEach(el => {
-        let xVals = [], yVals = [];
+        group.querySelectorAll("line, path, circle, rect, ellipse, polygon, polyline").forEach(el => {
+            // ⛔ pomiń prowadnice i inne pomocnicze
+            if (el.id && el.id.startsWith("guide-line")) return;
 
-        ["x", "cx", "x1", "x2"].forEach(attr => {
-        let val = parseFloat(el.getAttribute(attr) || "NaN");
-        if (!isNaN(val)) xVals.push(val);
+            let bbox;
+            try { bbox = el.getBBox(); } catch (e) { return; }
+            if (!bbox || (bbox.width === 0 && bbox.height === 0)) return;
+
+            const ctm = el.getCTM();
+            if (!ctm) return;
+
+            // transformacja 4 narożników do globalnego układu <svg>
+            const corners = [
+                { x: bbox.x,               y: bbox.y },
+                { x: bbox.x + bbox.width,  y: bbox.y },
+                { x: bbox.x,               y: bbox.y + bbox.height },
+                { x: bbox.x + bbox.width,  y: bbox.y + bbox.height }
+            ];
+
+            corners.forEach(p => {
+                const tx = ctm.a * p.x + ctm.c * p.y + ctm.e;
+                const ty = ctm.b * p.x + ctm.d * p.y + ctm.f;
+                if (tx < minX) minX = tx;
+                if (ty < minY) minY = ty;
+                if (tx > maxX) maxX = tx;
+                if (ty > maxY) maxY = ty;
+            });
+            elCount++;
         });
 
-        ["y", "cy", "y1", "y2"].forEach(attr => {
-        let val = parseFloat(el.getAttribute(attr) || "NaN");
-        if (!isNaN(val)) yVals.push(val);
+        if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY) ||
+            maxX <= minX || maxY <= minY) {
+            console.warn("⚠️ getUpdatedSvg: nieprawidłowy bbox — zwracam oryginalny SVG");
+            return new XMLSerializer().serializeToString(svg);
+        }
+
+        console.log(
+            `📐 getUpdatedSvg: bbox rysunku (${elCount} el.) ` +
+            `X[${minX.toFixed(2)}, ${maxX.toFixed(2)}], Y[${minY.toFixed(2)}, ${maxY.toFixed(2)}]`
+        );
+
+        // =========================================================
+        // KROK 2: Klonuj SVG
+        // =========================================================
+        const clonedSvg = svg.cloneNode(true);
+
+        // naprawa formatu rotate (przecinki → spacje)
+        clonedSvg.querySelectorAll("[transform]").forEach(el => {
+            const t = el.getAttribute("transform");
+            if (t && t.includes("rotate")) {
+                el.setAttribute("transform", t.replace(/,/g, " "));
+            }
         });
 
-        if (xVals.length > 0) {
-        minX = Math.min(minX, ...xVals);
-        maxX = Math.max(maxX, ...xVals);
-        }
-        if (yVals.length > 0) {
-        minY = Math.min(minY, ...yVals);
-        maxY = Math.max(maxY, ...yVals);
-        }
-        });
-
-        let width = maxX - minX;
-        let height = maxY - minY;
-
-        if (width <= 0 || height <= 0) {
-        console.error(`❌ Błąd: Wymiary SVG są niepoprawne! width=${width}, height=${height}`);
-        return new XMLSerializer().serializeToString(svg);
-        }
-
-        // 🔥 Skracamy prowadnice do granic rysunku!
+        // =========================================================
+        // KROK 3: Przytnij prowadnice do obszaru rysunku
+        // =========================================================
         clonedSvg.querySelectorAll("line[id^='guide-line']").forEach(line => {
-        let id = line.id;
-        if (id.includes("vertical")) {
-        let x = parseFloat(line.getAttribute("x1"));
-        if (x < minX) x = minX;
-        if (x > maxX) x = maxX;
-        line.setAttribute("x1", x);
-        line.setAttribute("x2", x);
-        line.setAttribute("y1", minY);
-        line.setAttribute("y2", maxY);
-        } else if (id.includes("horizontal")) {
-        let y = parseFloat(line.getAttribute("y1"));
-        if (y < minY) y = minY;
-        if (y > maxY) y = maxY;
-        line.setAttribute("y1", y);
-        line.setAttribute("y2", y);
-        line.setAttribute("x1", minX);
-        line.setAttribute("x2", maxX);
-        }
+            const id = line.id;
+
+            if (id.includes("vertical")) {
+                const x = parseFloat(line.getAttribute("x1"));
+                if (!isFinite(x)) return;
+                const cx = Math.max(minX, Math.min(maxX, x));
+                line.setAttribute("x1", cx);
+                line.setAttribute("x2", cx);
+                line.setAttribute("y1", minY);
+                line.setAttribute("y2", maxY);
+            }
+            else if (id.includes("horizontal")) {
+                const y = parseFloat(line.getAttribute("y1"));
+                if (!isFinite(y)) return;
+                const cy = Math.max(minY, Math.min(maxY, y));
+                line.setAttribute("x1", minX);
+                line.setAttribute("x2", maxX);
+                line.setAttribute("y1", cy);
+                line.setAttribute("y2", cy);
+            }
         });
 
-        // 🔥 Dopasowujemy `viewBox`
-        clonedSvg.setAttribute("viewBox", `${minX} ${minY} ${width} ${height}`);
-        clonedSvg.setAttribute("width", width);
-        clonedSvg.setAttribute("height", height);
+        // =========================================================
+        // KROK 4: viewBox ciasno wokół rysunku (z marginesem)
+        // =========================================================
+        const margin = 10;
+        const vbX = minX - margin;
+        const vbY = minY - margin;
+        const vbW = (maxX - minX) + 2 * margin;
+        const vbH = (maxY - minY) + 2 * margin;
 
-        console.log(`✅ Nowe viewBox: ${minX} ${minY} ${width} ${height}`);
+        clonedSvg.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`);
+        clonedSvg.setAttribute("width",  vbW);
+        clonedSvg.setAttribute("height", vbH);
+
+        console.log(`🔲 Nowy viewBox: ${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}`);
 
         return new XMLSerializer().serializeToString(clonedSvg);
-        }
+    }
 
 
         function setSvgContent(svgString) {
@@ -2440,9 +2469,9 @@
                                  onerror="this.style.display='none'"
                                  @onclick="() => PokazPodgladObrazka(imgSrc)"
                                  style="height: 40px; width: auto; display: block;
-                                border: 1px solid #dee2e6; border-radius: 4px;
-                                background: #fff; padding: 2px;
-                                cursor: zoom-in;" />
+                                        border: 1px solid #dee2e6; border-radius: 4px;
+                                        background: #fff; padding: 2px;
+                                        cursor: zoom-in;" />
                         }
                     </div>
                 }
@@ -3542,8 +3571,8 @@
             <img src="@imgSrc"
                  alt="Podgląd"
                  style="width: 100%; max-width: 220px; height: auto;
-                            max-height: 80vh; object-fit: contain;
-                            display: block; margin: 0 auto;" />
+                                    max-height: 80vh; object-fit: contain;
+                                    display: block; margin: 0 auto;" />
         </div>;
 
         var options = new ConfirmOptions()
