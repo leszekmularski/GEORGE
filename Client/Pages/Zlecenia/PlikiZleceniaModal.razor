@@ -217,6 +217,7 @@
                 <Tabs @bind-ActiveKey="@_activeTab" Type="@TabType.Line">
                     <TabPane Key="all" Tab="@($"Wszystkie ({Pliki.Count})")" />
                     <TabPane Key="sat" Tab="@($"SAT ({CountByExt("sat")})")" />
+                    <TabPane Key="dxf" Tab="@($"DXF ({CountByExt("dxf")})")" />
                     <TabPane Key="pdf" Tab="@($"PDF ({CountByExt("pdf")})")" />
                     <TabPane Key="nc" Tab="@($"NC ({CountByExt("nc")})")" />
                     <TabPane Key="txt" Tab="@($"TXT ({CountByExt("txt")})")" />
@@ -505,6 +506,7 @@
     private IEnumerable<PlikiZlecenProdukcyjnych> FilteredPliki => _activeTab switch
     {
         "sat" => Pliki.Where(p => MatchesExt(p, "sat")),
+        "dxf" => Pliki.Where(p => MatchesExt(p, "dxf")),
         "pdf" => Pliki.Where(p => MatchesExt(p, "pdf")),
         "nc" => Pliki.Where(p => MatchesExt(p, "nc")),
         "txt" => Pliki.Where(p => MatchesExt(p, "txt")),

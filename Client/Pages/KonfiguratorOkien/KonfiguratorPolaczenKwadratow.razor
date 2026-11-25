@@ -1,4 +1,5 @@
 ﻿@page "/KonfiguratorPolaczenKwadratow/{SelectedSystemId?}"
+@using System
 @using GEORGE.Shared.Models
 @using GEORGE.Shared.Class
 @inject HttpClient Http
@@ -113,8 +114,8 @@
     }
 
     /* ==========================================================
-                               GŁÓWNY STICKY PANEL
-                               ========================================================== */
+                                   GŁÓWNY STICKY PANEL
+                                   ========================================================== */
 
     .connection-sticky-panel {
         position: sticky;
@@ -129,8 +130,8 @@
 
 
     /* ==========================================================
-                               GÓRNY PASEK
-                               ========================================================== */
+                                   GÓRNY PASEK
+                                   ========================================================== */
 
     .connection-main-toolbar {
         display: flex;
@@ -142,8 +143,8 @@
 
 
     /* ==========================================================
-                               ZAPIS
-                               ========================================================== */
+                                   ZAPIS
+                                   ========================================================== */
 
     .connection-save-group {
         display: flex;
@@ -172,8 +173,8 @@
 
 
     /* ==========================================================
-                               NARZĘDZIA
-                               ========================================================== */
+                                   NARZĘDZIA
+                                   ========================================================== */
 
     .connection-tools {
         display: flex;
@@ -186,8 +187,8 @@
 
 
     /* ==========================================================
-                               GRUPA NARZĘDZI
-                               ========================================================== */
+                                   GRUPA NARZĘDZI
+                                   ========================================================== */
 
     .tool-group {
         display: flex;
@@ -214,8 +215,8 @@
 
 
     /* ==========================================================
-                               USTAWIENIE PRECYZJI
-                               ========================================================== */
+                                   USTAWIENIE PRECYZJI
+                                   ========================================================== */
 
     .tool-setting-group {
         padding-left: 10px;
@@ -236,8 +237,8 @@
 
 
     /* ==========================================================
-                               PASEK PODGLĄDU
-                               ========================================================== */
+                                   PASEK PODGLĄDU
+                                   ========================================================== */
 
     .connection-preview-toolbar {
         display: grid;
@@ -251,8 +252,8 @@
 
 
     /* ==========================================================
-                               TYTUŁ PODGLĄDU
-                               ========================================================== */
+                                   TYTUŁ PODGLĄDU
+                                   ========================================================== */
 
     .preview-heading {
         display: flex;
@@ -270,8 +271,8 @@
 
 
     /* ==========================================================
-                               OSTRZEŻENIE
-                               ========================================================== */
+                                   OSTRZEŻENIE
+                                   ========================================================== */
 
     .preview-warning {
         display: flex;
@@ -289,8 +290,8 @@
 
 
     /* ==========================================================
-                               PRZYCISKI PODGLĄDU
-                               ========================================================== */
+                                   PRZYCISKI PODGLĄDU
+                                   ========================================================== */
 
     .preview-actions {
         display: flex;
@@ -305,8 +306,8 @@
 
 
     /* ==========================================================
-                               STATUS
-                               ========================================================== */
+                                   STATUS
+                                   ========================================================== */
 
     .status-message {
         display: flex;
@@ -324,8 +325,8 @@
 
 
     /* ==========================================================
-                               PUSTY SVG
-                               ========================================================== */
+                                   PUSTY SVG
+                                   ========================================================== */
 
     .svg-empty-state {
         display: flex;
@@ -338,8 +339,8 @@
 
 
     /* ==========================================================
-                               RESPONSYWNOŚĆ
-                               ========================================================== */
+                                   RESPONSYWNOŚĆ
+                                   ========================================================== */
 
     @@media (max-width: 1200px) {
         .connection-main-toolbar {
@@ -1044,17 +1045,65 @@
                     return pt.matrixTransform(el.getCTM());
                 };
 
-                const getBottomCenter = (el) => {
-                    const bbox = el.getBBox();
-                    const pt = svg.createSVGPoint();
-                    pt.x = bbox.x + bbox.width / 2;
-                    pt.y = bbox.y + bbox.height;          // max Y w SVG = dolna krawędź
-                    return pt.matrixTransform(el.getCTM());
-                };
-
                 // ===== MACIERZ MODEL1 =====
                 const model1Matrix = model1.getCTM();
                 if (!model1Matrix) throw new Error("Brak CTM model1.");
+
+                // Zwraca środek WIDOCZNEJ dolnej krawędzi elementu,
+                // ale w lokalnym układzie modelu 1.
+                // Nie wolno brać po prostu bbox.y + bbox.height: przy obrocie
+                // modelu 2 o 180° ta krawędź staje się wizualnie górną.
+                const getVisibleBottomCenterInModel1 = (el) => {
+                    const bbox = el.getBBox();
+                    const ctm = el.getCTM();
+                    if (!ctm) throw new Error("Brak CTM badanego elementu.");
+
+                    const det = model1Matrix.a * model1Matrix.d -
+                                model1Matrix.b * model1Matrix.c;
+                    if (Math.abs(det) < 1e-9)
+                        throw new Error("Macierz model1 jest nieodwracalna.");
+
+                    const corners = [
+                        [bbox.x, bbox.y],
+                        [bbox.x + bbox.width, bbox.y],
+                        [bbox.x + bbox.width, bbox.y + bbox.height],
+                        [bbox.x, bbox.y + bbox.height]
+                    ];
+
+                    const localCorners = corners.map(([x, y]) => {
+                        const pt = svg.createSVGPoint();
+                        pt.x = x;
+                        pt.y = y;
+                        const world = pt.matrixTransform(ctm);
+
+                        // SVG/world -> lokalny układ modelu 1.
+                        const dx = world.x - model1Matrix.e;
+                        const dy = world.y - model1Matrix.f;
+                        return {
+                            x: (model1Matrix.d * dx - model1Matrix.c * dy) / det,
+                            y: (-model1Matrix.b * dx + model1Matrix.a * dy) / det
+                        };
+                    });
+
+                    const maxY = Math.max(...localCorners.map(p => p.y));
+                    const tolerance = Math.max(
+                        1e-6,
+                        Math.max(bbox.width, bbox.height, 1) * 1e-8
+                    );
+
+                    // Dwa wierzchołki o największym Y tworzą dolną krawędź.
+                    let edge = localCorners.filter(p => maxY - p.y <= tolerance);
+                    if (edge.length < 2) {
+                        edge = [...localCorners]
+                            .sort((a, b) => b.y - a.y)
+                            .slice(0, 2);
+                    }
+
+                    return {
+                        x: edge.reduce((sum, p) => sum + p.x, 0) / edge.length,
+                        y: edge.reduce((sum, p) => sum + p.y, 0) / edge.length
+                    };
+                };
 
                 const det =
                     model1Matrix.a * model1Matrix.d -
@@ -1092,17 +1141,107 @@
                     guideDiag = { available: false, reason: "brak guide-line-vertical" };
                 }
 
-                // ===== Y: z DOLNYCH KRAWĘDZI BBOX (NOWE) =====
-                const btm1 = getBottomCenter(model1);
-                const btm2 = getBottomCenter(model2);
-
-                const bottomVector = {
-                    dx: btm2.x - btm1.x,
-                    dy: btm2.y - btm1.y
+                // ===== Y: z RZECZYWISTEJ DOLNEJ PROWADNICY =====
+                // Nie porównujemy już dolnych narożników bbox całej grupy.
+                // Bbox może obejmować dodatkowe elementy/obramowania, które nie są
+                // linią, którą użytkownik faktycznie ustawia współliniowo.
+                // Szukamy poziomych prowadnic w każdym modelu, przeliczamy ich
+                // środki do lokalnego układu model1 i wybieramy tę położoną
+                // najniżej (największe Y SVG) już PO wszystkich obrotach/odbiciach.
+                const toModel1Local = (world) => {
+                    const dx = world.x - model1Matrix.e;
+                    const dy = world.y - model1Matrix.f;
+                    return {
+                        x: (model1Matrix.d * dx - model1Matrix.c * dy) / det,
+                        y: (-model1Matrix.b * dx + model1Matrix.a * dy) / det
+                    };
                 };
-                const bottomLocal = transformVectorToLocal(bottomVector);
 
-                // Y+ = góra (kartezjańskie). SVG ma Y+ = dół → negujemy.
+                const getVisibleBottomGuideInModel1 = (model) => {
+                    const candidates = Array.from(
+                        model.querySelectorAll('[data-name], [id]')
+                    ).filter(el => {
+                        const name = `${el.getAttribute('data-name') || ''} ${el.id || ''}`;
+                        // Węzły SVG takie jak <title>, <desc> lub elementy
+                        // pomocnicze mogą mieć id/data-name, ale nie obsługują
+                        // getBBox()/getCTM(). Do pomiaru dopuszczamy wyłącznie
+                        // rzeczywiste elementy graficzne SVG.
+                        return name.toLowerCase().includes('guide-line-horizontal') &&
+                               typeof el.getBBox === 'function' &&
+                               typeof el.getCTM === 'function';
+                    });
+
+                    const points = candidates.map(el => {
+                        try {
+                            const bbox = el.getBBox();
+                            const ctm = el.getCTM();
+                            if (!ctm || !Number.isFinite(bbox.x) ||
+                                !Number.isFinite(bbox.y) ||
+                                !Number.isFinite(bbox.width) ||
+                                !Number.isFinite(bbox.height)) return null;
+
+                            const pt = svg.createSVGPoint();
+                            pt.x = bbox.x + bbox.width / 2;
+                            pt.y = bbox.y + bbox.height / 2;
+                            const world = pt.matrixTransform(ctm);
+                            const local = toModel1Local(world);
+                            return {
+                                name: el.getAttribute('data-name') || el.id || '(bez nazwy)',
+                                tag: el.tagName,
+                                x: local.x,
+                                y: local.y
+                            };
+                        } catch (e) {
+                            console.warn('[measureGuideDisplacement] Pominięto nieprawidłową prowadnicę:', el, e);
+                            return null;
+                        }
+                    }).filter(Boolean);
+
+                    if (points.length > 0) {
+                        // Po transformacji wybieramy rzeczywiście najniższą
+                        // z dostępnych prowadnic, niezależnie od obrotu modelu.
+                        const bottom = points.reduce((best, p) => p.y > best.y ? p : best);
+                        return { ...bottom, source: 'horizontal-guide', candidates: points };
+                    }
+
+                    // Awaryjnie: dolna krawędź bbox, jeśli SVG nie zawiera prowadnic.
+                    const bbox = model.getBBox();
+                    const ctm = model.getCTM();
+                    if (!ctm) throw new Error('Brak CTM modelu przy pomiarze Y.');
+                    const corners = [
+                        [bbox.x, bbox.y],
+                        [bbox.x + bbox.width, bbox.y],
+                        [bbox.x + bbox.width, bbox.y + bbox.height],
+                        [bbox.x, bbox.y + bbox.height]
+                    ].map(([x, y]) => {
+                        const pt = svg.createSVGPoint();
+                        pt.x = x;
+                        pt.y = y;
+                        return toModel1Local(pt.matrixTransform(ctm));
+                    });
+                    const maxY = Math.max(...corners.map(p => p.y));
+                    const edge = corners.filter(p => Math.abs(maxY - p.y) < 1e-6);
+                    return {
+                        x: edge.reduce((sum, p) => sum + p.x, 0) / edge.length,
+                        y: edge.reduce((sum, p) => sum + p.y, 0) / edge.length,
+                        source: 'bbox-fallback',
+                        candidates: []
+                    };
+                };
+
+                const btm1 = getVisibleBottomGuideInModel1(model1);
+                const btm2 = getVisibleBottomGuideInModel1(model2);
+
+                const bottomLocal = {
+                    x: btm2.x - btm1.x,
+                    y: btm2.y - btm1.y
+                };
+                const bottomVector = {
+                    dx: bottomLocal.x,
+                    dy: bottomLocal.y
+                };
+
+                // Y+ = góra (kartezjańskie). W lokalnym SVG Y+ = dół → negujemy.
                 const localY_cart = -bottomLocal.y;
 
                 // ===== OBRÓT / ODBICIE MODEL2 (diagnostyka) =====
@@ -1114,8 +1253,10 @@
                 // ===== LOGI =====
                 console.log("========== DIAGNOSTYKA POMIARU ==========");
                 console.table({
-                    model1_bottom: { x: btm1.x.toFixed(2), y: btm1.y.toFixed(2) },
-                    model2_bottom: { x: btm2.x.toFixed(2), y: btm2.y.toFixed(2) },
+                    model1_bottom_local: { x: btm1.x.toFixed(2), y: btm1.y.toFixed(2), source: btm1.source },
+                    model2_bottom_local: { x: btm2.x.toFixed(2), y: btm2.y.toFixed(2), source: btm2.source },
+                    model1_horizontal_candidates: btm1.candidates,
+                    model2_horizontal_candidates: btm2.candidates,
                     guide_info: guideDiag
                 });
                 console.log("Wektory (SVG):", {
@@ -3186,6 +3327,475 @@
                 return false;
             }
         };
+
+        // ============================================================
+        // SILNIK TRANSFORMACJI MODELI
+        // Edycja pojedyncza działa na #model2-transform.
+        // Rzuty CAD działają na #models-group obejmującej oba modele.
+        // ============================================================
+        (function () {
+            const SVG_NS = "http://www.w3.org/2000/svg";
+            const helper = window.svgHelper = window.svgHelper || {};
+
+            function getSvg() {
+                return document.querySelector(".scaled-svg svg") ||
+                       document.querySelector("svg");
+            }
+
+            function getZoomGroup() {
+                return getSvg()?.querySelector("#zoom-group") || null;
+            }
+
+            function getModel2() {
+                return getSvg()?.querySelector("#model2") || null;
+            }
+
+            function getWrapper(createIfMissing = true) {
+                const svg = getSvg();
+                if (!svg) return null;
+
+                let wrapper = svg.querySelector("#model2-transform");
+                if (wrapper || !createIfMissing) return wrapper;
+
+                const model2 = getModel2();
+                if (!model2 || !model2.parentNode) return null;
+
+                wrapper = document.createElementNS(SVG_NS, "g");
+                wrapper.setAttribute("id", "model2-transform");
+
+                const oldTransform = model2.getAttribute("transform");
+                model2.removeAttribute("transform");
+                model2.parentNode.insertBefore(wrapper, model2);
+                wrapper.appendChild(model2);
+
+                if (oldTransform) {
+                    wrapper.setAttribute("transform", oldTransform);
+                    wrapper.setAttribute("data-base-transform", oldTransform);
+                }
+
+                console.info("[Transformacje] Utworzono wrapper #model2-transform.");
+                return wrapper;
+            }
+
+            // Grupa wspólnego widoku CAD. Zawiera OBA modele:
+            // model1 oraz wrapper modelu2. Ruch/obrót/odbicie pojedynczego
+            // modelu nadal działa na #model2-transform, natomiast zapis rzutów
+            // operuje na #models-group i zachowuje wzajemne położenie modeli.
+            function getModelsGroup(createIfMissing = true) {
+                const svg = getSvg();
+                const zoomGroup = getZoomGroup();
+                if (!svg || !zoomGroup) return null;
+
+                let group = svg.querySelector("#models-group");
+                if (!group && !createIfMissing) return null;
+
+                if (!group) {
+                    group = document.createElementNS(SVG_NS, "g");
+                    group.setAttribute("id", "models-group");
+                    zoomGroup.insertBefore(group, zoomGroup.firstChild);
+                }
+
+                const model1 = svg.querySelector("#model1");
+                const model2Wrapper = getWrapper();
+
+                // Przenosimy oba modele do wspólnego rodzica bez zmiany
+                // ich lokalnych transformacji i bez zmiany geometrii.
+                if (model1 && model1.parentNode !== group) group.appendChild(model1);
+                if (model2Wrapper && model2Wrapper.parentNode !== group) group.appendChild(model2Wrapper);
+
+                return group;
+            }
+
+            function matrixOf(wrapper) {
+                const svg = getSvg();
+                if (!svg || !wrapper) return null;
+
+                const consolidated = wrapper.transform.baseVal.consolidate();
+                const source = consolidated ? consolidated.matrix : svg.createSVGMatrix();
+                const copy = svg.createSVGMatrix();
+                copy.a = source.a; copy.b = source.b;
+                copy.c = source.c; copy.d = source.d;
+                copy.e = source.e; copy.f = source.f;
+                return copy;
+            }
+
+            function setMatrix(wrapper, matrix) {
+                const svg = getSvg();
+                if (!svg || !wrapper || !matrix) return false;
+
+                const transform = svg.createSVGTransform();
+                transform.setMatrix(matrix);
+                wrapper.transform.baseVal.initialize(transform);
+                return true;
+            }
+
+            // Środek modelu liczony jest w jego własnym układzie współrzędnych.
+            // Dzięki temu odbicie nie zależy od transformacji rodzica (#zoom-group)
+            // ani od aktualnego przesunięcia wrappera.
+            function getModel2LocalCenter() {
+                const model2 = getModel2();
+                if (!model2) return null;
+
+                const bbox = model2.getBBox();
+                return {
+                    x: bbox.x + bbox.width / 2,
+                    y: bbox.y + bbox.height / 2
+                };
+            }
+
+            function transformAroundCenter(operation) {
+                const svg = getSvg();
+                const wrapper = getWrapper();
+                if (!svg || !wrapper) return false;
+
+                const center = getModel2LocalCenter();
+                const current = matrixOf(wrapper);
+                if (!center || !current) return false;
+
+                // Transformację wykonujemy w lokalnym układzie modelu 2:
+                // najpierw przesunięcie środka do (0,0), potem obrót/odbicie,
+                // a na końcu powrót środka. Mnożenie z prawej strony jest tu istotne.
+                const toCenter = svg.createSVGMatrix().translate(center.x, center.y);
+                const operationMatrix = operation(svg.createSVGMatrix());
+                const fromCenter = svg.createSVGMatrix().translate(-center.x, -center.y);
+                const localOperation = toCenter
+                    .multiply(operationMatrix)
+                    .multiply(fromCenter);
+                const result = current.multiply(localOperation);
+
+                return setMatrix(wrapper, result);
+            }
+
+            // Transformacja elementu wokół jego własnego środka bbox.
+            // Używana dla wspólnej grupy CAD (model1 + model2).
+            function transformElementAroundCenter(element, operation) {
+                const svg = getSvg();
+                if (!svg || !element) return false;
+
+                const bbox = element.getBBox();
+                const cx = bbox.x + bbox.width / 2;
+                const cy = bbox.y + bbox.height / 2;
+                const current = matrixOf(element);
+                if (!current) return false;
+
+                const localOperation = svg.createSVGMatrix()
+                    .translate(cx, cy)
+                    .multiply(operation(svg.createSVGMatrix()))
+                    .translate(-cx, -cy);
+
+                return setMatrix(element, current.multiply(localOperation));
+            }
+
+            // Transformacja całej grupy względem punktu w układzie SVG.
+            function transformElementAroundPoint(element, x, y, operation) {
+                const svg = getSvg();
+                if (!svg || !element) return false;
+
+                const current = matrixOf(element);
+                if (!current) return false;
+
+                const localOperation = svg.createSVGMatrix()
+                    .translate(x, y)
+                    .multiply(operation(svg.createSVGMatrix()))
+                    .translate(-x, -y);
+
+                return setMatrix(element, current.multiply(localOperation));
+            }
+
+            function baseTransform(wrapper) {
+                return wrapper?.getAttribute("data-base-transform") || "";
+            }
+
+            function setBaseTransform(wrapper, value) {
+                if (!wrapper) return;
+                if (value && value.trim()) wrapper.setAttribute("data-base-transform", value);
+                else wrapper.removeAttribute("data-base-transform");
+            }
+
+            function toggleFlip(attribute, operation) {
+                const wrapper = getWrapper();
+                if (!wrapper) return false;
+
+                const active = wrapper.getAttribute(attribute) === "true";
+                const ok = transformAroundCenter(matrix => operation(matrix, active));
+                if (ok) wrapper.setAttribute(attribute, active ? "false" : "true");
+                return ok;
+            }
+
+            // API grupy wspólnego widoku — obejmuje model1 i model2.
+            helper.ensureModelsGroup = function () {
+                return getModelsGroup();
+            };
+
+            helper.getModelsGroupTransform = function () {
+                const group = getModelsGroup();
+                return group ? (group.getAttribute("transform") || "") : null;
+            };
+
+            // Reset/odtworzenie transformacji WSPÓLNEJ grupy CAD.
+            // Nie dotykamy transformacji modelu2 — jego indywidualne
+            // przesunięcie i odbicie muszą pozostać niezależne.
+            helper.setModelsGroupTransform = function (transform) {
+                const group = getModelsGroup();
+                if (!group) return false;
+
+                if (transform && transform.trim()) group.setAttribute("transform", transform);
+                else group.removeAttribute("transform");
+
+                return true;
+            };
+
+            // Odczyt i odtworzenie odbicia nakładanego bezpośrednio na #model2.
+            // Te funkcje są potrzebne, gdy pomiar chwilowo resetuje wrapper.
+            helper.getModel2Transform = function () {
+                const model2 = getModel2();
+                return model2 ? (model2.getAttribute("transform") || "") : null;
+            };
+
+            helper.setModel2Transform = function (transform) {
+                const model2 = getModel2();
+                if (!model2) return false;
+
+                if (transform && transform.trim()) {
+                    model2.setAttribute("transform", transform);
+
+                    const vertical = /scale\s*\(\s*-1\s*,\s*1\s*\)/.test(transform);
+                    const horizontal = /scale\s*\(\s*1\s*,\s*-1\s*\)/.test(transform);
+
+                    model2.setAttribute("data-mirror-vertical", vertical ? "true" : "false");
+                    model2.setAttribute("data-mirror-horizontal", horizontal ? "true" : "false");
+                } else {
+                    model2.removeAttribute("transform");
+                    model2.setAttribute("data-mirror-vertical", "false");
+                    model2.setAttribute("data-mirror-horizontal", "false");
+                }
+
+                return true;
+            };
+
+            helper.move = function (dx, dy) {
+                const wrapper = getWrapper();
+                const svg = getSvg();
+                const current = matrixOf(wrapper);
+                if (!wrapper || !svg || !current) return null;
+
+                const scale = Number(helper.zoomLevel) || 1;
+                current.e += Number(dx || 0) / scale;
+                current.f += Number(dy || 0) / scale;
+                setMatrix(wrapper, current);
+
+                return { x: current.e * scale, y: -current.f * scale };
+            };
+
+            helper.moveonlyedit = function (dx, dy) {
+                return helper.move(dx, dy);
+            };
+
+            helper.rotateSecondModel = function () {
+                const ok = transformAroundCenter(matrix => matrix.rotate(90));
+                if (ok) console.info("[Transformacje] Obrót modelu 2 o 90°.");
+                return ok;
+            };
+
+            // Odbicie wykonujemy bezpośrednio na #model2, a nie na wrapperze.
+            // Dzięki temu nie zależymy od macierzy przesunięcia/obrotu wrappera.
+            function ustawOdbicieModelu2(kierunek, wlacz) {
+                const model2 = getModel2();
+                if (!model2) {
+                    console.error("[Transformacje] Nie znaleziono #model2.");
+                    return false;
+                }
+
+                if (!wlacz) {
+                    model2.removeAttribute("transform");
+                    model2.setAttribute("data-mirror-vertical", "false");
+                    model2.setAttribute("data-mirror-horizontal", "false");
+                    return true;
+                }
+
+                const bbox = model2.getBBox();
+                const cx = bbox.x + bbox.width / 2;
+                const cy = bbox.y + bbox.height / 2;
+
+                if (kierunek === "vertical") {
+                    // Odbicie względem osi pionowej x=cx: x' = 2*cx - x.
+                    model2.setAttribute("transform", `translate(${2 * cx}, 0) scale(-1, 1)`);
+                    model2.setAttribute("data-mirror-vertical", "true");
+                    model2.setAttribute("data-mirror-horizontal", "false");
+                    console.info("[Transformacje] Model 2 odbity względem osi pionowej.", {
+                        cx: cx, transform: model2.getAttribute("transform")
+                    });
+                } else {
+                    // Odbicie względem osi poziomej y=cy: y' = 2*cy - y.
+                    model2.setAttribute("transform", `translate(0, ${2 * cy}) scale(1, -1)`);
+                    model2.setAttribute("data-mirror-horizontal", "true");
+                    model2.setAttribute("data-mirror-vertical", "false");
+                    console.info("[Transformacje] Model 2 odbity względem osi poziomej.", {
+                        cy: cy, transform: model2.getAttribute("transform")
+                    });
+                }
+                return true;
+            }
+
+            // ODBICIE WZGLĘDEM LINII PIONOWEJ — lewo/prawo.
+            helper.flipSecondModelAcrossVerticalAxis = function () {
+                const model2 = getModel2();
+                if (!model2) return false;
+                const active = model2.getAttribute("data-mirror-vertical") === "true";
+                return ustawOdbicieModelu2("vertical", !active);
+            };
+
+            // Zachowanie zgodności ze starszymi nazwami.
+            helper.flipSecondModelHorizontally = helper.flipSecondModelAcrossVerticalAxis;
+
+            // ODBICIE WZGLĘDEM LINII POZIOMEJ — góra/dół.
+            helper.flipSecondModelVertically = function () {
+                const model2 = getModel2();
+                if (!model2) return false;
+                const active = model2.getAttribute("data-mirror-horizontal") === "true";
+                return ustawOdbicieModelu2("horizontal", !active);
+            };
+
+            // Stare wywołanie przed obrotem nie musi już wypalać geometrii.
+            helper.bakeHorizontalFlipModel2 = function () {
+                return true;
+            };
+
+            // Operacje „All” dotyczą obu modeli, tak jak w pierwotnym
+            // mechanizmie rzutów CAD. Operacje bez „All” nadal dotyczą tylko model2.
+            helper.rotateAllModel = function () {
+                const group = getModelsGroup();
+                if (!group) return false;
+                const ok = transformElementAroundCenter(group, matrix => matrix.rotate(90));
+                if (ok) console.info("[Transformacje] Obrócono wspólny układ obu modeli o 90°.");
+                return ok;
+            };
+
+            helper.flipAllModelsHorizontally = function () {
+                const group = getModelsGroup();
+                const svg = getSvg();
+                if (!group || !svg) return false;
+                const vb = svg.viewBox.baseVal;
+                const centerY = vb.y + vb.height / 2;
+                return transformElementAroundPoint(group, 0, centerY, matrix => matrix.scale(1, -1));
+            };
+
+            helper.flipAllModelsVertically = function () {
+                const group = getModelsGroup();
+                const svg = getSvg();
+                if (!group || !svg) return false;
+                const vb = svg.viewBox.baseVal;
+                const centerX = vb.x + vb.width / 2;
+                return transformElementAroundPoint(group, centerX, 0, matrix => matrix.scale(-1, 1));
+            };
+
+            // Przy zapisie rzutów transformujemy wspólną grupę, a nie model2.
+            // Dzięki temu oba modele obracają się/odbijają razem, zachowując
+            // wzajemne położenie ustalone podczas edycji połączenia.
+            helper.applyModelsViewTransform = function (
+                savedBaseTransform, rotationDelta, mirror, mirrorVertical
+            ) {
+                const group = getModelsGroup();
+                if (!group) return false;
+
+                if (savedBaseTransform && savedBaseTransform.trim()) {
+                    group.setAttribute("transform", savedBaseTransform);
+                } else {
+                    group.removeAttribute("transform");
+                }
+
+                const angle = Number(rotationDelta) || 0;
+                if (angle && !transformElementAroundCenter(group, matrix => matrix.rotate(angle))) {
+                    return false;
+                }
+
+                // mirror = góra/dół; mirrorVertical = lewo/prawo.
+                // Tak jak w pierwotnym mechanizmie zapisu, odbicie jest
+                // wykonywane względem środka wspólnej grupy obu modeli.
+                if (mirror === true) {
+                    if (!transformElementAroundCenter(group, matrix => matrix.scale(1, -1))) {
+                        return false;
+                    }
+                }
+
+                if (mirrorVertical === true) {
+                    if (!transformElementAroundCenter(group, matrix => matrix.scale(-1, 1))) {
+                        return false;
+                    }
+                }
+
+                console.info("[applyModelsViewTransform] Zastosowano rzut do obu modeli.", {
+                    rotationDelta: angle,
+                    mirror,
+                    mirrorVertical,
+                    transform: group.getAttribute("transform") || ""
+                });
+                return true;
+            };
+
+            helper.resetModel2Position = function () {
+                const wrapper = getWrapper();
+                if (!wrapper) return false;
+
+                // Reset do położenia bazowego modelu 2, bez obrotu i odbić.
+                const base = baseTransform(wrapper);
+                if (base) wrapper.setAttribute("transform", base);
+                else wrapper.removeAttribute("transform");
+
+                ustawOdbicieModelu2("vertical", false);
+                wrapper.setAttribute("data-flip-x", "false");
+                wrapper.setAttribute("data-flip-y", "false");
+                return true;
+            };
+
+            helper.getModel2Position = function () {
+                const wrapper = getWrapper();
+                const matrix = matrixOf(wrapper);
+                if (!wrapper || !matrix) return null;
+                return {
+                    x: matrix.e,
+                    y: -matrix.f,
+                    transform: wrapper.getAttribute("transform") || ""
+                };
+            };
+
+            // Diagnostyka uwzględnia wrapper jako rodzica modelu 2.
+            const previousDiagnostic = helper.getDiagnosticTransforms;
+            helper.getDiagnosticTransforms = function () {
+                const svg = getSvg();
+                const ids = ["model1", "model2", "model2-transform"];
+                const result = {};
+                ids.forEach(id => {
+                    const element = svg?.querySelector("#" + id);
+                    if (!element) {
+                        result[id] = { exists: false };
+                        return;
+                    }
+                    const m = element.getCTM();
+                    const p = element.parentElement;
+                    const pm = p?.getCTM();
+                    const toObject = value => value ? {
+                        a: value.a, b: value.b, c: value.c,
+                        d: value.d, e: value.e, f: value.f
+                    } : null;
+                    result[id] = {
+                        exists: true,
+                        transform: element.getAttribute("transform"),
+                        matrix: toObject(m),
+                        parent: p ? {
+                            id: p.id,
+                            transform: p.getAttribute("transform"),
+                            matrix: toObject(pm)
+                        } : null
+                    };
+                });
+                console.log("[Transformacje] Diagnostyka:", result);
+                return result;
+            };
+
+            console.info("[Transformacje] Aktywny silnik: nieruchomy model 1, transformowany model 2.");
+        })();
+
 </script>
 
 <div class="container-fluid mt-3">
@@ -3516,7 +4126,7 @@
                                                     Class="btn-sm btn-move" />
                                         </Tooltip>
 
-                                        <Tooltip Title="Lustro elementów - odbicie wszystkich elementów w poziomie">
+             @*                            <Tooltip Title="Lustro elementów - odbicie wszystkich elementów w poziomie">
                                             <Button Icon="@IconType.Outline.Swap"
                                                     OnClick="MirrorObjAll"
                                                     Class="btn-sm btn-move" />
@@ -3526,7 +4136,7 @@
                                             <Button Icon="@IconType.Outline.Swap"
                                                     OnClick="MirrorObjAllVertically"
                                                     Class="btn-sm btn-move" />
-                                        </Tooltip>
+                                        </Tooltip> *@
 
                                     </div>
 
@@ -3542,13 +4152,13 @@
                                     </span>
 
                                     <div class="tool-buttons">
-
+@* 
                                         <Tooltip Title="Obróć wszystko">
                                             <Button Icon="@IconType.Outline.Undo"
                                                     OnClick="RotateObjAll"
                                                     Class="btn-sm btn-move" />
                                         </Tooltip>
-
+ *@
                                         <Tooltip Title="Obróć drugi model">
                                             <Button Icon="@IconType.Outline.Redo"
                                                     OnClick="RotateObj"
@@ -3839,7 +4449,7 @@
                     <div class="model-list">
                         @if (ListaModeli != null && ListaModeli.Any())
                         {
-                             <label style="color: blue;">Uwaga: <br />Strona pierwszego dodawanego elementu</label>
+                            <label style="color: blue;">Uwaga: <br />Strona pierwszego dodawanego elementu</label>
                             <div class="side-checkboxes">
                                 <div class="side-checkbox">
                                     <input type="checkbox" @bind="selDolStyczne" id="str_dol_st" onclick="@DelSvg" />
@@ -4147,6 +4757,7 @@
 </div>
 
 @code {
+
     [Inject] private AppState AppState { get; set; } = default!;
 
     [Parameter]
@@ -4655,51 +5266,60 @@
             </g>");
         }
 
-        // 🔹 2️⃣ Drugi model lub prostokąt zastępczy
-        if (drugiModel != null && boolStyczny)
+        // 🔹 2️⃣ Drugi model lub prostokąt zastępczy.
+        // Model 1 pozostaje nieruchomy. Wszystkie transformacje modelu 2
+        // są wykonywane na zewnętrznej grupie #model2-transform.
+        if (drugiModel != null)
         {
             double secondX = centerX + offsetX;
             double secondY = centerY + offsetY;
+            string baseTransform = FormattableString.Invariant(
+                $"translate({secondX}, {secondY})");
 
-            var pasujacyPierwszy = pierwszyModel.PionLewa - pierwszyModel.PionPrawa ?? 0;
-            pasujacyPierwszy = Math.Abs(pasujacyPierwszy);
+            if (boolStyczny)
+            {
+                double pasujacyPierwszy = pierwszyModel == null
+                    ? 0
+                    : Math.Abs((pierwszyModel.PionLewa - pierwszyModel.PionPrawa) ?? 0);
 
-            var pasujacyWymiarY = drugiModel.PoziomGora - drugiModel.PoziomDol ?? 0;
-            var pasujacyWymiarX = drugiModel.PionLewa - drugiModel.PionPrawa ?? 0;
-            pasujacyWymiarY = Math.Abs(pasujacyWymiarY);
-            pasujacyWymiarX = Math.Abs(pasujacyWymiarX);
-            if (pasujacyWymiarY == 0) pasujacyWymiarY = 5; // Domyślny wymiar, jeśli brak danych
-            if (pasujacyWymiarX == 0) pasujacyWymiarX = 5; // Domyślny wymiar, jeśli brak danych
+                double pasujacyWymiarY = Math.Abs(
+                    (drugiModel.PoziomGora - drugiModel.PoziomDol) ?? 0);
+                double pasujacyWymiarX = Math.Abs(
+                    (drugiModel.PionLewa - drugiModel.PionPrawa) ?? 0);
 
-            // Obliczamy odległość każdego wymiaru od wartości pasujacyPierwszy
-            double roznicaY = Math.Abs(pasujacyPierwszy - pasujacyWymiarY);
-            double roznicaX = Math.Abs(pasujacyPierwszy - pasujacyWymiarX);
+                if (pasujacyWymiarY == 0) pasujacyWymiarY = 5;
+                if (pasujacyWymiarX == 0) pasujacyWymiarX = 5;
 
-            // Wybieramy ten wymiar, którego różnica jest mniejsza (jest bliższy pasujacyPierwszy)
-            double rectWidth = (roznicaY < roznicaX) ? pasujacyWymiarY : pasujacyWymiarX;
+                double roznicaY = Math.Abs(pasujacyPierwszy - pasujacyWymiarY);
+                double roznicaX = Math.Abs(pasujacyPierwszy - pasujacyWymiarX);
+                double rectWidth = roznicaY < roznicaX
+                    ? pasujacyWymiarY
+                    : pasujacyWymiarX;
 
-            //double rectHeight = 100; // Domyślny rozmiar prostokąta tylko do wizualizacji
-            double rectX = 0;//centerX + offsetX - rectWidth;
-            double rectY = 0;//centerY + offsetY - rectHeight;
+                string widthSvg = rectWidth.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+                string heightSvg = StyczneRectHeight.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
 
-            string svtmp = $@"
-            <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-                <rect x=""{rectX}"" y=""{rectY}"" width=""{rectWidth.ToString().Replace(',', '.')}"" height=""{StyczneRectHeight.ToString().Replace(',', '.')}""
-                      fill=""#e0e0e0"" fill-opacity=""0.5"" stroke=""#000"" stroke-width=""1"" />
-            </g>";
-
-            svgParts.Add(svtmp);
-
-        }
-        else if (drugiModel != null && !boolStyczny)
-        {
-            double secondX = centerX + offsetX;
-            double secondY = centerY + offsetY;
-
-            svgParts.Add($@"
-            <g id=""model2"" transform=""translate({secondX}, {secondY})"">
-    {ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}
-            </g>");
+                svgParts.Add($@"
+                <g id=""model2-transform""
+                   transform=""{baseTransform}""
+                   data-base-transform=""{baseTransform}"">
+                    <g id=""model2""><rect x=""0"" y=""0""
+                        width=""{widthSvg}"" height=""{heightSvg}""
+                        fill=""#e0e0e0"" fill-opacity=""0.5""
+                        stroke=""#000"" stroke-width=""1"" /></g>
+                </g>");
+            }
+            else
+            {
+                svgParts.Add($@"
+                <g id=""model2-transform""
+                   transform=""{baseTransform}""
+                   data-base-transform=""{baseTransform}"">
+                    <g id=""model2"">{ExtractInnerSvg(NormalizeSvg(drugiModel.SVG))}</g>
+                </g>");
+            }
         }
 
         // 🔹 3️⃣ Złożenie końcowego SVG
@@ -4797,47 +5417,58 @@
 
     private async Task PokazWartosciPrzesuniecia()
     {
-        string? transformacjaAktualna = await JSRuntime.InvokeAsync<string?>(
-            "svgHelper.getModelsGroupTransform");
+        // Zapamiętujemy osobno transformację wrappera oraz odbicie #model2.
+        // Odbicie nie znajduje się już na wrapperze, więc sam wrapper nie wystarcza.
+        string? transformacjaAktualna =
+            await JSRuntime.InvokeAsync<string?>(
+                "svgHelper.getModelsGroupTransform");
 
-        await JSRuntime.InvokeVoidAsync(
-            "svgHelper.setModelsGroupTransform", "");
-        await Task.Delay(100);
+        string? odbicieModelu2 =
+            await JSRuntime.InvokeAsync<string?>(
+                "svgHelper.getModel2Transform");
 
-        var result = await PobierzWynikPrzesuniecia();
+        try
+        {
+            // Na czas pomiaru ustawiamy neutralny widok wrappera.
+            // setModelsGroupTransform("") czyści odbicie #model2,
+            // dlatego jego stan został wcześniej zapisany.
+            await JSRuntime.InvokeVoidAsync(
+                "svgHelper.setModelsGroupTransform", "");
 
-        await JSRuntime.InvokeVoidAsync(
-            "svgHelper.setModelsGroupTransform", transformacjaAktualna);
-        await Task.Delay(100);
+            await Task.Delay(100);
 
-        if (result == null)
-            return;
+            var result = await PobierzWynikPrzesuniecia();
 
-        Console.WriteLine(
-            $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
+            if (result == null)
+                return;
 
-        // // Notka informacyjna dla stycznych (tylko strona dół ma korektę)
-        // string notkaDol = "";
-        // if (boolStyczny && selDolStyczne)
-        // {
-        //     notkaDol = $" (dla strony DÓŁ w bazie: Y = {StyczneRectHeight - result.przesuniecieY} mm)";
-        // }
+            Console.WriteLine(
+                $"[PokazWartosciPrzesuniecia] X={result.przesuniecieX}, Y={result.przesuniecieY}");
 
-        _ = _notice.Info(new()
-    {
-        Message = "Informacja !!!!",
-        Description =
-            $"Aktualne przesunięcie modelu 2 względem modelu 1: " +
-            $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
-        Placement = NotificationPlacement.Top,
-        Duration = 6.0
-    });
+            _ = _notice.Info(new()
+            {
+                Message = "Informacja !!!!",
+                Description =
+                    $"Aktualne przesunięcie modelu 2 względem modelu 1: " +
+                    $"X = {result.przesuniecieX} mm, Y = {result.przesuniecieY} mm",
+                Placement = NotificationPlacement.Top,
+                Duration = 6.0
+            });
+        }
+        finally
+        {
+            // Najpierw odtwarzamy przesunięcie/obrót wrappera,
+            // następnie niezależne odbicie geometrii #model2.
+            await JSRuntime.InvokeVoidAsync(
+                "svgHelper.setModelsGroupTransform",
+                transformacjaAktualna ?? "");
 
-        var transformacje = await JSRuntime.InvokeAsync<JsonElement>(
-            "svgHelper.getDiagnosticTransforms");
+            await JSRuntime.InvokeVoidAsync(
+                "svgHelper.setModel2Transform",
+                odbicieModelu2 ?? "");
 
-        Console.WriteLine("========== TRANSFORMACJE SVG ==========");
-        Console.WriteLine(transformacje.ToString());
+            await Task.Delay(100);
+        }
     }
 
     private async Task ZoomInObj() => await JSRuntime.InvokeVoidAsync("svgHelper.zoomIn");
@@ -4855,7 +5486,19 @@
 
     private async Task FlipSecondModel()
     {
-        await JSRuntime.InvokeVoidAsync("svgHelper.flipSecondModelHorizontally");
+        try
+        {
+            // Odbicie drugiego modelu względem osi pionowej (lewo ↔ prawo).
+            bool wykonano = await JSRuntime.InvokeAsync<bool>(
+                "svgHelper.flipSecondModelAcrossVerticalAxis");
+
+            if (!wykonano)
+                Console.WriteLine("⚠️ Nie wykonano odbicia modelu 2. Sprawdź, czy #model2 istnieje w SVG.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Błąd odbicia modelu 2: {ex.Message}");
+        }
     }
 
     private async Task MirrorObjAll()
@@ -5035,8 +5678,9 @@
                 //    (bbox-based), więc mierzymy w neutralnym widoku.
                 //
                 // 2) Używamy PobierzWynikPrzesuniecia (C#), a NIE svgHelper
-                //    bezpośrednio — bo tylko ta funkcja stosuje korektę
-                //    dla słupka stałego (oś symetrii PoziomOsSymetrii).
+                //    bezpośrednio — funkcja zwraca surowy pomiar bazowy
+                //    bez korekty strony — korekta osi jest wykonywana
+                //    później w SavePosition dla każdej strony osobno.
                 //
                 await JSRuntime.InvokeVoidAsync(
                     "svgHelper.setModelsGroupTransform", "");
@@ -5061,10 +5705,8 @@
                 double pomiarBazowyX = pomiarBazowy.przesuniecieX;
                 double pomiarBazowyY = pomiarBazowy.przesuniecieY;
 
-                double osSymetrii = pomiarBazowy.osSymetriiDlaSlupkow;
-
                 Console.WriteLine(
-                    $"[SaveAllPosition] Pomiar bazowy (po korekcie słupka): " +
+                    $"[SaveAllPosition] Surowy pomiar bazowy (bez korekty strony): " +
                     $"X={pomiarBazowyX}, Y={pomiarBazowyY}");
 
                 foreach (var strona in stronyDoZapisu)
@@ -5135,15 +5777,14 @@
                     await Task.Delay(150);
                     await Task.Yield();
 
-                    // Zapisujemy konkretny widok, przekazując pomiar bazowy
-                    // (po korekcie słupka, w widoku 0°) — spójny dla
-                    // wszystkich stron i zgodny z PokazWartosciPrzesuniecia.
+                    // Zapisujemy konkretny widok, przekazując surowy pomiar
+                    // bazowy w widoku 0°. SavePosition wykonuje korektę
+                    // względem osi symetrii dla aktualnej strony.
                     string wynik = await SavePosition(
                         strona.Strona,
                         strona.KatZapis,
                         pomiarBazowyX,
-                        pomiarBazowyY,
-                        osSymetrii);
+                        pomiarBazowyY);
 
                     wynikiZapisu.Add(wynik);
 
@@ -5211,8 +5852,7 @@
     string strona,
     int? katZapisywany = null,
     double? pomiarX = null,
-    double? pomiarY = null,
-    double? osSymetrii = null)
+    double? pomiarY = null)
     {
         int katDoZapisu = katZapisywany ?? katUstawienia;
 
@@ -5247,7 +5887,9 @@
         //
         // Odwrotność (przywrócenie) jest w ZaladujDaneModalEdycji.
         //
-        if (boolStyczny && strona == "dół")
+        if (boolStyczny &&
+            (NormalizujStrone(strona) == "dół" ||
+             NormalizujStrone(strona) == "dol"))
         {
             Console.WriteLine(
                 $"[SavePosition] STYCZNE/DÓŁ: Y przed={przesuniecieY}, " +
@@ -5256,12 +5898,35 @@
             Console.WriteLine($"[SavePosition] STYCZNE/DÓŁ: Y po={przesuniecieY}");
         }
 
+        // Korekta słupka stałego jest wykonywana dopiero teraz, ponieważ
+        // SavePosition zna konkretną stronę zapisywanego połączenia.
+        // Pomiar bazowy pozostaje niezmieniony dla wszystkich czterech stron.
+        var wspolrzedneDoZapisu = PrzeliczSlupkaStalegoDoZapisu(
+            przesuniecieX,
+            przesuniecieY,
+            strona);
+
+        double zapisX = wspolrzedneDoZapisu.X;
+        double zapisY = wspolrzedneDoZapisu.Y;
+
         Console.WriteLine("========== POMIAR → ZAPIS ==========");
         Console.WriteLine($"Strona: {strona}");
         Console.WriteLine($"Kąt: {katDoZapisu}");
-        Console.WriteLine($"X: {przesuniecieX}");
-        Console.WriteLine($"Y: {przesuniecieY}");
+        Console.WriteLine($"Pomiar fizyczny X: {przesuniecieX}");
+        Console.WriteLine($"Pomiar fizyczny Y: {przesuniecieY}");
+        Console.WriteLine($"Wartość zapisywana X: {zapisX}");
+        Console.WriteLine($"Wartość zapisywana Y: {zapisY}");
         Console.WriteLine("====================================");
+
+        Console.WriteLine("========== DANE MODELI ==========");
+        Console.WriteLine($"Typ pierwszego modelu: {pierwszyModel?.Typ}");
+        Console.WriteLine($"PoziomGora: {pierwszyModel?.PoziomGora}");
+        Console.WriteLine($"PoziomDol: {pierwszyModel?.PoziomDol}");
+        Console.WriteLine($"PoziomOsSymetrii: {pierwszyModel?.PoziomOsSymetrii}");
+        Console.WriteLine($"PionLewa: {pierwszyModel?.PionLewa}");
+        Console.WriteLine($"PionPrawa: {pierwszyModel?.PionPrawa}");
+        Console.WriteLine($"Typ drugiego modelu: {drugiModel?.Typ}");
+        Console.WriteLine("================================");
 
         // 🔹 Rysunek aktualnej zakładki
         var png = await GenerujPngBezProwadnic();
@@ -5319,18 +5984,8 @@
         if (boolStyczny)
         {
             // --- ZAKŁADKA "STYCZNE" ---
-            polaczenie.PrzesuniecieXStycznej = przesuniecieX;
-
-            if (selDolStyczne)
-            {
-                przesuniecieY = Math.Abs(przesuniecieY) - (osSymetrii ?? 0);//StyczneRectHeight - przesuniecieY + osSymetrii;
-            }
-            else if(selGoraStyczne)
-            {
-                przesuniecieY = StyczneRectHeight - przesuniecieY;// - osSymetrii;
-            }
-
-            polaczenie.PrzesuniecieYStycznej = przesuniecieY;
+            polaczenie.PrzesuniecieXStycznej = zapisX;
+            polaczenie.PrzesuniecieYStycznej = zapisY;
             polaczenie.RysunekPrzekrojuStyczny = png;
 
             if (existing != null)
@@ -5344,8 +5999,8 @@
         else
         {
             // --- ZAKŁADKA "PRZEKROJE" ---
-            polaczenie.PrzesuniecieX = Math.Round(przesuniecieX, precyzjaZapisu);
-            polaczenie.PrzesuniecieY = Math.Round(przesuniecieY, precyzjaZapisu);
+            polaczenie.PrzesuniecieX = Math.Round(zapisX, precyzjaZapisu);
+            polaczenie.PrzesuniecieY = Math.Round(zapisY, precyzjaZapisu);
             polaczenie.RysunekPrzekroju = png;
 
             if (existing != null)
@@ -5367,6 +6022,7 @@
             $"Zapis: boolStyczny={boolStyczny}, " +
             $"{polaczenie.ElementZewnetrznyId}+{polaczenie.ElementWewnetrznyId}, " +
             $"Strona={strona}, X={przesuniecieX}, Y={przesuniecieY}, Kat={katDoZapisu}");
+
 
         HttpResponseMessage response;
         if (existing != null)
@@ -5505,18 +6161,20 @@
         await Task.Delay(50);
 
         await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
-
         await Task.Delay(150);
 
         GuideDisplacementResult result;
 
         // =========================================================
-        // POMIAR
+        // POMIAR SUROWY
+        // Ta funkcja NIE wykonuje korekty słupka stałego.
+        // Pomiar jest wspólną bazą dla stron góra/dół/lewa/prawa.
+        // Korekta osi jest wykonywana dopiero w SavePosition,
+        // gdzie znamy konkretną zapisywaną stronę.
         // =========================================================
 
         if (boolStyczny)
         {
-            // TRYB STYCZNY
             var offset =
                 await JSRuntime.InvokeAsync<GuideDisplacementResult>(
                     "svgHelper.getModel2Displacement");
@@ -5536,7 +6194,8 @@
                 elementsFound = offset.elementsFound,
                 przesuniecieX = offset.przesuniecieX,
                 przesuniecieY = offset.przesuniecieY,
-                osSymetriiDlaSlupkow = (pierwszyModel.PoziomOsSymetrii ?? 0),
+                osSymetriiDlaSlupkow =
+                    pierwszyModel.PoziomOsSymetrii ?? 0,
                 katObrotu = offset.katObrotu,
                 odbicieLustrzane = offset.odbicieLustrzane,
                 scale = 1
@@ -5544,7 +6203,6 @@
         }
         else
         {
-            // TRYB PRZEKROJE
             result =
                 await JSRuntime.InvokeAsync<GuideDisplacementResult>(
                     "svgHelper.measureGuideDisplacement");
@@ -5557,10 +6215,13 @@
 
                 return null;
             }
+
+            result.osSymetriiDlaSlupkow =
+                pierwszyModel.PoziomOsSymetrii ?? 0;
         }
 
         // =========================================================
-        // DIAGNOSTYKA MODELU
+        // DIAGNOSTYKA MODELU 1
         // =========================================================
 
         Console.WriteLine(
@@ -5580,7 +6241,7 @@
         );
 
         Console.WriteLine(
-            $"[DIAG-MEAS] " +
+            $"[DIAG-MEAS-RAW] " +
             $"Success={result.success}, " +
             $"ElementsFound={result.elementsFound}, " +
             $"RawX={result.przesuniecieX:F3}, " +
@@ -5591,96 +6252,20 @@
             $"Error={result.error ?? "brak"}"
         );
 
-        // =========================================================
-        // WARTOŚCI POCZĄTKOWE
-        // =========================================================
-
-        double przesuniecieX = result.przesuniecieX;
-        double przesuniecieY = result.przesuniecieY;
-
-        Console.WriteLine("\n========== DIAGNOSTYKA PRZESUNIĘCIA ==========");
-        Console.WriteLine($"Strona: {edytowanaStrona}");
-        Console.WriteLine($"Tryb styczny: {boolStyczny}");
-        Console.WriteLine($"Słupek ruchomy: {selSlRuchomy}");
-        Console.WriteLine($"Słupek stały: {selSlStaly}");
-        Console.WriteLine($"Typ pierwszego modelu: {pierwszyModel.Typ}");
-        Console.WriteLine($"Raw X: {przesuniecieX:F3}");
-        Console.WriteLine($"Raw Y: {przesuniecieY:F3}");
-
-        // // =========================================================
-        // // SKRZYDŁO / POZOSTAŁE ELEMENTY
-        // // =========================================================
-
-        // if (!selSlRuchomy && !selSlStaly)
-        // {
-        //     przesuniecieX = Math.Abs(przesuniecieX);
-        //     przesuniecieY = Math.Abs(przesuniecieY);
-
-        //     Console.WriteLine("[DIAG] Zastosowano Math.Abs()");
-        // }
-
-        // =========================================================
-        // SŁUPEK STAŁY
-        // =========================================================
-
-        if (pierwszyModel.Typ.Contains("Słupek stały"))
-        {
-            double osSymetrii =
-                pierwszyModel.PoziomOsSymetrii ?? 0;
-
-            double dolnaliniaRysunku = (pierwszyModel.PoziomDol ?? 0) - (pierwszyModel.PoziomGora ?? 0);
-
-            double yPrzedKorekta = przesuniecieY;
-
-            if (boolStyczny)
-            {
-                if (selDolStyczne)
-                {
-                    przesuniecieY = Math.Abs(przesuniecieY) - osSymetrii;//StyczneRectHeight - przesuniecieY + osSymetrii;
-                }
-                else if(selGoraStyczne)
-                {
-                    przesuniecieY = StyczneRectHeight - przesuniecieY;// - osSymetrii;
-                }
-            }
-            else
-            {
-                if (selGora)
-                {
-                    przesuniecieY = StyczneRectHeight - przesuniecieY;// - osSymetrii;
-                }
-                else
-                {
-                    przesuniecieY = Math.Abs(przesuniecieY) - (dolnaliniaRysunku - osSymetrii);//StyczneRectHeight - przesuniecieY + osSymetrii;
-                }
-              
-            }
-
-
-            Console.WriteLine("[DIAG] Korekta Y – SŁUPEK STAŁY");
-            Console.WriteLine($"Y przed korektą: {yPrzedKorekta:F3}");
-            Console.WriteLine($"PoziomOsSymetrii: {osSymetrii:F3}");
-            Console.WriteLine($"DolnaliniaRysunku: {dolnaliniaRysunku:F3}");
-            Console.WriteLine($"Y po korekcie: {przesuniecieY:F3}");
-        }
-
-        // =========================================================
-        // WYNIK KOŃCOWY
-        // =========================================================
-
         result.przesuniecieX =
-            Math.Round(przesuniecieX, precyzjaZapisu);
+            Math.Round(result.przesuniecieX, precyzjaZapisu);
 
         result.przesuniecieY =
-            Math.Round(przesuniecieY, precyzjaZapisu);
+            Math.Round(result.przesuniecieY, precyzjaZapisu);
 
         Console.WriteLine(
-            $"========== KOŃCOWY WYNIK " +
+            $"========== POMIAR BAZOWY (BEZ KOREKTY) " +
             $"X={result.przesuniecieX:F3}, " +
             $"Y={result.przesuniecieY:F3} ==========\n");
 
         return result;
     }
+
 
 
 
@@ -5865,7 +6450,7 @@
 
             case "dół":
             case "dol":
-                return (kanX, kanY);
+                return (kanX, -kanY);
 
             case "prawa":
                 return (kanY, kanX);       // swap — odwrotność (kanX=fizY, kanY=fizX)
@@ -5901,6 +6486,110 @@
             default:
                 return (fizX, fizY);
         }
+    }
+
+    /// <summary>
+    /// Przelicza surowy pomiar fizyczny do zapisu dla konkretnej strony.
+    /// Dla słupka stałego Y zawsze oznacza przesunięcie pionowe względem
+    /// PoziomOsSymetrii; tylko dół odwraca znak. X dla prawa/lewa jest
+    /// liczony względem PionOsSymetrii.
+    /// </summary>
+
+    private (double X, double Y) PrzeliczSlupkaStalegoDoZapisu(
+        double fizX,
+        double fizY,
+        string strona)
+    {
+        if (pierwszyModel?.Typ?.Contains(
+                "Słupek stały",
+                StringComparison.OrdinalIgnoreCase) != true)
+        {
+            return (fizX, fizY);
+        }
+
+        string stronaNorm = NormalizujStrone(strona);
+
+        double osPozioma = pierwszyModel.PoziomOsSymetrii ?? 0;
+        double osPionowa = pierwszyModel.PionOsSymetrii ?? 0;
+        double poziomDol = pierwszyModel.PoziomDol ?? 0;
+
+        // Standardowe obliczenie pionowego przesunięcia.
+        double zapisY = fizY - osPozioma;
+
+        // SZCZEGÓLNY PRZYPADEK:
+        // Pierwszy model to słupek stały, drugi model jest poniżej niego,
+        // a połączenie dotyczy GÓRY skrzydła z DOŁEM słupka.
+        //
+        // Pomiar Y jest wtedy ujemny i należy uwzględnić dolną
+        // krawędź słupka zamiast stosować standardowy wzór.
+        if ((stronaNorm == "góra" || stronaNorm == "gora") &&
+            fizY < 0)
+        {
+            zapisY = poziomDol + fizY - osPozioma;
+
+            Console.WriteLine(
+                "[SŁUPEK STAŁY - SZCZEGÓLNY PRZYPADEK]\n" +
+                $"PoziomDol: {poziomDol:F3}\n" +
+                $"Pomiar fizyczny Y: {fizY:F3}\n" +
+                $"PoziomOsSymetrii: {osPozioma:F3}\n" +
+                $"Obliczenie: {poziomDol:F3} + ({fizY:F3}) - {osPozioma:F3}\n" +
+                $"Wynik Y: {zapisY:F3}");
+        }
+
+        // X pozostaje liczony dotychczasową metodą.
+        double zapisX = stronaNorm switch
+        {
+            "góra" or "gora" or "dół" or "dol" => fizX,
+
+            "prawa" => fizX - osPionowa,
+
+            "lewa" => -(fizX - osPionowa),
+
+            _ => throw new ArgumentException(
+                $"Nieznana strona połączenia: '{strona}'.")
+        };
+
+        Console.WriteLine(
+            "[SŁUPEK STAŁY → ZAPIS]\n" +
+            $"Strona: {stronaNorm}\n" +
+            $"Surowy fizyczny X/Y: {fizX:F3} / {fizY:F3}\n" +
+            $"PoziomOsSymetrii: {osPozioma:F3}\n" +
+            $"PionOsSymetrii: {osPionowa:F3}\n" +
+            $"PoziomDol: {poziomDol:F3}\n" +
+            $"Zapis X/Y: {zapisX:F3} / {zapisY:F3}");
+
+        return (zapisX, zapisY);
+    }
+
+
+    /// <summary>
+    /// Odczytuje przesunięcia słupka stałego zapisane w bazie.
+    /// W bazie X/Y są już przesunięciami względem odpowiednich osi.
+    /// Nie dodajemy ponownie PoziomOsSymetrii ani PionOsSymetrii.
+    /// </summary>
+    private (double X, double Y) PrzeliczSlupkaStalegoDoFormularza(
+        double kanX,
+        double kanY,
+        string strona)
+    {
+        if (pierwszyModel?.Typ?.Contains(
+                "Słupek stały",
+                StringComparison.OrdinalIgnoreCase) != true)
+        {
+            return (kanX, kanY);
+        }
+
+        string stronaNorm = NormalizujStrone(strona);
+
+        Console.WriteLine(
+            "[SŁUPEK STAŁY ← FORMULARZ]\n" +
+            $"Strona: {stronaNorm}\n" +
+            $"Wartości odczytane z bazy X/Y: {kanX:F3} / {kanY:F3}\n" +
+            $"PoziomOsSymetrii: {pierwszyModel.PoziomOsSymetrii ?? 0:F3}\n" +
+            $"PionOsSymetrii: {pierwszyModel.PionOsSymetrii ?? 0:F3}\n" +
+            $"Wartości formularza X/Y: {kanX:F3} / {kanY:F3}");
+
+        return (kanX, kanY);
     }
 
     /// <summary>
@@ -6037,6 +6726,10 @@
             }
             pierwszyModel = result1.KonfSystem.First();
 
+            StyczneRectHeight =
+                (pierwszyModel.PoziomDol ?? 0) -
+                (pierwszyModel.PoziomGora ?? 0);
+
             var response2 = await Http.GetAsync(
                 $"api/konfmodeleelementy/powiazaniajuzzaznaczone/{SelectedModelDrugiId}");
             if (!response2.IsSuccessStatusCode)
@@ -6051,6 +6744,40 @@
                 return;
             }
             drugiModel = result2.KonfSystem.First();
+
+            // W bazie słupek stały jest zapisany w układzie kanonicznym strony.
+            // Formularz i operacje SVG pracują w układzie fizycznym.
+            // Przeliczamy tylko parę aktywną w aktualnej zakładce.
+            if (pierwszyModel.Typ?.Contains(
+                    "Słupek stały",
+                    StringComparison.OrdinalIgnoreCase) == true)
+            {
+                if (boolStyczny)
+                {
+                    var styczne = PrzeliczSlupkaStalegoDoFormularza(
+                        edytowanePrzesuniecieXStycznej,
+                        edytowanePrzesuniecieYStycznej,
+                        edytowanaStrona);
+
+                    edytowanePrzesuniecieXStycznej = styczne.X;
+                    edytowanePrzesuniecieYStycznej = styczne.Y;
+                }
+                else
+                {
+                    var zwykle = PrzeliczSlupkaStalegoDoFormularza(
+                        edytowanePrzesuniecieX,
+                        edytowanePrzesuniecieY,
+                        edytowanaStrona);
+
+                    edytowanePrzesuniecieX = zwykle.X;
+                    edytowanePrzesuniecieY = zwykle.Y;
+                }
+
+                old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
+                old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
+                old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
+                old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
+            }
 
             czyModalEdycjiWidoczny = true;
 
@@ -6093,30 +6820,6 @@
                         double fizY = boolStyczny
                             ? edytowanePrzesuniecieYStycznej
                             : edytowanePrzesuniecieY;
-
-                        // ========================================================
-                        // ODWROTNOŚĆ KOREKTY (kolejność ODWROTNA do zapisu)
-                        // ========================================================
-
-                        // 1) rect (odwrotność ostatniej korekty w SavePosition)
-                        if (boolStyczny && edytowanaStrona == "dół")
-                        {
-                            Console.WriteLine(
-                                $"[ZaladujDaneModalEdycji] STYCZNE/DÓŁ — odwrotność rect: " +
-                                $"y_baza={fizY}, rectHeight={StyczneRectHeight}, " +
-                                $"y_fiz={fizY + StyczneRectHeight}");
-                            fizY += StyczneRectHeight;
-                        }
-
-                        // 2) słupek stały (odwrotność pierwszej korekty w PobierzWynikPrzesuniecia)
-                        if (pierwszyModel?.Typ.Contains("Słupek stały") == true)
-                        {
-                            double poziom = pierwszyModel.PoziomOsSymetrii ?? 0;
-                            Console.WriteLine(
-                                $"[ZaladujDaneModalEdycji] Słupek stały — odwrotność: " +
-                                $"Poziom={poziom}, y_fiz={fizY + poziom}");
-                            fizY += poziom;
-                        }
 
                         var scaleResult = await JSRuntime.InvokeAsync<double>("eval",
                             "(function() { const zg = document.querySelector('#zoom-group'); " +
@@ -6163,30 +6866,6 @@
                 {
                     fizX = old_edytowanePrzesuniecieX;
                     fizY = old_edytowanePrzesuniecieY;
-                }
-
-                // ============================================================
-                // ODWROTNOŚĆ KOREKTY — kolejność ODWROTNA do zapisu
-                // ============================================================
-
-                // 1) rect (odwrotność ostatniej korekty w SavePosition)
-                if (boolStyczny && edytowanaStrona == "dół")
-                {
-                    Console.WriteLine(
-                        $"[ZaladujDaneModalEdycji] STYCZNE/DÓŁ (brak SVG) — " +
-                        $"odwrotność rect: y_baza={fizY}, " +
-                        $"y_fiz={fizY + StyczneRectHeight}");
-                    fizY += StyczneRectHeight;
-                }
-
-                // 2) słupek stały
-                if (pierwszyModel?.Typ.Contains("Słupek stały") == true)
-                {
-                    double poziom = pierwszyModel.PoziomOsSymetrii ?? 0;
-                    Console.WriteLine(
-                        $"[ZaladujDaneModalEdycji] Słupek stały (brak SVG) — " +
-                        $"Poziom={poziom}, y_fiz={fizY + poziom}");
-                    fizY += poziom;
                 }
 
                 await JSRuntime.InvokeVoidAsync("svgHelper.centerAndFit");
@@ -6336,16 +7015,64 @@
 
             var safePng = png ?? Array.Empty<byte>();
 
-            // 🔄 SWAP: formularz pokazuje base (X/Y jak w widoku budowania),
-            //    a do API wysyłamy w kanonicznej orientacji strony.
+            // Formularz przechowuje współrzędne fizyczne. Do bazy zapisujemy
+            // współrzędne kanoniczne właściwe dla strony.
+            bool slupStaly =
+                pierwszyModel?.Typ?.Contains(
+                    "Słupek stały",
+                    StringComparison.OrdinalIgnoreCase) == true;
+
             bool swapXY = (edytowanaStrona is "prawa" or "lewa");
 
-            double zapisX = swapXY && selSlStaly ? edytowanePrzesuniecieY : edytowanePrzesuniecieX;
-            double zapisY = swapXY && selSlStaly ? edytowanePrzesuniecieX : edytowanePrzesuniecieY;
-            double zapisXStycznej = swapXY ? edytowanePrzesuniecieYStycznej : edytowanePrzesuniecieXStycznej;
-            double zapisYStycznej = swapXY ? edytowanePrzesuniecieXStycznej : edytowanePrzesuniecieYStycznej;
+            double zapisX;
+            double zapisY;
+            double zapisXStycznej;
+            double zapisYStycznej;
 
-            Console.WriteLine($"[ZapiszEdycje] strona={edytowanaStrona}, swap={swapXY}, X={zapisX}, Y={zapisY}, Xs={zapisXStycznej}, Ys={zapisYStycznej}");
+            if (slupStaly)
+            {
+                if (boolStyczny)
+                {
+                    // Zwykłe przesunięcie pozostaje bez zmian — w tej zakładce
+                    // aktywne są wartości styczne.
+                    zapisX = edytowanePrzesuniecieX;
+                    zapisY = edytowanePrzesuniecieY;
+
+                    var styczne = PrzeliczSlupkaStalegoDoZapisu(
+                        edytowanePrzesuniecieXStycznej,
+                        edytowanePrzesuniecieYStycznej,
+                        edytowanaStrona);
+
+                    zapisXStycznej = styczne.X;
+                    zapisYStycznej = styczne.Y;
+                }
+                else
+                {
+                    var zwykle = PrzeliczSlupkaStalegoDoZapisu(
+                        edytowanePrzesuniecieX,
+                        edytowanePrzesuniecieY,
+                        edytowanaStrona);
+
+                    zapisX = zwykle.X;
+                    zapisY = zwykle.Y;
+
+                    // Wartości styczne nie są edytowane w tej zakładce.
+                    zapisXStycznej = edytowanePrzesuniecieXStycznej;
+                    zapisYStycznej = edytowanePrzesuniecieYStycznej;
+                }
+            }
+            else
+            {
+                // Zachowanie dotychczasowej konwersji dla pozostałych modeli.
+                zapisX = swapXY ? edytowanePrzesuniecieY : edytowanePrzesuniecieX;
+                zapisY = swapXY ? edytowanePrzesuniecieX : edytowanePrzesuniecieY;
+                zapisXStycznej = swapXY ? edytowanePrzesuniecieYStycznej : edytowanePrzesuniecieXStycznej;
+                zapisYStycznej = swapXY ? edytowanePrzesuniecieXStycznej : edytowanePrzesuniecieYStycznej;
+            }
+
+            Console.WriteLine(
+                $"[ZapiszEdycje] strona={edytowanaStrona}, slupStaly={slupStaly}, " +
+                $"X={zapisX}, Y={zapisY}, Xs={zapisXStycznej}, Ys={zapisYStycznej}");
 
             var updateDto = new
             {
