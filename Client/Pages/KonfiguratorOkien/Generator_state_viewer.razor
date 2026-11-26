@@ -1648,7 +1648,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                                                                border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                                                                        border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <span class="@(ciemnyMotyw ? "text-light" : "text-dark") fw-semibold">
                                 <i class="bi bi-layout-split me-1"></i> Widok szczegółowy
@@ -1688,8 +1688,8 @@
                     <div class="json-content @(rozwinJson ? "expanded" : "")"
                          @key="aktywnaZakladka"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                                                                                background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
-                                                                                                padding: 20px;">
+                                    background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;
+                                    padding: 20px;">
 
                         @if (aktywnaZakladka == 0 && wybranyStan?.ListaKwadratow != null)
                         {
@@ -2243,7 +2243,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-5"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                        border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2303,7 +2303,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-6"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                                                                                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2322,7 +2322,7 @@
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                     <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
                                         <i class="bi bi-bounding-box me-2"></i>
-                                        Rysunek konturu zewnętrznego + szyby
+                                        Rysunek konturu szyby
                                     </h5>
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
@@ -2367,7 +2367,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-7"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                                                                                           border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2386,7 +2386,7 @@
                                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                                     <h5 class="@(ciemnyMotyw ? "text-light" : "text-dark") mb-0">
                                         <i class="bi bi-bounding-box me-2"></i>
-                                        Rysunek konturu zewnętrznego + kształt rowka okuciowego
+                                        Rysunek konturu rowka okuciowego
                                     </h5>
                                     <div class="d-flex align-items-center gap-2">
                                         <div class="btn-group btn-group-sm" role="group" aria-label="Zoom">
@@ -2431,7 +2431,7 @@
                                      style="padding:0;background-color:transparent;border:0;will-change:transform;transform:translateZ(0)">
                                     <canvas id="contour-canvas-8"
                                             style="width:100%; height:min(600px,70vh); display:block; border-radius:8px;
-                                                                                                               border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
+                                                        border:1px solid @(ciemnyMotyw ? "#444" : "#ccc");"></canvas>
                                     @if (pokazLegende)
                                     {
                                         @RenderSegmentLegend(wybranyStan.Kontur, "Kontur zewnętrzny", "#0d6efd", position: "top-right")
@@ -2452,7 +2452,7 @@
                 <div class="card-body p-0">
                     <div class="json-toolbar px-3 py-2 d-flex justify-content-between align-items-center"
                          style="background-color: @(ciemnyMotyw ? "#2d2d2d" : "#f8f9fa");
-                                                                                            border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
+                                                                                                    border-bottom: 1px solid @(ciemnyMotyw ? "#444" : "#dee2e6");">
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" @bind="zawijajTekst" />
@@ -2471,7 +2471,7 @@
                     </div>
                     <div class="json-content @(rozwinJson ? "expanded" : "") @(zawijajTekst ? "wrap-text" : "")"
                          style="max-height: @(rozwinJson ? "80vh" : "500px");
-                                                                                            background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
+                                                                                                    background-color: @(ciemnyMotyw ? "#1e1e1e" : "#ffffff") !important;">
                         @if (uzyjHighlightJS)
                         {
                             <HighlightCode Language="json" Code="@GetFormattedJson()" />
@@ -2479,8 +2479,8 @@
                         else
                         {
                             <pre style="margin: 0; padding: 20px; color: @(ciemnyMotyw ? "#f8f8f2" : "#24292e");
-                                                                                                                                    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-                                                                                                                                    font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
+                                            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                                            font-size: 13px; line-height: 1.5; overflow-x: auto;">@GetFormattedJson()</pre>
                         }
                     </div>
                 </div>
@@ -3297,7 +3297,7 @@
             _ => "I"
         };
 
-        var outer = Project(wybranyStan.Kontur);
+        var outer = (tabIndex < 7) ? Project(wybranyStan.Kontur) : null;
         var inner = (tabIndex == 6) ? Project(wybranyStan.KonturInner) : null;
         if (tabIndex == 7) inner = Project(wybranyStan.KonturSzyby);
         else if (tabIndex == 8) inner = Project(wybranyStan.KonturOkucia);

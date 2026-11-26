@@ -217,7 +217,7 @@ namespace GEORGE.Client.Pages.Okna
                                 elementLiniowy: false);
                         }
 
-                       // punktyZLukami = konturBase;
+                        // punktyZLukami = konturBase;
 
                         _logger.LogDebug(
                             $"   Wierzcholki po offsetach: " +
@@ -668,9 +668,9 @@ namespace GEORGE.Client.Pages.Okna
         /// wielokąta (prostokąt, domek, trapezoid, wielokąt z łukami).
         /// Zachowuje liczbę punktów i kolejność.
         /// </summary>
-    private static List<XPoint> PrzesunPunktyDoSrodka(
-    List<XPoint> punkty, double offsetLewo, double offsetPrawo,
-    double offsetGora, double offsetDol)
+        private static List<XPoint> PrzesunPunktyDoSrodka(
+        List<XPoint> punkty, double offsetLewo, double offsetPrawo,
+        double offsetGora, double offsetDol)
         {
             if (punkty == null || punkty.Count < 3) return punkty;
             if (Math.Abs(offsetLewo) < 0.01 && Math.Abs(offsetPrawo) < 0.01 &&
@@ -5330,7 +5330,7 @@ namespace GEORGE.Client.Pages.Okna
                 {
                     var center = seg.Center.Value;
 
-                     var arcMid = GetSegmentMidpoint(seg);
+                    var arcMid = GetSegmentMidpoint(seg);
                     var chordMid = new XPoint(
                         (seg.Start.X + seg.End.X) / 2.0,
                         (seg.Start.Y + seg.End.Y) / 2.0);
@@ -6021,7 +6021,7 @@ namespace GEORGE.Client.Pages.Okna
                 if (dol == 0 && gora != 0) return Math.Abs(gora);
 
                 await Task.CompletedTask;
-                return Math.Abs(gora - dol);
+                return Math.Abs(gora);
             }
             else
             {
@@ -6038,13 +6038,13 @@ namespace GEORGE.Client.Pages.Okna
             if (!slupekStaly)
             {
                 float gora = (float)konf.PoziomLiniaSzkla;
-                float dol = (float)konf.PoziomDol;
+                float dol = 0;// (float)konf.PoziomDol;
 
                 if (gora == 0 && dol != 0) return Math.Abs(dol);
                 if (dol == 0 && gora != 0) return Math.Abs(gora);
 
                 await Task.CompletedTask;
-                return Math.Abs(gora - dol);
+                return Math.Abs(gora);
             }
             else
             {

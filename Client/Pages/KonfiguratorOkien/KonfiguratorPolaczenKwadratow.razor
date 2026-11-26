@@ -114,8 +114,8 @@
     }
 
     /* ==========================================================
-                                   GŁÓWNY STICKY PANEL
-                                   ========================================================== */
+                                                   GŁÓWNY STICKY PANEL
+                                                   ========================================================== */
 
     .connection-sticky-panel {
         position: sticky;
@@ -130,8 +130,8 @@
 
 
     /* ==========================================================
-                                   GÓRNY PASEK
-                                   ========================================================== */
+                                                   GÓRNY PASEK
+                                                   ========================================================== */
 
     .connection-main-toolbar {
         display: flex;
@@ -143,8 +143,8 @@
 
 
     /* ==========================================================
-                                   ZAPIS
-                                   ========================================================== */
+                                                   ZAPIS
+                                                   ========================================================== */
 
     .connection-save-group {
         display: flex;
@@ -173,8 +173,8 @@
 
 
     /* ==========================================================
-                                   NARZĘDZIA
-                                   ========================================================== */
+                                                   NARZĘDZIA
+                                                   ========================================================== */
 
     .connection-tools {
         display: flex;
@@ -187,8 +187,8 @@
 
 
     /* ==========================================================
-                                   GRUPA NARZĘDZI
-                                   ========================================================== */
+                                                   GRUPA NARZĘDZI
+                                                   ========================================================== */
 
     .tool-group {
         display: flex;
@@ -215,8 +215,8 @@
 
 
     /* ==========================================================
-                                   USTAWIENIE PRECYZJI
-                                   ========================================================== */
+                                                   USTAWIENIE PRECYZJI
+                                                   ========================================================== */
 
     .tool-setting-group {
         padding-left: 10px;
@@ -237,8 +237,8 @@
 
 
     /* ==========================================================
-                                   PASEK PODGLĄDU
-                                   ========================================================== */
+                                                   PASEK PODGLĄDU
+                                                   ========================================================== */
 
     .connection-preview-toolbar {
         display: grid;
@@ -252,8 +252,8 @@
 
 
     /* ==========================================================
-                                   TYTUŁ PODGLĄDU
-                                   ========================================================== */
+                                                   TYTUŁ PODGLĄDU
+                                                   ========================================================== */
 
     .preview-heading {
         display: flex;
@@ -271,8 +271,8 @@
 
 
     /* ==========================================================
-                                   OSTRZEŻENIE
-                                   ========================================================== */
+                                                   OSTRZEŻENIE
+                                                   ========================================================== */
 
     .preview-warning {
         display: flex;
@@ -290,8 +290,8 @@
 
 
     /* ==========================================================
-                                   PRZYCISKI PODGLĄDU
-                                   ========================================================== */
+                                                   PRZYCISKI PODGLĄDU
+                                                   ========================================================== */
 
     .preview-actions {
         display: flex;
@@ -306,8 +306,8 @@
 
 
     /* ==========================================================
-                                   STATUS
-                                   ========================================================== */
+                                                   STATUS
+                                                   ========================================================== */
 
     .status-message {
         display: flex;
@@ -325,8 +325,8 @@
 
 
     /* ==========================================================
-                                   PUSTY SVG
-                                   ========================================================== */
+                                                   PUSTY SVG
+                                                   ========================================================== */
 
     .svg-empty-state {
         display: flex;
@@ -339,8 +339,8 @@
 
 
     /* ==========================================================
-                                   RESPONSYWNOŚĆ
-                                   ========================================================== */
+                                                   RESPONSYWNOŚĆ
+                                                   ========================================================== */
 
     @@media (max-width: 1200px) {
         .connection-main-toolbar {
@@ -4126,7 +4126,7 @@
                                                     Class="btn-sm btn-move" />
                                         </Tooltip>
 
-             @*                            <Tooltip Title="Lustro elementów - odbicie wszystkich elementów w poziomie">
+                                        @*                            <Tooltip Title="Lustro elementów - odbicie wszystkich elementów w poziomie">
                                             <Button Icon="@IconType.Outline.Swap"
                                                     OnClick="MirrorObjAll"
                                                     Class="btn-sm btn-move" />
@@ -4152,7 +4152,7 @@
                                     </span>
 
                                     <div class="tool-buttons">
-@* 
+                                        @* 
                                         <Tooltip Title="Obróć wszystko">
                                             <Button Icon="@IconType.Outline.Undo"
                                                     OnClick="RotateObjAll"
@@ -5156,7 +5156,7 @@
             {
                 BladKonfiguracji = pasujaceSystemy.Count == 0
                 ? "Nie znaleziono pasującego systemu konfiguracyjnego. Zmień występowanie elementu. Np. zaznacz tylko lewy/górny/prawy!"
-                : $"Znaleziono {pasujaceSystemy.Count} {(pasujaceSystemy.Count == 1 ? "pasujący system" : "pasujące systemy")}. Wymagane jest dokładnie jedno dopasowanie.";
+                : $"Znaleziono {pasujaceSystemy.Count} {(pasujaceSystemy.Count == 1 ? "pasujący system" : "pasujące systemy")}. Wymagane jest dokładnie jedno dopasowanie. W przypadku dopasowania skrzydła z słupkiem ruchomym zaznacz opcję <Słupek ruchomy> i jako pierwszy wybierz model z ruchomym słupkiem";
                 _message.Info(BladKonfiguracji, 5);
 
                 BladKonfiguracji += "\r\n";
@@ -5901,13 +5901,29 @@
         // Korekta słupka stałego jest wykonywana dopiero teraz, ponieważ
         // SavePosition zna konkretną stronę zapisywanego połączenia.
         // Pomiar bazowy pozostaje niezmieniony dla wszystkich czterech stron.
-        var wspolrzedneDoZapisu = PrzeliczSlupkaStalegoDoZapisu(
-            przesuniecieX,
-            przesuniecieY,
-            strona);
+        bool slupRuchomy = pierwszyModel?.Typ?.Contains(
+            "Słupek ruchomy",
+            StringComparison.OrdinalIgnoreCase) == true;
+
+        // Słupek stały i ruchomy korzystają z przeliczenia względem osi
+        // profilu. Słupek ruchomy występuje wyłącznie po stronie LEWEJ/PRAWEJ.
+        var wspolrzedneDoZapisu = slupRuchomy
+            ? PrzeliczSlupkaRuchomegoDoZapisu(
+                przesuniecieX,
+                przesuniecieY,
+                strona)
+            : PrzeliczSlupkaStalegoDoZapisu(
+                przesuniecieX,
+                przesuniecieY,
+                strona);
 
         double zapisX = wspolrzedneDoZapisu.X;
         double zapisY = wspolrzedneDoZapisu.Y;
+
+        Console.WriteLine(
+            $"[SavePosition] typ1={pierwszyModel?.Typ}, slupRuchomy={slupRuchomy}, " +
+            $"strona={strona}, fiz=({przesuniecieX:F3},{przesuniecieY:F3}), " +
+            $"kan=({zapisX:F3},{zapisY:F3})");
 
         Console.WriteLine("========== POMIAR → ZAPIS ==========");
         Console.WriteLine($"Strona: {strona}");
@@ -6495,6 +6511,7 @@
     /// liczony względem PionOsSymetrii.
     /// </summary>
 
+
     private (double X, double Y) PrzeliczSlupkaStalegoDoZapisu(
         double fizX,
         double fizY,
@@ -6513,30 +6530,62 @@
         double osPionowa = pierwszyModel.PionOsSymetrii ?? 0;
         double poziomDol = pierwszyModel.PoziomDol ?? 0;
 
-        // Standardowe obliczenie pionowego przesunięcia.
-        double zapisY = fizY - osPozioma;
+        double zapisY;
 
-        // SZCZEGÓLNY PRZYPADEK:
-        // Pierwszy model to słupek stały, drugi model jest poniżej niego,
-        // a połączenie dotyczy GÓRY skrzydła z DOŁEM słupka.
-        //
-        // Pomiar Y jest wtedy ujemny i należy uwzględnić dolną
-        // krawędź słupka zamiast stosować standardowy wzór.
-        if ((stronaNorm == "góra" || stronaNorm == "gora") &&
-            fizY < 0)
+        switch (stronaNorm)
         {
-            zapisY = poziomDol + fizY - osPozioma;
+            case "góra":
+            case "gora":
 
-            Console.WriteLine(
-                "[SŁUPEK STAŁY - SZCZEGÓLNY PRZYPADEK]\n" +
-                $"PoziomDol: {poziomDol:F3}\n" +
-                $"Pomiar fizyczny Y: {fizY:F3}\n" +
-                $"PoziomOsSymetrii: {osPozioma:F3}\n" +
-                $"Obliczenie: {poziomDol:F3} + ({fizY:F3}) - {osPozioma:F3}\n" +
-                $"Wynik Y: {zapisY:F3}");
+                // SZCZEGÓLNY PRZYPADEK:
+                // Góra skrzydła łączy się z dołem słupka.
+                if (fizY < 0)
+                {
+                    zapisY = poziomDol + fizY - osPozioma;
+
+                    Console.WriteLine(
+                        "[SŁUPEK STAŁY - GÓRA / UJEMNY POMIAR]\n" +
+                        $"Obliczenie: {poziomDol:F3} + ({fizY:F3}) - {osPozioma:F3}");
+                }
+                else
+                {
+                    zapisY = fizY - osPozioma;
+                }
+
+                break;
+
+            case "dół":
+            case "dol":
+
+                // SZCZEGÓLNY PRZYPADEK:
+                // Dół jest liczony względem dolnej krawędzi
+                // słupka pomniejszonej o oś symetrii.
+                double osOdniesieniaDol = poziomDol - osPozioma;
+
+                zapisY = fizY - osOdniesieniaDol;
+
+                Console.WriteLine(
+                    "[SŁUPEK STAŁY - DÓŁ]\n" +
+                    $"PoziomDol: {poziomDol:F3}\n" +
+                    $"PoziomOsSymetrii: {osPozioma:F3}\n" +
+                    $"Oś odniesienia: {osOdniesieniaDol:F3}\n" +
+                    $"Obliczenie: {fizY:F3} - {osOdniesieniaDol:F3}");
+
+                break;
+
+            case "prawa":
+            case "lewa":
+
+                // Dotychczasowa logika dla PRAWA / LEWA.
+                zapisY = fizY - osPozioma;
+
+                break;
+
+            default:
+                throw new ArgumentException(
+                    $"Nieznana strona połączenia: '{strona}'.");
         }
 
-        // X pozostaje liczony dotychczasową metodą.
         double zapisX = stronaNorm switch
         {
             "góra" or "gora" or "dół" or "dol" => fizX,
@@ -6561,6 +6610,82 @@
         return (zapisX, zapisY);
     }
 
+
+    /// <summary>
+    /// Przelicza pomiar słupka ruchomego do zapisu w bazie.
+    /// Słupek ruchomy może występować tylko po LEWEJ albo PRAWEJ stronie.
+    /// Tak samo jak dla słupka stałego, Y jest odległością od
+    /// PoziomOsSymetrii, a X od PionOsSymetrii (z odwróceniem znaku po LEWEJ).
+    /// </summary>
+    private (double X, double Y) PrzeliczSlupkaRuchomegoDoZapisu(
+    double fizX,
+    double fizY,
+    string strona)
+    {
+        if (pierwszyModel?.Typ?.Contains(
+                "Słupek ruchomy",
+                StringComparison.OrdinalIgnoreCase) != true)
+            return (fizX, fizY);
+
+        string stronaNorm = NormalizujStrone(strona);
+
+        if (stronaNorm != "lewa" && stronaNorm != "prawa")
+            throw new ArgumentException(
+                $"Nieobsługiwana strona słupka ruchomego: {strona}");
+
+        double osPozioma = pierwszyModel.PoziomOsSymetrii ?? 0;
+        double osPionowa = pierwszyModel.PionOsSymetrii ?? 0;
+
+        // Oś X – wartość zależna od strony.
+        double zapisX = stronaNorm == "prawa"
+            ? fizX - osPionowa
+            : -(fizX - osPionowa);
+
+        // Oś Y – dla LEWEJ i PRAWEJ strony zawsze ta sama wartość.
+        double zapisY = -(fizY + osPozioma);
+
+        Console.WriteLine(
+            $"[RUCHOMY → ZAPIS] Strona={stronaNorm}, " +
+            $"Fiz=({fizX:F3},{fizY:F3}), " +
+            $"Zapis=({zapisX:F3},{zapisY:F3})");
+
+        return (zapisX, zapisY);
+    }
+
+    /// <summary>
+    /// Wartości słupka ruchomego w bazie są już zapisane jako odległości
+    /// od osi profilu, dlatego formularz odczytuje je bez ponownego
+    /// dodawania PoziomOsSymetrii/PionOsSymetrii.
+    /// </summary>
+    private (double X, double Y) PrzeliczSlupkaRuchomegoDoFormularza(
+    double zapisX,
+    double zapisY,
+    string strona)
+    {
+        string stronaNorm = NormalizujStrone(strona);
+
+        if (stronaNorm != "lewa" && stronaNorm != "prawa")
+            throw new ArgumentException(
+                $"Nieobsługiwana strona słupka ruchomego: {strona}");
+
+        double osPozioma = pierwszyModel?.PoziomOsSymetrii ?? 0;
+        double osPionowa = pierwszyModel?.PionOsSymetrii ?? 0;
+
+        // Odwrócenie przeliczenia osi X.
+        double fizX = stronaNorm == "prawa"
+            ? zapisX + osPionowa
+            : -zapisX + osPionowa;
+
+        // Odwrócenie przeliczenia osi Y.
+        double fizY = -zapisY - osPozioma;
+
+        Console.WriteLine(
+            $"[ZAPIS → RUCHOMY] Strona={stronaNorm}, " +
+            $"Zapis=({zapisX:F3},{zapisY:F3}), " +
+            $"Formularz=({fizX:F3},{fizY:F3})");
+
+        return (fizX, fizY);
+    }
 
     /// <summary>
     /// Odczytuje przesunięcia słupka stałego zapisane w bazie.
@@ -6745,38 +6870,60 @@
             }
             drugiModel = result2.KonfSystem.First();
 
-            // W bazie słupek stały jest zapisany w układzie kanonicznym strony.
-            // Formularz i operacje SVG pracują w układzie fizycznym.
-            // Przeliczamy tylko parę aktywną w aktualnej zakładce.
-            if (pierwszyModel.Typ?.Contains(
-                    "Słupek stały",
-                    StringComparison.OrdinalIgnoreCase) == true)
+            // W bazie słupki stałe i ruchome są zapisane jako odległości
+            // od osi profilu. Formularz zachowuje te wartości bez ponownego
+            // dodawania osi. Przeliczamy tylko parę aktywną w zakładce.
+            bool slupStaly = pierwszyModel.Typ?.Contains(
+                "Słupek stały",
+                StringComparison.OrdinalIgnoreCase) == true;
+            bool slupRuchomy = pierwszyModel.Typ?.Contains(
+                "Słupek ruchomy",
+                StringComparison.OrdinalIgnoreCase) == true;
+
+            if (slupStaly || slupRuchomy)
             {
                 if (boolStyczny)
                 {
-                    var styczne = PrzeliczSlupkaStalegoDoFormularza(
-                        edytowanePrzesuniecieXStycznej,
-                        edytowanePrzesuniecieYStycznej,
-                        edytowanaStrona);
+                    var formularz = slupStaly
+                        ? PrzeliczSlupkaStalegoDoFormularza(
+                            edytowanePrzesuniecieXStycznej,
+                            edytowanePrzesuniecieYStycznej,
+                            edytowanaStrona)
+                        : PrzeliczSlupkaRuchomegoDoFormularza(
+                            edytowanePrzesuniecieXStycznej,
+                            edytowanePrzesuniecieYStycznej,
+                            edytowanaStrona);
 
-                    edytowanePrzesuniecieXStycznej = styczne.X;
-                    edytowanePrzesuniecieYStycznej = styczne.Y;
+                    edytowanePrzesuniecieXStycznej = formularz.X;
+                    edytowanePrzesuniecieYStycznej = formularz.Y;
                 }
                 else
                 {
-                    var zwykle = PrzeliczSlupkaStalegoDoFormularza(
-                        edytowanePrzesuniecieX,
-                        edytowanePrzesuniecieY,
-                        edytowanaStrona);
+                    var formularz = slupStaly
+                        ? PrzeliczSlupkaStalegoDoFormularza(
+                            edytowanePrzesuniecieX,
+                            edytowanePrzesuniecieY,
+                            edytowanaStrona)
+                        : PrzeliczSlupkaRuchomegoDoFormularza(
+                            edytowanePrzesuniecieX,
+                            edytowanePrzesuniecieY,
+                            edytowanaStrona);
 
-                    edytowanePrzesuniecieX = zwykle.X;
-                    edytowanePrzesuniecieY = zwykle.Y;
+                    edytowanePrzesuniecieX = formularz.X;
+                    edytowanePrzesuniecieY = formularz.Y;
                 }
 
                 old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
                 old_edytowanePrzesuniecieY = edytowanePrzesuniecieY;
                 old_edytowanePrzesuniecieXStycznej = edytowanePrzesuniecieXStycznej;
                 old_edytowanePrzesuniecieYStycznej = edytowanePrzesuniecieYStycznej;
+
+                Console.WriteLine(
+                    $"[ZaladujDaneModalEdycji] typ1={pierwszyModel.Typ}, " +
+                    $"slupStaly={slupStaly}, slupRuchomy={slupRuchomy}, " +
+                    $"strona={edytowanaStrona}, formularz=" +
+                    $"({(boolStyczny ? edytowanePrzesuniecieXStycznej : edytowanePrzesuniecieX):F3}," +
+                    $"{(boolStyczny ? edytowanePrzesuniecieYStycznej : edytowanePrzesuniecieY):F3})");
             }
 
             czyModalEdycjiWidoczny = true;
@@ -6954,6 +7101,7 @@
                 double dx = edytowanePrzesuniecieXStycznej - old_edytowanePrzesuniecieXStycznej;
                 double dy = edytowanePrzesuniecieYStycznej - old_edytowanePrzesuniecieYStycznej;
 
+                // Połączenia styczne pozostają bez zmian.
                 Console.WriteLine($"📐 moveonlyedit(dx={dx}, dy={-dy})  [Y kartezjański → SVG]");
                 await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit", dx, -dy);
                 await Task.Delay(10);
@@ -6970,8 +7118,48 @@
                 double dx = edytowanePrzesuniecieX - old_edytowanePrzesuniecieX;
                 double dy = edytowanePrzesuniecieY - old_edytowanePrzesuniecieY;
 
-                Console.WriteLine($"📐 moveonlyedit(dx={dx}, dy={-dy})  [Y kartezjański → SVG]");
-                await JSRuntime.InvokeVoidAsync("svgHelper.moveonlyedit", dx, -dy);
+                // Wyjątek: Słupek stały -> Skrzydło, GÓRA, kąt 0°.
+                // Skrzydło znajduje się pod słupkiem, dlatego wzrost
+                // dodatniego przesunięcia Y ma odsunąć je w dół.
+                // W SVG dół ma dodatni kierunek Y.
+                string stronaNorm = NormalizujStrone(edytowanaStrona);
+
+                bool odwrocKierunekY =
+                    pierwszyModel?.Typ?.Contains(
+                        "Słupek stały",
+                        StringComparison.OrdinalIgnoreCase) == true
+                    &&
+                    drugiModel?.Typ?.Contains(
+                        "Skrzydło",
+                        StringComparison.OrdinalIgnoreCase) == true
+                    &&
+                    (stronaNorm == "góra" || stronaNorm == "gora")
+                    &&
+                    Math.Abs(edytowanyKat) < 0.001;
+
+                bool slupRuchomyLewyPrawy =
+                    pierwszyModel?.Typ?.Contains(
+                        "Słupek ruchomy",
+                        StringComparison.OrdinalIgnoreCase) == true
+                    && (stronaNorm == "lewa" || stronaNorm == "prawa");
+
+                // Dla słupka ruchomego po LEWEJ i PRAWEJ stronie
+                // wzrost wartości Y ma ten sam kierunek: w SVG przesuwamy
+                // model przeciwnie do osi kartezjańskiej.
+                double svgDy = odwrocKierunekY ? dy : -dy;
+
+                Console.WriteLine(
+                    $"📐 moveonlyedit(dx={dx}, dy={svgDy}) | " +
+                    $"delta formularza Y={dy}, wyjątek kierunku Y={odwrocKierunekY}, " +
+                    $"słupek ruchomy L/P={slupRuchomyLewyPrawy}, " +
+                    $"typ1={pierwszyModel?.Typ}, typ2={drugiModel?.Typ}, " +
+                    $"strona={stronaNorm}, kąt={edytowanyKat}");
+
+                await JSRuntime.InvokeVoidAsync(
+                    "svgHelper.moveonlyedit",
+                    dx,
+                    svgDy);
+
                 await Task.Delay(10);
 
                 old_edytowanePrzesuniecieX = edytowanePrzesuniecieX;
@@ -6979,7 +7167,6 @@
             }
         }
     }
-
 
     bool czekajNaZapis = false;
 
@@ -7029,12 +7216,14 @@
             double zapisXStycznej;
             double zapisYStycznej;
 
+            bool slupRuchomy = pierwszyModel?.Typ?.Contains(
+                "Słupek ruchomy",
+                StringComparison.OrdinalIgnoreCase) == true;
+
             if (slupStaly)
             {
                 if (boolStyczny)
                 {
-                    // Zwykłe przesunięcie pozostaje bez zmian — w tej zakładce
-                    // aktywne są wartości styczne.
                     zapisX = edytowanePrzesuniecieX;
                     zapisY = edytowanePrzesuniecieY;
 
@@ -7055,8 +7244,34 @@
 
                     zapisX = zwykle.X;
                     zapisY = zwykle.Y;
+                    zapisXStycznej = edytowanePrzesuniecieXStycznej;
+                    zapisYStycznej = edytowanePrzesuniecieYStycznej;
+                }
+            }
+            else if (slupRuchomy)
+            {
+                if (boolStyczny)
+                {
+                    zapisX = edytowanePrzesuniecieX;
+                    zapisY = edytowanePrzesuniecieY;
 
-                    // Wartości styczne nie są edytowane w tej zakładce.
+                    var styczne = PrzeliczSlupkaRuchomegoDoZapisu(
+                        edytowanePrzesuniecieXStycznej,
+                        edytowanePrzesuniecieYStycznej,
+                        edytowanaStrona);
+
+                    zapisXStycznej = styczne.X;
+                    zapisYStycznej = styczne.Y;
+                }
+                else
+                {
+                    var zwykle = PrzeliczSlupkaRuchomegoDoZapisu(
+                        edytowanePrzesuniecieX,
+                        edytowanePrzesuniecieY,
+                        edytowanaStrona);
+
+                    zapisX = zwykle.X;
+                    zapisY = zwykle.Y;
                     zapisXStycznej = edytowanePrzesuniecieXStycznej;
                     zapisYStycznej = edytowanePrzesuniecieYStycznej;
                 }
@@ -7072,7 +7287,8 @@
 
             Console.WriteLine(
                 $"[ZapiszEdycje] strona={edytowanaStrona}, slupStaly={slupStaly}, " +
-                $"X={zapisX}, Y={zapisY}, Xs={zapisXStycznej}, Ys={zapisYStycznej}");
+                $"slupRuchomy={slupRuchomy}, X={zapisX}, Y={zapisY}, " +
+                $"Xs={zapisXStycznej}, Ys={zapisYStycznej}");
 
             var updateDto = new
             {

@@ -218,6 +218,7 @@
                     <TabPane Key="all" Tab="@($"Wszystkie ({Pliki.Count})")" />
                     <TabPane Key="sat" Tab="@($"SAT ({CountByExt("sat")})")" />
                     <TabPane Key="dxf" Tab="@($"DXF ({CountByExt("dxf")})")" />
+                    <TabPane Key="dwg" Tab="@($"DWG ({CountByExt("dwg")})")" />
                     <TabPane Key="pdf" Tab="@($"PDF ({CountByExt("pdf")})")" />
                     <TabPane Key="nc" Tab="@($"NC ({CountByExt("nc")})")" />
                     <TabPane Key="txt" Tab="@($"TXT ({CountByExt("txt")})")" />
@@ -507,6 +508,7 @@
     {
         "sat" => Pliki.Where(p => MatchesExt(p, "sat")),
         "dxf" => Pliki.Where(p => MatchesExt(p, "dxf")),
+        "dwg" => Pliki.Where(p => MatchesExt(p, "dwg")),
         "pdf" => Pliki.Where(p => MatchesExt(p, "pdf")),
         "nc" => Pliki.Where(p => MatchesExt(p, "nc")),
         "txt" => Pliki.Where(p => MatchesExt(p, "txt")),
