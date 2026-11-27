@@ -1,0 +1,323 @@
+﻿@using GEORGE.Shared.Models
+@inject PakietSzybowyService PakietService
+@implements IDisposable
+
+<style>
+    .ws-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 11px;
+    }
+
+    .ws-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #55708a;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #bfd2e5;
+    }
+
+    .ws-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .ws-item {
+        padding: 6px 8px;
+        background: #eef5fb;
+        border: 1px solid #c3d6e8;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: .15s;
+    }
+
+        .ws-item:hover {
+            background: #dcecf9;
+            border-color: #a8bfd5;
+        }
+
+        .ws-item.selected {
+            background: #dcecff;
+            border: 2px solid #0d6efd;
+            box-shadow: 0 0 0 1px rgba(13,110,253,.25);
+        }
+
+    .ws-item-nazwa {
+        color: #243b53;
+        font-weight: 600;
+        font-size: 11px;
+        margin-bottom: 2px;
+    }
+
+    .ws-item-etykieta {
+        color: #0b63ce;
+        font-family: Consolas, monospace;
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    .ws-item-params {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
+        color: #688198;
+        font-size: 9px;
+    }
+
+        .ws-item-params span {
+            white-space: nowrap;
+        }
+
+    .ws-preview {
+        display: flex;
+        height: 44px;
+        border: 2px solid #6c9bc7;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #e7f0f8;
+        margin: 6px 0;
+    }
+
+    .ws-preview-layer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 700;
+        color: #1e4a6b;
+        text-shadow: 0 1px 0 rgba(255,255,255,.6);
+        min-width: 2px;
+        box-sizing: border-box;
+    }
+
+        .ws-preview-layer.layer-glass {
+            background: linear-gradient(180deg, #e8f4fc 0%, #9ec5e0 50%, #c9e2f0 100%);
+            border-right: 1px solid #5a8aad;
+        }
+
+        .ws-preview-layer.layer-spacer {
+            background: repeating-linear-gradient(45deg, #b0b8c0, #b0b8c0 3px, #d4dae0 3px, #d4dae0 6px);
+            border-right: 1px solid #6a7580;
+            color: #2a3540;
+        }
+
+        .ws-preview-layer:last-child {
+            border-right: none;
+        }
+
+    .ws-szczegoly {
+        background: #f5f9fd;
+        border: 1px solid #c3d6e8;
+        border-radius: 4px;
+        padding: 8px;
+    }
+
+        .ws-szczegoly h6 {
+            margin: 0 0 4px;
+            color: #243b53;
+            font-size: 12px;
+        }
+
+    .ws-opis {
+        margin: 4px 0;
+        color: #55708a;
+        font-size: 10px;
+        font-style: italic;
+    }
+
+    .ws-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3px;
+        font-size: 10px;
+        color: #334e68;
+    }
+
+        .ws-stats b {
+            color: #0b63ce;
+        }
+
+    .ws-empty {
+        padding: 12px 4px;
+        text-align: center;
+        color: #688198;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
+        .ws-empty a {
+            color: #0d6efd;
+            text-decoration: underline;
+        }
+</style>
+
+<div class="ws-container">
+    @if (!Pakiety.Any())
+    {
+        <div class="ws-empty">
+            <p>🪟 Brak dostępnych pakietów szybowych.</p>
+            <p style="font-size:10px;">
+                Dodaj pakiety w <a href="@BudowaUrl">edytorze</a>.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="ws-header">
+            <span>Pakiety szybowe (@Pakiety.Count)</span>
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:10px;"
+                    @onclick="OdswiezAsync" title="Odśwież">
+                ↻
+            </button>
+        </div>
+
+        <div class="ws-list">
+            @foreach (var pakiet in Pakiety)
+            {
+                <div class="ws-item @(pakiet.Id == Selected?.Id ? "selected" : "")"
+                     @onclick="() => Wybierz(pakiet)">
+                    <div class="ws-item-nazwa">@pakiet.Nazwa</div>
+                    <div class="ws-item-etykieta">@pakiet.Etykieta mm</div>
+                    <div class="ws-item-params">
+                        <span title="Ug">U=@pakiet.Ug.ToString("0.00")</span>
+                        <span title="Lt">Lt=@pakiet.Lt.ToString("0")%</span>
+                        <span title="Cena">@pakiet.CenaZaM2.ToString("0") zł/m²</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Selected != null)
+        {
+            <div class="ws-szczegoly">
+                <h6>@Selected.Nazwa</h6>
+                <div class="ws-preview">
+                    @foreach (var w in Selected.Warstwy.OrderBy(x => x.Kolejnosc))
+                    {
+                        var widthPct = GetWidthPct(w);
+                        var widthCss = widthPct.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
+                        <div class="ws-preview-layer @(w.Typ == TypWarstwy.Szyba ? "layer-glass" : "layer-spacer")"
+                             style="width:@(widthCss)%;"
+                             title="@GetLayerTitle(w)">
+                            @if (widthPct > 6)
+                            {
+                                <span>@w.Grubosc.ToString("0.#")</span>
+                            }
+                        </div>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(Selected.Opis))
+                {
+                    <p class="ws-opis">@Selected.Opis</p>
+                }
+                <div class="ws-stats">
+                    <div><b>Grubość:</b> @Selected.GruboscCalkowita.ToString("0.#") mm</div>
+                    <div><b>Ug:</b> @Selected.Ug.ToString("0.00")</div>
+                    <div><b>Lt:</b> @Selected.Lt.ToString("0")%</div>
+                    <div><b>g:</b> @Selected.g.ToString("0.00")</div>
+                    <div><b>Rw:</b> @Selected.Rw.ToString("0") dB</div>
+                    <div><b>Cena:</b> @Selected.CenaZaM2.ToString("0.00") zł</div>
+                </div>
+            </div>
+        }
+
+        <div class="ws-empty">
+            <p style="font-size:10px;">
+                Dodaj pakiety w <a href="@BudowaUrl">edytorze</a>.
+            </p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid? SelectedId { get; set; }
+    [Parameter] public string? SelectedSystemId { get; set; }
+
+    // ✅ NOWE — para dla @bind-SelectedSystemId (bez tego Blazor rzuca wyjątkiem)
+    [Parameter] public EventCallback<string?> SelectedSystemIdChanged { get; set; }
+
+    [Parameter] public EventCallback<Guid?> SelectedIdChanged { get; set; }
+    [Parameter] public EventCallback<PakietSzybowy?> OnSelected { get; set; }
+
+    private IReadOnlyList<PakietSzybowy> Pakiety { get; set; } = Array.Empty<PakietSzybowy>();
+    private PakietSzybowy? Selected { get; set; }
+
+    private string BudowaUrl =>
+        string.IsNullOrEmpty(SelectedSystemId)
+            ? "/budowa-pakietow-szybowych"
+            : $"/budowa-pakietow-szybowych/{SelectedSystemId}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        PakietService.OnChange += HandleChange;
+
+        // ✅ Czekamy na dane z serwera, zanim pokażemy listę
+        await PakietService.EnsureLoadedAsync();
+        Odswiez();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedId != Selected?.Id)
+        {
+            Selected = SelectedId.HasValue
+                ? Pakiety.FirstOrDefault(p => p.Id == SelectedId.Value)
+                : null;
+        }
+    }
+
+    private void HandleChange() => InvokeAsync(() =>
+    {
+        Odswiez();
+        StateHasChanged();
+    });
+
+    private void Odswiez()
+    {
+        // ✅ Bezpieczne parsowanie — Guid.TryParse zamiast Guid.Parse
+        var systemId = Guid.Empty;
+        if (!string.IsNullOrEmpty(SelectedSystemId))
+            Guid.TryParse(SelectedSystemId, out systemId);
+
+        Pakiety = PakietService.GetAktywneTylkoSystemowe(systemId);
+    }
+
+    private async Task OdswiezAsync()
+    {
+        await PakietService.ReloadAsync();
+        Odswiez();
+    }
+
+    private async Task Wybierz(PakietSzybowy pakiet)
+    {
+        Selected = Selected?.Id == pakiet.Id ? null : pakiet;
+        await SelectedIdChanged.InvokeAsync(Selected?.Id);
+        await OnSelected.InvokeAsync(Selected);
+    }
+
+    private double GetWidthPct(WarstwaSzyby w)
+    {
+        var total = Selected?.GruboscCalkowita ?? 0;
+        if (total <= 0) return 0;
+        return (w.Grubosc / total) * 100;
+    }
+
+    private string GetLayerTitle(WarstwaSzyby w)
+    {
+        if (w.Typ == TypWarstwy.Szyba)
+        {
+            var extra = string.IsNullOrEmpty(w.Powloka) ? "" : $" ({w.Powloka})";
+            return $"Szyba {w.Grubosc} mm – {w.RodzajSzyby}{extra}";
+        }
+        return $"Ramka {w.Grubosc} mm – {w.RodzajRamki}, {w.Gaz}";
+    }
+
+    public void Dispose() => PakietService.OnChange -= HandleChange;
+}

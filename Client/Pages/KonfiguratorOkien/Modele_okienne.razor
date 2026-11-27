@@ -6,6 +6,7 @@
 @using GEORGE.Client.Pages.Utils
 @using GEORGE.Client.Pages.Models
 @using GEORGE.Client.Pages.Okna
+@using GEORGE.Client.Pages.Szyby
 
 @inject IJSRuntime JS
 @inject Utilities.ILocalStorage LocalStorage
@@ -617,6 +618,46 @@
         font-size: 11px;
     }
 
+    /* ==================== SIDEBAR TABS ==================== */
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-nav {
+        margin: 0 0 6px 0 !important;
+        padding: 0 !important;
+    }
+
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-tab {
+        padding: 4px 6px !important;
+        margin: 0 !important;
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+    }
+
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-tab-btn {
+        font-size: 10px !important;
+    }
+
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-ink-bar {
+        background: var(--cad-accent) !important;
+        height: 2px !important;
+    }
+
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-content-holder,
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-content,
+    .wing-model-container .cad-sidebar-tabs .ant-tabs-tabpane {
+        padding: 0 !important;
+    }
+
+    .sidebar-empty-info {
+        padding: 12px 4px;
+        color: #688198;
+        font-size: 11px;
+        text-align: center;
+        line-height: 1.5;
+    }
+
+    .sidebar-empty-info p {
+        margin: 4px 0;
+    }
+
     /* ==================== SCROLLBARS ==================== */
     .wing-model-container::-webkit-scrollbar,
     .scrollable-panel::-webkit-scrollbar {
@@ -660,6 +701,11 @@
             .wing-model-container td:nth-child(2) {
                 display: none;
             }
+    }
+
+    body.cursor-glass,
+    body.cursor-glass * {
+        cursor: cell !important;
     }
 </style>
 
@@ -835,7 +881,7 @@
 
         @if (Systemy != null && Systemy.Any())
         {
-            <!-- 🔹 Wybór systemu -->
+            <!-- 🔹 Wybór systemu – zawsze widoczny nad zakładkami -->
             <Tooltip Placement="@Placement.TopRight" Title="Otwórz konfigurator nowego systemu lub wybierz go z listy">
                 <div class="d-flex">
                     @if (Systemy != null && Systemy.Any())
@@ -854,75 +900,90 @@
             </Tooltip>
         }
 
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Nazwa</th>
-                    <th>Wymiary</th>
-                    <th>Miniaturka</th>
-                </tr>
-            </thead>
-            <tbody>
+        <Tabs @bind-ActiveKey="aktywnaZakladka" Size="TabSize.Small" TabPosition="TabPosition.Top" Class="cad-sidebar-tabs">
 
-                @if (ListaModeli != null)
-                {
-                    @foreach (var model in FiltrowaneModele)
-                    {
+            <!-- ========== 1. MODELE ========== -->
+            <TabPane Tab="Modele" Key="1">
+                <table class="table table-striped">
+                    <thead>
                         <tr>
-                            <td><div class="model-name">@model.NazwaKonfiguracji</div></td>
-
-                            <td>
-                                <div class="model-size">
-                                    @model.KonstrMinSzer x @model.KonstrMinWys
-                                    →
-                                    @model.KonstrMaxSzer x @model.KonstrMaxWys
-                                </div>
-                            </td>
-
-                            <td>
-                                @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
-                                {
-                                    <img id="@($"wing-{model.Typ}")"
-                                         src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
-                                         @onclick="@(() => WybierzModel(model))"
-                                         @ondragstart="@(e => JS.InvokeVoidAsync(
-                                         "SetCurrentModel",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          model.Typ,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          model.RowId))"
-                             @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
-                             draggable="true"
-                             class="model-thumbnail @(model == WybranyModel ? "selected" : "")" />
-                                                }
-                                else
-                                {
-                                    <span class="text-muted">Brak</span>
-                                }
-                            </td>
+                            <th>Nazwa</th>
+                            <th>Wymiary</th>
+                            <th>Miniaturka</th>
                         </tr>
-                    }
-                }
-            </tbody>
-        </table>
-        <div>
-            <RadioGroup @bind-Value="radioValueSelect"
-                        ButtonStyle="RadioButtonStyle.Solid"
-                        TValue="string"
-                        OnChange="@OnRadioValueChanged">
+                    </thead>
+                    <tbody>
+                        @if (ListaModeli != null)
+                        {
+                            @foreach (var model in FiltrowaneModele)
+                            {
+                                <tr>
+                                    <td><div class="model-name">@model.NazwaKonfiguracji</div></td>
+                                    <td>
+                                        <div class="model-size">
+                                            @model.KonstrMinSzer x @model.KonstrMinWys
+                                            →
+                                            @model.KonstrMaxSzer x @model.KonstrMaxWys
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (model.Rysunek != null && model.Ikona32x32.Length > 0)
+                                        {
+                                            <img id="@($"wing-{model.Typ}")"
+                                                 src="data:image/png;base64,@Convert.ToBase64String(model.Rysunek)"
+                                                 @onclick="@(() => WybierzModel(model))"
+                                                 @ondragstart="@(e => JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId))"
+                                                 @onmouseout="@(e => JS.InvokeVoidAsync("ResetCursor"))"
+                                                 draggable="true"
+                                                 class="model-thumbnail @(model == WybranyModel ? "selected" : "")" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Brak</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
 
-                <Radio RadioButton
-                       Value="@("Rama")"
-                       Style="width:100%">
-                    Tylko ramy
-                </Radio>
+                <div>
+                    <RadioGroup @bind-Value="radioValueSelect"
+                                ButtonStyle="RadioButtonStyle.Solid"
+                                TValue="string"
+                                OnChange="@OnRadioValueChanged">
+                        <Radio RadioButton Value="@("Rama")" Style="width:100%">Tylko ramy</Radio>
+                        <Radio RadioButton Value="@("Skrzydła")" Style="width:100%">Tylko skrzydła i słupki</Radio>
+                    </RadioGroup>
+                </div>
+            </TabPane>
 
-                <Radio RadioButton
-                       Value="@("Skrzydła")"
-                       Style="width:100%">
-                    Tylko skrzydła i słupki
-                </Radio>
+            <!-- ========== 2. SZYBY ========== -->
+            <TabPane Tab="Szyby" Key="2">
+                <WyborSzyb SelectedSystemId="@SelectedSystemId"
+                               SelectedId="wybranyPakietSzybowyId"
+                               SelectedIdChanged="@(id => wybranyPakietSzybowyId = id)"
+                               OnSelected="@OnPakietSzybowySelected" />
+                </TabPane>
 
-            </RadioGroup>
-        </div>
+            <!-- ========== 3. OKUCIA ========== -->
+            <TabPane Tab="Okucia" Key="3">
+                <div class="sidebar-empty-info">
+                    <p>🔩 Tutaj znajdzie się wybór okuć.</p>
+                    <p style="font-size:10px;color:#9ab;">Miejsce przygotowane na konfigurację okuć.</p>
+                </div>
+            </TabPane>
+
+            <!-- ========== 4. WŁAŚCIWOŚCI DODATKOWE ========== -->
+            <TabPane Tab="Inne" Key="4">
+                <div class="sidebar-empty-info">
+                    <p>⚙️ Tutaj pojawią się dodatkowe właściwości okna.</p>
+                    <p style="font-size:10px;color:#9ab;">Miejsce przygotowane na dodatkowe parametry.</p>
+                </div>
+            </TabPane>
+
+        </Tabs>
     </div>
 
     <!-- Główne okno wyświetlania -->
@@ -1835,6 +1896,9 @@
 
     private List<KonfModele>? ListaModeli;
 
+    // ⭐ NOWE: aktywna zakładka panelu bocznego (1=Modele, 2=Szyby, 3=Okucia, 4=Inne)
+    private string aktywnaZakladka = "1";
+
     private BECanvasComponent? CanvasRef; // Referencja do komponentu BECanvas
     private Canvas2DContext? _context;
     private DotNetObjectReference<Modele_okienne>? _dotNetHelper;
@@ -1923,6 +1987,14 @@
 
     private double _staraSzerokoscPrzedZmiana = 0;
     private double _staraWysokoscPrzedZmiana = 0;
+
+    private Guid? wybranyPakietSzybowyId;
+
+    // Wybrany pakiet szybowy (tryb przypisywania szyb)
+    private PakietSzybowy? WybranyPakietSzybowy;
+
+    // Przypisania: regionId → pakiet szybowy
+    private Dictionary<string, PakietSzybowy> _szybyNaRegion = new();
 
     private readonly SemaphoreSlim _zmienWymiarySemaphore = new(1, 1);
 
@@ -2498,13 +2570,25 @@
         _selectedShapeIndex = (_selectedShapeIndex - 1 + ShapeService.Shapes.Count) % ShapeService.Shapes.Count;
     }
 
-    private void WybierzModel(KonfModele model)
+    private async Task WybierzModel(KonfModele model)
     {
-        WybranyModel = model;
-        // Dodatkowe akcje przy wyborze modelu
-        JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(model.Ikona32x32));
-        JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId);
+        // 1. Wyłącz tryb szyby
+        WybranyPakietSzybowy = null;
+        wybranyPakietSzybowyId = null;
 
+        // 2. ⭐ ZDEJMIJ KLASĘ z body — bez tego kursor zostaje "szklany"
+        await JS.InvokeVoidAsync("document.body.classList.remove", "cursor-glass");
+
+        // 3. Resetuj kursory JS (czyści ewentualne SetCustomCursor z poprzedniego modelu)
+        await JS.InvokeVoidAsync("ResetCursorGlobal");
+        await Task.Yield();
+
+        // 4. Ustaw nowy model + kursor
+        WybranyModel = model;
+        await JS.InvokeVoidAsync("SetCustomCursor", Convert.ToBase64String(model.Ikona32x32));
+        await JS.InvokeVoidAsync("SetCurrentModel", model.Typ, model.RowId);
+
+        StateHasChanged();
     }
 
     void ZmienX(KsztaltElementu ksztalt, int index, double newX)
@@ -3292,6 +3376,9 @@
             // 3. Renderuj ramkę (jeśli potrzebna)
             await RenderFrame();
 
+              // NOWE: overlay szyb
+            await DrawGlassOverlays();
+
 
             // _logger.LogDebug($"🎨 Narysowano {ShapeService.Shapes.Count} kształtów");
         }
@@ -3957,7 +4044,7 @@
             return;
         }
 
-        if (WybranyModel == null)
+        if (WybranyModel == null && WybranyPakietSzybowy == null)
         {
             await _message.Warning("Wybierz model z listy przed przeciągnięciem.", 1.0);
             return;
@@ -3990,6 +4077,21 @@
 
         _lastMouseClick.X = modelX;
         _lastMouseClick.Y = modelY;
+
+        // ═══════════════════════════════════════════════════════════
+        // PRIORYTET 1: TRYB SZYBY (jeśli pakiet wybrany w zakładce)
+        // ═══════════════════════════════════════════════════════════
+        if (WybranyPakietSzybowy != null || WybranyModel == null)
+        {
+            if(relativeX < 0 || relativeY < 0 || relativeX > CanvasWidth || relativeY > CanvasHeight)
+            {
+                await _message.Warning("Pozycja kursora jest poza obszarem okna. Wybierz punkt wewnątrz okna.", 1.5);
+                return;
+            }
+
+            await PrzypiszSzybeDoRegionu(modelX, modelY);
+            return;
+        }
 
         _logger.LogDebug($"🔧 relativeX: {relativeX}, relativeY: {relativeY}, Scale: {_aktywnaSkala}");
         _logger.LogDebug($"📌 Pozycja w modelu: modelX={modelX}, modelY={modelY}");
@@ -4092,6 +4194,31 @@
 
         _logger.LogDebug($"✅ Zakończono dopasowanie modelu do regionu {region.Id}");
 
+    }
+
+    private async Task OnPakietSzybowySelected(PakietSzybowy? pakiet)
+    {
+        // Wyłącz tryb modelu
+        WybranyModel = null;
+
+        // Zdejmij klasę kursora modelu, jeśli była (np. po anulowaniu)
+        // (SetCustomCursor prawdopodobnie sam ustawia coś na body — ResetCursorGlobal to czyści)
+        await JS.InvokeVoidAsync("ResetCursorGlobal");
+
+        if (pakiet != null)
+        {
+            // Tryb szyby aktywny
+            WybranyPakietSzybowy = pakiet;
+            await JS.InvokeVoidAsync("document.body.classList.add", "cursor-glass");
+        }
+        else
+        {
+            // Wyłączono tryb szyby — kursor wraca do domyślnego
+            WybranyPakietSzybowy = null;
+            await JS.InvokeVoidAsync("document.body.classList.remove", "cursor-glass");
+        }
+
+        StateHasChanged();
     }
 
     private IShapeDC FindShapeInRegion(ShapeRegion region)
@@ -4603,6 +4730,44 @@
         {
             _logger.LogDebug($"🔥 Błąd podczas rysowania: {ex.Message}");
         }
+    }
+
+    private async Task PrzypiszSzybeDoRegionu(double modelX, double modelY)
+    {
+        // Znajdź region pod kursorem — bez ograniczenia "tylko rama"
+        var region = FindPolygonRegionAtPosition(modelX, modelY, tylkoRama: false);
+
+        if (region == null)
+        {
+            await _message.Warning($"❌ Nie znaleziono regionu pod kursorem (X: {modelX:F1}, Y: {modelY:F1})", 1.5);
+            return;
+        }
+
+        // Rama nie może mieć szyby
+        if (region.Rama)
+        {
+            await _message.Warning($"⚠️ Region {region.Id} to rama — szybę można przypisać tylko do skrzydła.", 1.5);
+            return;
+        }
+
+        // Toggle: ten sam pakiet już jest → usuń, inny → zamień
+        if (_szybyNaRegion.TryGetValue(region.Id, out var istniejacy)
+            && istniejacy.Id == WybranyPakietSzybowy!.Id)
+        {
+            _szybyNaRegion.Remove(region.Id);
+            await _message.Info($"↩ Usunięto szybę z regionu {region.Id}", 1);
+        }
+        else
+        {
+            _szybyNaRegion[region.Id] = WybranyPakietSzybowy!;
+            await _message.Success($"✅ {WybranyPakietSzybowy!.Nazwa} → region {region.Id}", 1);
+        }
+
+        _logger.LogDebug($"🪟 Szyby w regionach: {_szybyNaRegion.Count}");
+
+        // Wyrysuj oznaczenia na canvasie
+        await DrawAllCanvasElements();   // ← istniejąca metoda; dołożymy w niej overlay
+        StateHasChanged();
     }
 
     public async Task<DraggedModelInfo> GetDraggedModelInfoAsync()
@@ -10195,6 +10360,141 @@
             _logger.LogDebug($"Błąd renderowania: {ex.Message}\n{ex.StackTrace}");
         }
     }
+
+    private async Task DrawGlassOverlays()
+    {
+        if (_context == null || !_szybyNaRegion.Any())
+            return;
+
+        try
+        {
+            // Ta sama transformacja co w RenderFrame — rysujemy w koordynatach modelu
+            await _context.SaveAsync();
+            await _context.SetTransformAsync(1, 0, 0, 1, 0, 0);
+            await _context.TranslateAsync(_offsetX, _offsetY);
+            await _context.ScaleAsync(_aktywnaSkala, _aktywnaSkala);
+
+            int narysowane = 0;
+
+            foreach (var kvp in _szybyNaRegion)
+            {
+                var regionId = kvp.Key;
+                var pakiet = kvp.Value;
+
+                // 1) Znajdź generator dla tego regionu
+                //    Zakładamy, że klucz _generatorStates == region.Id
+                //    Jeśli u Ciebie klucz to coś innego — patrz "Fallback" niżej
+                if (!_generatorStates.TryGetValue(regionId, out var gs))
+                    continue;
+
+                var generator = gs?.Generator;
+                var punkty = generator?.liniaSzkleniaKontur;
+
+                if (punkty == null || punkty.Count < 3)
+                    continue;
+
+                // 2) Filtr „default values" z DrawSingleGlassContour
+                if (punkty.Any(p => p.X <= 1 || p.Y <= 1))
+                    continue;
+
+                // 3) Rysuj
+                await RysujPunktyJakoSzybe(punkty, pakiet);
+                narysowane++;
+            }
+
+            await _context.RestoreAsync();
+
+            _logger.LogDebug($"🪟 DrawGlassOverlays: narysowano {narysowane} szyb z {_szybyNaRegion.Count} przypisań");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug($"⚠️ Błąd rysowania szyb: {ex.Message}\n{ex.StackTrace}");
+        }
+    }
+
+    // Fallback: znajdź generator przez WybranyModel.RowId == regionId
+    private GeneratorState? ZnajdzGeneratorDlaRegionu(string regionId)
+    {
+        // 1) Bezpośredni klucz
+        if (_generatorStates.TryGetValue(regionId, out var direct))
+            return direct;
+
+        // 2) Przez WybranyModel.RowId
+        var byRowId = _generatorStates.Values
+            .FirstOrDefault(gs => gs?.WybranyModel?.RowId.ToString() == regionId);
+        if (byRowId != null) return byRowId;
+
+        // 3) Przez IdRegion na modelu (jeśli istnieje)
+        var byIdRegion = _generatorStates.Values
+            .FirstOrDefault(gs => gs?.WybranyModel != null
+                && gs.WybranyModel.GetType().GetProperty("IdRegion") != null
+                && gs.WybranyModel.GetType().GetProperty("IdRegion")!.GetValue(gs.WybranyModel)?.ToString() == regionId);
+
+        return byIdRegion;
+    }
+
+    private async Task RysujPunktyJakoSzybe(List<XPoint> punkty, PakietSzybowy pakiet)
+    {
+        if (_context == null || punkty == null || punkty.Count < 3)
+            return;
+
+        // Grubość linii: ~1.5 px na ekranie, niezależnie od zoomu
+        float gruboscLinii = (float)(1.5 / Math.Max(_aktywnaSkala, 0.001));
+
+        await _context.BeginPathAsync();
+        await _context.MoveToAsync(punkty[0].X, punkty[0].Y);
+
+        for (int i = 1; i < punkty.Count; i++)
+            await _context.LineToAsync(punkty[i].X, punkty[i].Y);
+
+        await _context.ClosePathAsync();
+
+        // 1) Wypełnienie — półprzezroczysty niebieski
+        await _context.SetFillStyleAsync("rgba(13, 110, 253, 0.18)");
+        await _context.FillAsync();
+
+        // 2) Kontur — wyraźna niebieska linia
+        await _context.SetStrokeStyleAsync("#0d6efd");
+        await _context.SetLineWidthAsync(gruboscLinii);
+        await _context.StrokeAsync();
+
+        // 3) Etykieta — tylko jeśli kontur jest wystarczająco duży na ekranie
+        double minX = punkty.Min(p => p.X);
+        double minY = punkty.Min(p => p.Y);
+        double maxX = punkty.Max(p => p.X);
+        double maxY = punkty.Max(p => p.Y);
+
+        double szerEkran = (maxX - minX) * _aktywnaSkala;
+        double wysEkran = (maxY - minY) * _aktywnaSkala;
+
+        if (szerEkran > 60 && wysEkran > 28)
+        {
+            double fontSize = 36 / Math.Max(_aktywnaSkala, 0.001);
+            double smallFont = fontSize * 0.8;
+            double padding = 4 / Math.Max(_aktywnaSkala, 0.001);
+
+            double x = minX + padding;
+            double y = minY + fontSize + padding;
+
+            await _context.SetTextAlignAsync(TextAlign.Left);
+            await _context.SetTextBaselineAsync(TextBaseline.Top);
+
+            // Etykieta (np. "4/16/4")
+            await _context.SetFillStyleAsync("#0b63ce");
+            await _context.SetFontAsync($"bold {fontSize}px Consolas");
+            await _context.FillTextAsync(pakiet.Etykieta, x, y);
+
+            // Ug — mniejszą czcionką pod spodem
+            await _context.SetFillStyleAsync("#55708a");
+            await _context.SetFontAsync($"{smallFont}px Segoe UI");
+            await _context.FillTextAsync($"Ug={pakiet.Ug:F2}", x, y + fontSize * 1.1);
+
+            // Przywróć domyślne
+            await _context.SetTextAlignAsync(TextAlign.Start);
+            await _context.SetTextBaselineAsync(TextBaseline.Alphabetic);
+        }
+    }
+
 
     private async Task DrawShapeWithVariableOffset(Canvas2DContext context, KsztaltElementu ksztalt, string textureUrl, bool calculate)
     {

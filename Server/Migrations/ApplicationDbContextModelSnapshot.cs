@@ -799,6 +799,56 @@ namespace GEORGE.Server.Migrations
                     b.ToTable("Logowania");
                 });
 
+            modelBuilder.Entity("GEORGE.Shared.Models.PakietSzybowy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Aktywny")
+                        .HasColumnType("bit");
+
+                    b.Property<double>("CenaZaM2")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("DataModyfikacji")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DataUtworzenia")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("Lt")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Nazwa")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Opis")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<double>("Rw")
+                        .HasColumnType("float");
+
+                    b.Property<Guid?>("SystemOkienId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("Ug")
+                        .HasColumnType("float");
+
+                    b.Property<double>("g")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Nazwa");
+
+                    b.ToTable("PakietySzybowe");
+                });
+
             modelBuilder.Entity("GEORGE.Shared.Models.PlikiZlecenProdukcyjnych", b =>
                 {
                     b.Property<long>("Id")
@@ -1401,6 +1451,56 @@ namespace GEORGE.Server.Migrations
                     b.ToTable("Uprawnieniapracownika");
                 });
 
+            modelBuilder.Entity("GEORGE.Shared.Models.WarstwaSzyby", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Gaz")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Grubosc")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Kolejnosc")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Kolor")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("PakietSzybowyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Powloka")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Producent")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RodzajRamki")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RodzajSzyby")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Typ")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Uwagi")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PakietSzybowyId");
+
+                    b.ToTable("WarstwySzyby");
+                });
+
             modelBuilder.Entity("GEORGE.Shared.Models.WzorceKompletacji", b =>
                 {
                     b.Property<long>("Id")
@@ -1855,6 +1955,20 @@ namespace GEORGE.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ZleceniaProdukcyjneZmianyStatusu");
+                });
+
+            modelBuilder.Entity("GEORGE.Shared.Models.WarstwaSzyby", b =>
+                {
+                    b.HasOne("GEORGE.Shared.Models.PakietSzybowy", null)
+                        .WithMany("Warstwy")
+                        .HasForeignKey("PakietSzybowyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GEORGE.Shared.Models.PakietSzybowy", b =>
+                {
+                    b.Navigation("Warstwy");
                 });
 #pragma warning restore 612, 618
         }

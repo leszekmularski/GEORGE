@@ -73,6 +73,8 @@ builder.Services.AddScoped<FileClipboardService>();
 
 builder.Services.AddScoped<ElementLiniowyService>();
 
+builder.Services.AddScoped<GEORGE.Client.Pages.Szyby.PakietSzybowyService>();
+
 builder.Services.AddHighlightJS();
 
 // Globalizacja

@@ -1,0 +1,866 @@
+﻿@page "/budowa-pakietow-szybowych/{SelectedSystemId}"
+@using GEORGE.Client.Pages.Szyby
+@using GEORGE.Shared.Models
+@using AntDesign
+@inject PakietSzybowyService PakietService
+@inject IMessageService Message
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<PageTitle>Budowa pakietów szybowych</PageTitle>
+
+<style>
+    .bp-page {
+        min-height: 100vh;
+        background: #eef5fc;
+        font-family: "Segoe UI", Arial, sans-serif;
+        color: #243447;
+    }
+
+    .bp-header {
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 16px;
+        background: #f5f9fe;
+        border-bottom: 1px solid #bfd2e5;
+        box-shadow: 0 3px 12px rgba(0,0,0,.15);
+    }
+
+    .bp-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: #1f3850;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .bp-title::before {
+            content: "";
+            width: 5px;
+            height: 22px;
+            border-radius: 2px;
+            background: #0d6efd;
+        }
+
+    .bp-main {
+        display: flex;
+        height: calc(100vh - 52px);
+        overflow: hidden;
+    }
+
+    /* Sidebar */
+    .bp-sidebar {
+        flex: 0 0 300px;
+        min-width: 300px;
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(180deg, #f4f8fc, #e7f0f8);
+        border-right: 1px solid #bfd2e5;
+        overflow: hidden;
+    }
+
+    .bp-sidebar-top {
+        padding: 10px;
+        border-bottom: 1px solid #bfd2e5;
+    }
+
+    .bp-search {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #a8bfd5;
+        border-radius: 4px;
+        font-size: 12px;
+        background: #f7fbff;
+    }
+
+    .bp-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .bp-list-item {
+        padding: 8px 10px;
+        background: #eef5fb;
+        border: 1px solid #c3d6e8;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 5px;
+        transition: .15s;
+    }
+
+        .bp-list-item:hover {
+            background: #dcecf9;
+            border-color: #a8bfd5;
+        }
+
+        .bp-list-item.active {
+            background: #dcecff;
+            border: 2px solid #0d6efd;
+        }
+
+    .bp-list-nazwa {
+        font-weight: 600;
+        font-size: 12px;
+        color: #243b53;
+        margin-bottom: 2px;
+    }
+
+    .bp-list-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #688198;
+    }
+
+    .bp-list-etykieta {
+        font-family: Consolas, monospace;
+        color: #0b63ce;
+        font-weight: 600;
+    }
+
+    .bp-list-inactive {
+        opacity: .5;
+    }
+
+    /* Editor */
+    .bp-editor {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 20px;
+    }
+
+    .bp-editor-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .bp-toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f5f9fd;
+        border: 1px solid #c3d6e8;
+        border-radius: 5px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+
+    .bp-toolbar-spacer {
+        flex: 1;
+    }
+
+    .bp-section {
+        background: #f5f9fd;
+        border: 1px solid #c3d6e8;
+        border-radius: 5px;
+        padding: 14px;
+        margin-bottom: 14px;
+    }
+
+    .bp-section-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #0b63ce;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        margin: 0 0 10px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #c3d6e8;
+    }
+
+    .bp-field {
+        margin-bottom: 10px;
+    }
+
+        .bp-field label {
+            display: block;
+            font-size: 11px;
+            color: #55708a;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .bp-field input, .bp-field select, .bp-field textarea {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #a8bfd5;
+            border-radius: 4px;
+            background: #ffffff;
+            font-size: 12px;
+            color: #243447;
+            box-sizing: border-box;
+        }
+
+            .bp-field input:focus, .bp-field select:focus {
+                outline: none;
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 2px rgba(13,110,253,.15);
+            }
+
+    .bp-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .bp-grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+    }
+
+    /* Preview */
+    .bp-preview {
+        display: flex;
+        width: 100%;
+        height: 90px;
+        border: 2px solid #6c9bc7;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #e7f0f8;
+        margin: 8px 0;
+        box-shadow: inset 0 0 8px rgba(0,0,0,.08);
+    }
+
+    .bp-preview-layer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: #1e4a6b;
+        text-shadow: 0 1px 0 rgba(255,255,255,.6);
+        transition: all .2s;
+        min-width: 2px;
+        box-sizing: border-box;
+    }
+
+        .bp-preview-layer.layer-glass {
+            background: linear-gradient(180deg, #e8f4fc 0%, #9ec5e0 50%, #c9e2f0 100%);
+            border-right: 1px solid #5a8aad;
+        }
+
+        .bp-preview-layer.layer-spacer {
+            background: repeating-linear-gradient(45deg, #b0b8c0, #b0b8c0 3px, #d4dae0 3px, #d4dae0 6px);
+            border-right: 1px solid #6a7580;
+            color: #2a3540;
+        }
+
+        .bp-preview-layer:last-child {
+            border-right: none;
+        }
+
+    .bp-preview-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #688198;
+    }
+
+    .bp-total {
+        text-align: center;
+        font-family: Consolas, monospace;
+        color: #0b63ce;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 6px 0;
+    }
+
+    /* Layer rows */
+    .bp-layers {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 10px;
+    }
+
+    .bp-layer-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        padding: 8px;
+        background: #ffffff;
+        border: 1px solid #c3d6e8;
+        border-radius: 4px;
+    }
+
+    .bp-layer-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .bp-layer-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        margin-bottom: 12px;
+    }
+
+    .badge-glass {
+        background: #d9ebf7;
+        color: #1e4a6b;
+    }
+
+    .badge-spacer {
+        background: #d4dae0;
+        color: #2a3540;
+    }
+
+    .bp-layer-field {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .bp-layer-field label {
+            font-size: 10px;
+            color: #55708a;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .bp-layer-field input, .bp-layer-field select {
+            padding: 4px 6px;
+            border: 1px solid #a8bfd5;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+    .bp-thickness {
+        width: 90px;
+    }
+
+    .bp-layer-field-wide {
+        flex: 1;
+        min-width: 110px;
+    }
+
+    .bp-icon-btn {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid #a8bfd5;
+        border-radius: 3px;
+        background: #e5eff8;
+        color: #29445b;
+        font-size: 11px;
+        cursor: pointer;
+    }
+
+        .bp-icon-btn:hover:not(:disabled) {
+            background: #d3e5f5;
+            border-color: #6d9bc4;
+        }
+
+        .bp-icon-btn:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+    .bp-icon-btn-danger {
+        background: #fbe5e5;
+        border-color: #e0a8a8;
+        color: #a02020;
+    }
+
+        .bp-icon-btn-danger:hover:not(:disabled) {
+            background: #f8d0d0;
+            border-color: #c06060;
+        }
+
+    .bp-empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: #688198;
+    }
+
+        .bp-empty h3 {
+            color: #243b53;
+        }
+</style>
+
+<div class="bp-page">
+    <div class="bp-header">
+        <button class="btn btn-sm btn-outline-secondary"
+                @onclick='() => Nav.NavigateTo(string.IsNullOrEmpty(SelectedSystemId)
+                                                                            ? "/Modele-okienne"
+                                                                            : $"/Modele-okienne/{SelectedSystemId}")'>
+            ← Wstecz
+        </button>
+        <h3 class="bp-title">Budowa pakietów szybowych</h3>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm btn-outline-primary" @onclick="PokazImport">📥 Import JSON</button>
+        <button class="btn btn-sm btn-outline-primary" @onclick="Eksportuj">📤 Eksport JSON</button>
+        <button class="btn btn-sm btn-outline-warning" @onclick="Resetuj">♻ Reset</button>
+        <button class="btn btn-sm btn-success" @onclick="NowyPakiet">+ Nowy pakiet</button>
+    </div>
+
+    <div class="bp-main">
+        <aside class="bp-sidebar">
+            <div class="bp-sidebar-top">
+                <input class="bp-search" placeholder="🔍 Szukaj pakietu..."
+                       @bind="Filtr" @bind:event="oninput" />
+            </div>
+            <div class="bp-list">
+                @foreach (var p in FiltrowanePakiety)
+                {
+                    <div class="bp-list-item @(p.Id == Edytowany?.Id ? "active" : "") @(!p.Aktywny ? "bp-list-inactive" : "")"
+                         @onclick="() => WybierzDoEdycji(p)">
+                        <div class="bp-list-nazwa">@p.Nazwa</div>
+                        <div class="bp-list-info">
+                            <span class="bp-list-etykieta">@p.Etykieta</span>
+                            <span>@p.GruboscCalkowita.ToString("0.#") mm</span>
+                        </div>
+                    </div>
+                }
+                @if (!FiltrowanePakiety.Any())
+                {
+                    <div style="text-align:center; padding:20px; color:#9ab; font-size:11px;">
+                        Brak pakietów spełniających filtr.
+                    </div>
+                }
+            </div>
+        </aside>
+
+        <main class="bp-editor">
+            @if (Edytowany == null)
+            {
+                <div class="bp-empty">
+                    <h3>👈 Wybierz pakiet z listy lub utwórz nowy</h3>
+                    <p>Kliknij <b>+ Nowy pakiet</b>, aby rozpocząć budowę pakietu szybowego.</p>
+                </div>
+            }
+            else
+            {
+                <div class="bp-editor-inner">
+                    <div class="bp-toolbar">
+                        <button class="btn btn-sm btn-success" @onclick="Zapisz">💾 Zapisz</button>
+                        <button class="btn btn-sm btn-secondary" @onclick="Anuluj">✕ Anuluj</button>
+                        <button class="btn btn-sm btn-primary" @onclick="Klonuj">📋 Klonuj</button>
+                        <div class="bp-toolbar-spacer"></div>
+                        <button class="btn btn-sm btn-danger" @onclick="Usun">🗑 Usuń</button>
+                    </div>
+
+                    <div class="bp-section">
+                        <h4 class="bp-section-title">Podstawowe informacje</h4>
+                        <div class="bp-grid-2">
+                            <div class="bp-field">
+                                <label>Nazwa pakietu</label>
+                                <input @bind="Edytowany.Nazwa" placeholder="np. 4/16/4 niskoemisyjna" />
+                            </div>
+                            <div class="bp-field" style="display:flex; align-items:flex-end;">
+                                <label style="display:flex; align-items:center; gap:6px; margin:0; cursor:pointer;">
+                                    <input type="checkbox" style="width:auto;" @bind="Edytowany.Aktywny" />
+                                    Pakiet aktywny (widoczny w wyborze)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="bp-field">
+                            <label>Opis</label>
+                            <textarea rows="2" @bind="Edytowany.Opis" placeholder="Krótki opis pakietu..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="bp-section">
+                        <h4 class="bp-section-title">Budowa pakietu (od zewnątrz do wewnątrz)</h4>
+
+                        <div class="bp-preview-labels">
+                            <span>⬅ Strona zewnętrzna</span>
+                            <span>Strona wewnętrzna ➡</span>
+                        </div>
+                        <div class="bp-preview">
+                            @foreach (var w in Edytowany.Warstwy.OrderBy(x => x.Kolejnosc))
+                            {
+                                var widthPct = GetWidthPct(w);
+                                var widthCss = widthPct.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
+                                <div class="bp-preview-layer @(w.Typ == TypWarstwy.Szyba ? "layer-glass" : "layer-spacer")"
+                                     style="width:@(widthCss)%;"
+                                     title="@GetLayerTitle(w)">
+                                    @if (widthPct > 5)
+                                    {
+                                        <span>@w.Grubosc.ToString("0.#")</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="bp-total">
+                            Grubość całkowita: @Edytowany.GruboscCalkowita.ToString("0.#") mm
+                            &nbsp;|&nbsp; Szyb: @Edytowany.LiczbaSzyb
+                            &nbsp;|&nbsp; Etykieta: @Edytowany.Etykieta
+                        </div>
+
+                        <div class="bp-layers">
+                            @for (int i = 0; i < Edytowany.Warstwy.Count; i++)
+                            {
+                                var idx = i;
+                                var w = Edytowany.Warstwy[i];
+
+                                <div class="bp-layer-row">
+                                    <div class="bp-layer-actions">
+                                        <button class="bp-icon-btn" disabled="@(idx == 0)"
+                                                @onclick="() => PrzesunWarstwe(idx, -1)" title="W górę">
+                                            ▲
+                                        </button>
+                                        <button class="bp-icon-btn" disabled="@(idx == Edytowany.Warstwy.Count - 1)"
+                                                @onclick="() => PrzesunWarstwe(idx, 1)" title="W dół">
+                                            ▼
+                                        </button>
+                                    </div>
+
+                                    <span class="bp-layer-badge @(w.Typ == TypWarstwy.Szyba ? "badge-glass" : "badge-spacer")">
+                                        @(w.Typ == TypWarstwy.Szyba ? "Szyba" : "Ramka")
+                                    </span>
+
+                                    <div class="bp-layer-field bp-thickness">
+                                        <label>Grubość [mm]</label>
+                                        <input type="number" step="0.5" min="0.5"
+                                               @bind="w.Grubosc" @bind:event="oninput" />
+                                    </div>
+
+                                    @if (w.Typ == TypWarstwy.Szyba)
+                                    {
+                                        <div class="bp-layer-field bp-layer-field-wide">
+                                            <label>Rodzaj szyby</label>
+                                            <select @bind="w.RodzajSzyby">
+                                                @foreach (var r in Enum.GetValues<RodzajSzyby>())
+                                                {
+                                                    <option value="@r">@r</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="bp-layer-field bp-layer-field-wide">
+                                            <label>Powłoka</label>
+                                            <input @bind="w.Powloka" placeholder="np. ONE" />
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="bp-layer-field bp-layer-field-wide">
+                                            <label>Materiał ramki</label>
+                                            <select @bind="w.RodzajRamki">
+                                                @foreach (var r in Enum.GetValues<RodzajRamki>())
+                                                {
+                                                    <option value="@r">@r</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="bp-layer-field bp-layer-field-wide">
+                                            <label>Gaz</label>
+                                            <select @bind="w.Gaz">
+                                                @foreach (var g in Enum.GetValues<GazWRamce>())
+                                                {
+                                                    <option value="@g">@g</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    }
+
+                                    <button class="bp-icon-btn bp-icon-btn-danger"
+                                            @onclick="() => UsunWarstwe(idx)" title="Usuń warstwę">
+                                        ×
+                                    </button>
+                                </div>
+                            }
+                        </div>
+
+                        <div style="margin-top:12px; display:flex; gap:8px;">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="DodajSzybe">+ Szyba</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="DodajRamke">+ Ramka</button>
+                        </div>
+                    </div>
+
+                    <div class="bp-section">
+                        <h4 class="bp-section-title">Parametry cieplno-optyczne</h4>
+                        <div class="bp-grid-3">
+                            <div class="bp-field">
+                                <label>Ug [W/(m²·K)]</label>
+                                <input type="number" step="0.05" min="0" @bind="Edytowany.Ug" />
+                            </div>
+                            <div class="bp-field">
+                                <label>Lt [%]</label>
+                                <input type="number" step="1" min="0" max="100" @bind="Edytowany.Lt" />
+                            </div>
+                            <div class="bp-field">
+                                <label>g (współczynnik słoneczny)</label>
+                                <input type="number" step="0.01" min="0" max="1" @bind="Edytowany.g" />
+                            </div>
+                            <div class="bp-field">
+                                <label>Rw [dB]</label>
+                                <input type="number" step="1" min="0" @bind="Edytowany.Rw" />
+                            </div>
+                            <div class="bp-field">
+                                <label>Cena [zł/m²]</label>
+                                <input type="number" step="1" min="0" @bind="Edytowany.CenaZaM2" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </main>
+    </div>
+</div>
+
+<Modal Title="Import pakietów z JSON"
+       Visible="@_pokazImport"
+       OnOk="WykonajImport"
+       OnCancel="() => _pokazImport = false"
+       Width="@("700px")">
+    <div class="bp-field">
+        <label>Wklej zawartość JSON</label>
+        <textarea rows="14" @bind="_importJson"
+                  style="font-family:Consolas, monospace; font-size:11px; width:100%;"></textarea>
+    </div>
+</Modal>
+
+@code {
+    [Parameter]
+    public string? SelectedSystemId { get; set; }
+
+    private IReadOnlyList<PakietSzybowy> _pakiety = Array.Empty<PakietSzybowy>();
+    private PakietSzybowy? Edytowany;
+    private Guid? _zapamietanyId;
+    private string Filtr = "";
+    private string _importJson = "";
+    private bool _pokazImport = false;
+
+    private IEnumerable<PakietSzybowy> FiltrowanePakiety =>
+        string.IsNullOrWhiteSpace(Filtr)
+            ? _pakiety
+            : _pakiety.Where(p => p.Nazwa.Contains(Filtr, StringComparison.OrdinalIgnoreCase)
+                               || p.Etykieta.Contains(Filtr, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        PakietService.OnChange += HandleChange;
+        await PakietService.EnsureLoadedAsync();
+        Odswiez();
+    }
+
+    private void HandleChange() => InvokeAsync(() =>
+    {
+        Odswiez();
+        if (_zapamietanyId.HasValue && Edytowany?.Id != _zapamietanyId)
+        {
+            var refreshed = _pakiety.FirstOrDefault(p => p.Id == _zapamietanyId.Value);
+            if (refreshed != null) Edytowany = refreshed.Clone();
+        }
+        StateHasChanged();
+    });
+
+    private void Odswiez() => _pakiety = PakietService.GetAll();
+
+    private void WybierzDoEdycji(PakietSzybowy p)
+    {
+        Edytowany = p.Clone();
+        _zapamietanyId = p.Id;
+    }
+
+    private void NowyPakiet()
+    {
+        Edytowany = new PakietSzybowy
+        {
+            Nazwa = "Nowy pakiet 2 szybowy",
+            Aktywny = true,
+            Ug = 1.0,
+            Lt = 75,
+            g = 0.60,
+            Rw = 32,
+            CenaZaM2 = 150,
+            SystemOkienId = Guid.Parse(SelectedSystemId ?? Guid.Empty.ToString()),
+            Warstwy = new()
+            {
+                new() { Typ = TypWarstwy.Szyba, Grubosc = 4, RodzajSzyby = RodzajSzyby.Float, Kolejnosc = 0 },
+                new() { Typ = TypWarstwy.Ramka, Grubosc = 16, RodzajRamki = RodzajRamki.WarmEdge, Gaz = GazWRamce.Argon, Kolejnosc = 1 },
+                new() { Typ = TypWarstwy.Szyba, Grubosc = 4, RodzajSzyby = RodzajSzyby.Niskoemisyjne, Powloka = "ONE", Kolejnosc = 2 }
+            }
+        };
+        _zapamietanyId = Edytowany.Id;
+    }
+
+    private void DodajSzybe()
+    {
+        if (Edytowany == null) return;
+        var maxOrder = Edytowany.Warstwy.Any() ? Edytowany.Warstwy.Max(w => w.Kolejnosc) : -1;
+        Edytowany.Warstwy.Add(new WarstwaSzyby { Typ = TypWarstwy.Szyba, Grubosc = 4, Kolejnosc = maxOrder + 1 });
+    }
+
+    private void DodajRamke()
+    {
+        if (Edytowany == null) return;
+        var maxOrder = Edytowany.Warstwy.Any() ? Edytowany.Warstwy.Max(w => w.Kolejnosc) : -1;
+        Edytowany.Warstwy.Add(new WarstwaSzyby { Typ = TypWarstwy.Ramka, Grubosc = 16, Kolejnosc = maxOrder + 1 });
+    }
+
+    private void UsunWarstwe(int index)
+    {
+        if (Edytowany == null) return;
+        if (index >= 0 && index < Edytowany.Warstwy.Count)
+            Edytowany.Warstwy.RemoveAt(index);
+    }
+
+    private void PrzesunWarstwe(int index, int dir)
+    {
+        if (Edytowany == null) return;
+        var newIndex = index + dir;
+        if (newIndex < 0 || newIndex >= Edytowany.Warstwy.Count) return;
+        var item = Edytowany.Warstwy[index];
+        Edytowany.Warstwy.RemoveAt(index);
+        Edytowany.Warstwy.Insert(newIndex, item);
+    }
+
+    private async Task Zapisz()
+    {
+        if (Edytowany == null) return;
+
+        if (string.IsNullOrWhiteSpace(Edytowany.Nazwa))
+        {
+            await Message.Warning("Nadaj nazwę pakietowi.", 2);
+            return;
+        }
+        if (!Edytowany.Warstwy.Any())
+        {
+            await Message.Warning("Dodaj co najmniej jedną warstwę.", 2);
+            return;
+        }
+
+        try
+        {
+            // Ustaw Kolejnosc zgodnie z kolejnością listy
+            for (int i = 0; i < Edytowany.Warstwy.Count; i++)
+                Edytowany.Warstwy[i].Kolejnosc = i;
+
+            _zapamietanyId = Edytowany.Id;
+            await PakietService.SaveAsync(Edytowany);
+            await Message.Success($"Zapisano: {Edytowany.Nazwa}", 2);
+        }
+        catch (Exception ex)
+        {
+            await Message.Error($"Błąd zapisu: {ex.Message}", 3);
+        }
+    }
+
+    private void Anuluj()
+    {
+        Edytowany = null;
+        _zapamietanyId = null;
+    }
+
+    private async Task Klonuj()
+    {
+        if (Edytowany == null) return;
+        try
+        {
+            var clone = Edytowany.CloneWithNewId();
+            var saved = await PakietService.SaveAsync(clone);
+            Edytowany = saved.Clone();
+            _zapamietanyId = saved.Id;
+            await Message.Success($"Utworzono kopię: {saved.Nazwa}", 2);
+        }
+        catch (Exception ex)
+        {
+            await Message.Error($"Błąd klonowania: {ex.Message}", 3);
+        }
+    }
+
+    private async Task Usun()
+    {
+        if (Edytowany == null) return;
+
+        var confirm = await JS.InvokeAsync<bool>("confirm",
+            $"Czy na pewno usunąć pakiet „{Edytowany.Nazwa}”?");
+        if (!confirm) return;
+
+        try
+        {
+            await PakietService.DeleteAsync(Edytowany.Id);
+            Edytowany = null;
+            _zapamietanyId = null;
+            await Message.Info("Pakiet usunięty.", 1.5);
+        }
+        catch (Exception ex)
+        {
+            await Message.Error($"Błąd usuwania: {ex.Message}", 3);
+        }
+    }
+
+    private void PokazImport()
+    {
+        _importJson = "";
+        _pokazImport = true;
+    }
+
+    private async Task WykonajImport()
+    {
+        try
+        {
+            await PakietService.ImportToServerAsync(_importJson, replaceAll: true);
+            _pokazImport = false;
+            Odswiez();
+            await Message.Success("Zaimportowano pakiety.", 2);
+        }
+        catch (Exception ex)
+        {
+            await Message.Error($"Błąd importu: {ex.Message}", 3);
+        }
+    }
+
+    private async Task Eksportuj()
+    {
+        try
+        {
+            var json = PakietService.ExportJson();
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", json);
+            await Message.Success("JSON skopiowany do schowka.", 2);
+        }
+        catch (Exception ex)
+        {
+            await Message.Error($"Błąd eksportu: {ex.Message}", 3);
+        }
+    }
+
+    private async Task Resetuj()
+    {
+        var confirm = await JS.InvokeAsync<bool>("confirm",
+            "Przywrócić pakiety domyślne? Wszystkie Twoje zmiany zostaną utracone.");
+        if (!confirm) return;
+
+        try
+        {
+            await PakietService.ResetAsync();
+            Edytowany = null;
+            _zapamietanyId = null;
+            await Message.Info("Przywrócono pakiety domyślne.", 2);
+        }
+        catch (Exception ex)
+        {
+            await Message.Error($"Błąd resetu: {ex.Message}", 3);
+        }
+    }
+
+    private double GetWidthPct(WarstwaSzyby w)
+    {
+        var total = Edytowany?.GruboscCalkowita ?? 0;
+        if (total <= 0) return 0;
+        return (w.Grubosc / total) * 100;
+    }
+
+    private string GetLayerTitle(WarstwaSzyby w)
+    {
+        if (w.Typ == TypWarstwy.Szyba)
+        {
+            var extra = string.IsNullOrEmpty(w.Powloka) ? "" : $" ({w.Powloka})";
+            return $"Szyba {w.Grubosc} mm – {w.RodzajSzyby}{extra}";
+        }
+        return $"Ramka {w.Grubosc} mm – {w.RodzajRamki}, {w.Gaz}";
+    }
+}

@@ -8,15 +8,158 @@
 @using System.Timers;
 @using GEORGE.Client.Pages.Models
 
+<style>
+    .currency-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1055;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .currency-modal__content {
+        border: none;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+        animation: currencyModalIn 0.25s ease-out;
+    }
+
+    @@keyframes currencyModalIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    }
+
+    .currency-modal__header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        color: #fff;
+        border-bottom: none;
+        padding: 1.25rem 1.5rem;
+        align-items: flex-start;
+    }
+
+    .currency-modal__eyebrow {
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.8;
+        margin-bottom: 0.15rem;
+    }
+
+    .currency-modal__title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .currency-modal__close {
+        background: transparent;
+        border: 0;
+        color: #fff;
+        opacity: 0.85;
+        font-size: 1.5rem;
+        line-height: 1;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background 0.15s, opacity 0.15s;
+    }
+
+        .currency-modal__close:hover,
+        .currency-modal__close:focus-visible {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+        }
+
+    .currency-modal__body {
+        padding: 2rem 1.5rem;
+        background: #f8fafc;
+    }
+
+    .currency-modal__rate {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.5rem;
+        text-align: center;
+    }
+
+    .currency-modal__rate-prefix,
+    .currency-modal__rate-suffix {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #64748b;
+        letter-spacing: 0.05em;
+    }
+
+    .currency-modal__rate-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+    }
+
+    .currency-modal__footer {
+        border-top: 1px solid #e2e8f0;
+        padding: 1rem 1.5rem;
+        background: #fff;
+    }
+
+    .currency-modal__btn {
+        background: #2563eb;
+        color: #fff;
+        border: 0;
+        border-radius: 0.6rem;
+        padding: 0.55rem 1.5rem;
+        font-weight: 600;
+        transition: background 0.15s, transform 0.05s;
+    }
+
+        .currency-modal__btn:hover {
+            background: #1d4ed8;
+            color: #fff;
+        }
+
+        .currency-modal__btn:active {
+            transform: translateY(1px);
+        }
+
+        .currency-modal__btn:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, 0.4);
+            outline-offset: 2px;
+        }
+
+    /* Ciemniejsze tło pod modalem */
+    .modal-backdrop.show {
+        opacity: 0.55;
+        background: #0f172a;
+    }
+</style>
+
 <CascadingValue Name="MainLayoutInstance" Value="this">
     <CascadingValue Name="OnlyIcon" Value="OnlyIcon">
-    @* <CascadingValue Value="AppState"> *@
+        @* <CascadingValue Value="AppState"> *@
         <div class="page">
             <div class="sidebar @(showSidebar ? "collapsed" : "expanded")">
                 <NavMenu ToggleSidebar="ToggleSidebar" />
             </div>
 
-            <main >
+            <main>
 
                 <div class="main-layout">
 
@@ -24,25 +167,25 @@
 
                         <!-- Przycisk wywołujący akcję na stronie -->
                         @if (!string.IsNullOrEmpty(AppState.SomeData))
-                 @*        @if (!string.IsNullOrEmpty(opisPrzycisku)) *@
+                        @*        @if (!string.IsNullOrEmpty(opisPrzycisku)) *@
                         {
                             <Button Type="primary" Style="width:100%" OnClick="@(async () =>
-                                {
-                                    if (OnShowDialogAddNew.HasDelegate)
-                                    {
-                                        await OnShowDialogAddNew.InvokeAsync(null);
-                                        Console.WriteLine("EventCallback wywołany");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("EventCallback nie przypisany");
-                                    }
-                                })">
-                                @AppState.SomeData
-                            </Button>
-                        }
+                                                                                                      {
+                                                                                                          if (OnShowDialogAddNew.HasDelegate)
+                                                                                                          {
+                                                                                                              await OnShowDialogAddNew.InvokeAsync(null);
+                                                                                                              Console.WriteLine("EventCallback wywołany");
+                                                                                                          }
+                                                                                                          else
+                                                                                                          {
+                                                                                                              Console.WriteLine("EventCallback nie przypisany");
+                                                                                                          }
+                                                                                                      })">
+                            @AppState.SomeData
+                        </Button>
+                                                }
 
-                        <a @onclick="@(()=>{ ShowDialogInfo(); })">Informacja</a>
+                        <a @onclick="@(() => { ShowDialogInfo(); })">Informacja</a>
                         <button class="btn btn-link" @onclick="OnClickEuro">Kurs Euro</button>
 
                         @if (loggedIn)
@@ -88,26 +231,39 @@
 </CascadingValue>
 <div class="modal-backdrop fade @(showEuro ? "show" : "") @(displayEuro ? "d-block" : "d-none")"></div>
 
-<div class="modal fade @(showEuro ? "show" : "")  @(displayEuro ? "d-block" : "d-none")" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">[Kurs dnia: @DateTime.Now]</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="CloseModal">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="del_zlec" class="form-label">@strkurs</label>
+@if (displayEuro)
+{
+    <div class="currency-modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="currencyModalTitle">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content currency-modal__content">
+                <div class="modal-header currency-modal__header">
+                    <div>
+                        <div class="currency-modal__eyebrow">Kurs dnia</div>
+                        <h5 class="modal-title currency-modal__title" id="currencyModalTitle">
+                            @DateTime.Now.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("pl-PL"))
+                        </h5>
+                    </div>
+                    <button type="button" class="currency-modal__close" aria-label="Zamknij" @onclick="CloseModal">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="CloseModal">Zamknij</button>
+
+                <div class="modal-body currency-modal__body">
+                    <div class="currency-modal__rate">
+                        <span class="currency-modal__rate-prefix">EUR</span>
+                        <span class="currency-modal__rate-value">@strkurs</span>
+                        <span class="currency-modal__rate-suffix">PLN</span>
+                    </div>
+                </div>
+
+                <div class="modal-footer currency-modal__footer">
+                    <button type="button" class="btn currency-modal__btn" @onclick="CloseModal">Zamknij</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    <div class="modal-backdrop fade show" @onclick="CloseModal"></div>
+}
 
 <div class="modal fade @(showLog ? "show" : "")   @(displayLog ? "d-block" : "d-none") fixed-position" tabindex="0" role="dialog">
     <div class="modal-dialog" role="document">
@@ -399,11 +555,11 @@
 
                         var userAgent = await jsRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
                         var logowania = new Logowania
-                            {
-                                Uzytkownik = user,
-                                RodzajPrzegladarki = userAgent,
-                                Datalogowania = DateTime.Now,
-                            };
+                        {
+                            Uzytkownik = user,
+                            RodzajPrzegladarki = userAgent,
+                            Datalogowania = DateTime.Now,
+                        };
 
                         await Http.PostAsJsonAsync($"/api/Logowania", logowania);
 

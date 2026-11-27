@@ -36,6 +36,8 @@ namespace GEORGE.Server
         public DbSet<WzorceKompletacji> WzorceKompltacji => Set<WzorceKompletacji>(); //Wersja shared: 1.0.1.5 Wersja server:1.1.2.0
         public DbSet<Schody> Schody => Set<Schody>(); //Wersja shared: 1.0.2.4 Wersja server: 1.1.3.4
         public DbSet<Drzwi> Drzwi => Set<Drzwi>(); //Wersja shared: 1.0.2.4 Wersja server: 1.1.3.5
+        public DbSet<PakietSzybowy> PakietySzybowe { get; set; } //Wersja shared: 1.0.3.3 Wersja server: 1.1.4.9
+        public DbSet<WarstwaSzyby> WarstwySzyby { get; set; } //Wersja shared: 1.0.3.3 Wersja server: 1.1.4.9
 
         //***********************************************************************************************************************************************************************************************
 
@@ -200,7 +202,7 @@ namespace GEORGE.Server
 
             plik.IloscPobranPliku = plik.IloscPobranPliku + 1;
             plik.DataOstatniegoPobrania = DateTime.Now;
-            if(plik.DataPierwszegoPobrania == DateTime.MinValue) plik.DataPierwszegoPobrania = DateTime.Now;
+            if (plik.DataPierwszegoPobrania == DateTime.MinValue) plik.DataPierwszegoPobrania = DateTime.Now;
 
             if (plik.IloscPobranPliku == 0)
                 plik.DataPierwszegoPobrania = DateTime.MinValue;
@@ -208,11 +210,23 @@ namespace GEORGE.Server
             await SaveChangesAsync();
             return true;
         }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<PakietSzybowy>()
+                .HasMany(p => p.Warstwy)
+                .WithOne()
+                .HasForeignKey(w => w.PakietSzybowyId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PakietSzybowy>()
+                .HasIndex(p => p.Nazwa);
+
             modelBuilder.Entity<RodzajeKartInstrukcyjnych>()
-                .HasIndex(r => r.NumerRodzajuKart)
-                .IsUnique();
+             .HasIndex(r => r.NumerRodzajuKart)
+             .IsUnique();
         }
     }
 }

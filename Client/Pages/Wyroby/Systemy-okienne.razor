@@ -646,6 +646,31 @@
 
                                                     </button>
 
+                                                    <!-- 4. Pakiety szybowe -->
+                                                    <button type="button"
+                                                            class="action-card action-info"
+                                                            @onclick="() => GoKonfiguratorPakietowSzybowych(system.Id, system.RowId)"
+                                                            title="Konfigurator pakietów szybowych"
+                                                            disabled="@system.Wycofany_z_produkcji">
+
+                                                        <span class="action-icon">
+                                                            <i class="bi bi-grid-3x3-gap"></i>
+                                                        </span>
+
+                                                        <span class="action-content">
+                                                            <span class="action-title">
+                                                                Pakiety szybowe
+                                                            </span>
+
+                                                            <span class="action-description">
+                                                                Dodaj / Edytuj / Usuń pakiet szybowy w systemie
+                                                            </span>
+                                                        </span>
+
+                                                        <i class="bi bi-chevron-right action-arrow"></i>
+
+                                                    </button>
+
                                                 </div>
 
                                             </div>
@@ -1044,6 +1069,11 @@
     private void GoKonfiguratorPolaczenKwadratow(int systemId, Guid rowId)
     {
         Navigation.NavigateTo($"/KonfiguratorPolaczenKwadratow/{rowId}");
+    }
+
+    private void GoKonfiguratorPakietowSzybowych(int systemId, Guid rowId)
+    {
+        Navigation.NavigateTo($"/budowa-pakietow-szybowych/{rowId}");
     }
 
     // Zmienne uprawnień
